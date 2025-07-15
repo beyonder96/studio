@@ -58,10 +58,11 @@ export default function AppSidebar() {
             </SidebarMenuButton>
           </SidebarMenuItem>
           <SidebarMenuItem>
-            <SidebarMenuButton asChild isActive={isActive("/copilot")} tooltip="Copiloto IA">
+            <SidebarMenuButton asChild isActive={isActive("/copilot")} tooltip="Copiloto IA (Em Breve)" disabled>
               <Link href="#">
                 <Sparkles />
                 <span>Copiloto IA</span>
+                 <Badge variant="outline" className="ml-auto !text-xs text-muted-foreground font-medium">Em Breve</Badge>
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
