@@ -101,10 +101,6 @@ export default function ProfilePage() {
                 <Edit className="mr-2 h-4 w-4" />
                 Editar Perfil
             </Button>
-             <Button variant="secondary" disabled>
-                <Share2 className="mr-2 h-4 w-4" />
-                Compartilhar
-            </Button>
         </div>
 
        {/* Content Area */}
