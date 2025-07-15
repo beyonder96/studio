@@ -1,33 +1,32 @@
 import { BalanceCard } from '@/components/dashboard/balance-card';
 import { SummaryCard } from '@/components/dashboard/summary-card';
 import { ExpensesChart } from '@/components/dashboard/expenses-chart';
-import { CopilotCard } from '@/components/dashboard/copilot-card';
+import { RecurrencesCard } from '@/components/dashboard/recurrences-card';
 import { TransactionsOverview } from '@/components/dashboard/transactions-overview';
-import { GoalsOverview } from '@/components/dashboard/goals-overview';
-import { TasksOverview } from '@/components/dashboard/tasks-overview';
+import { Badge } from '@/components/ui/badge';
+import { Heart } from 'lucide-react';
+
 
 export default function Home() {
   return (
-    <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
-      <div className="lg:col-span-12">
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
-          <BalanceCard />
-          <SummaryCard type="income" />
-          <SummaryCard type="expenses" />
-          <CopilotCard />
+    <div className="flex flex-col gap-6">
+       <Badge variant="secondary" className="w-fit gap-2 rounded-lg p-2 text-sm font-normal">
+          <Heart className="h-4 w-4 text-pink-500 fill-pink-500" />
+          <span>2 anos. Próximo aniversário em 347 dias.</span>
+        </Badge>
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
+        <BalanceCard />
+        <SummaryCard type="income" />
+        <SummaryCard type="expenses" />
+        <RecurrencesCard />
+      </div>
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+        <div className="lg:col-span-2">
+          <ExpensesChart />
         </div>
-      </div>
-      <div className="lg:col-span-8">
-        <ExpensesChart />
-      </div>
-      <div className="lg:col-span-4">
-        <TransactionsOverview />
-      </div>
-      <div className="lg:col-span-6">
-        <GoalsOverview />
-      </div>
-      <div className="lg:col-span-6">
-        <TasksOverview />
+        <div className="lg:col-span-1">
+          <TransactionsOverview />
+        </div>
       </div>
     </div>
   );

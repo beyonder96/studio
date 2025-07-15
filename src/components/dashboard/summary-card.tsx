@@ -1,5 +1,5 @@
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { ArrowDown, ArrowUp } from "lucide-react";
+import { PlusCircle, ArrowDownCircle, ArrowUpCircle } from "lucide-react";
 
 type SummaryCardProps = {
   type: "income" | "expenses";
@@ -7,15 +7,13 @@ type SummaryCardProps = {
 
 export function SummaryCard({ type }: SummaryCardProps) {
   const isIncome = type === "income";
-  const title = isIncome ? "Renda Mensal" : "Despesas Mensais";
-  const amount = isIncome ? "R$ 8.500,00" : "R$ 3.250,75";
+  const title = isIncome ? "Receitas no Mês" : "Despesas no Mês";
+  const amount = "R$ 0,00";
   const icon = isIncome ? (
-    <ArrowUp className="h-8 w-8 text-green-500" />
+    <ArrowUpCircle className="h-5 w-5 text-muted-foreground" />
   ) : (
-    <ArrowDown className="h-8 w-8 text-red-500" />
+    <ArrowDownCircle className="h-5 w-5 text-muted-foreground" />
   );
-  const percentageChange = isIncome ? "+12.5%" : "+8.2%";
-  const changeColor = isIncome ? "text-green-500" : "text-red-500";
 
   return (
     <Card>
@@ -24,12 +22,13 @@ export function SummaryCard({ type }: SummaryCardProps) {
             <CardTitle className="text-sm font-medium text-muted-foreground">
                 {title}
             </CardTitle>
-            {icon}
+            <div className="rounded-full bg-gray-100 p-2">
+              {icon}
+            </div>
         </div>
       </CardHeader>
       <CardContent>
         <span className="block text-3xl font-bold tracking-tight">{amount}</span>
-        <p className={`text-xs ${changeColor}`}>{percentageChange} do último mês</p>
       </CardContent>
     </Card>
   );

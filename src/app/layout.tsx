@@ -5,14 +5,15 @@ import { Toaster } from '@/components/ui/toaster';
 import {
   SidebarProvider,
   SidebarInset,
+  SidebarTrigger,
 } from '@/components/ui/sidebar';
 import AppSidebar from '@/components/app-sidebar';
-import { UserNav } from '@/components/user-nav';
-import { SidebarTrigger } from '@/components/ui/sidebar';
+import { Button } from '@/components/ui/button';
+import { EyeOff } from 'lucide-react';
 
 export const metadata: Metadata = {
-  title: 'DoisLife',
-  description: 'Seu gerenciador financeiro pessoal',
+  title: 'Vida a 2',
+  description: 'Sua visão geral do Vida a Dois.',
 };
 
 export default function RootLayout({
@@ -36,12 +37,17 @@ export default function RootLayout({
         <SidebarProvider>
           <AppSidebar />
           <SidebarInset>
-            <header className="sticky top-0 z-10 flex h-16 items-center gap-4 border-b bg-background/80 px-4 backdrop-blur-sm sm:px-6">
-              <SidebarTrigger className="md:hidden" />
-              <div className="flex-1">
-                <h1 className="text-lg font-semibold md:text-xl">Dashboard</h1>
+            <header className="sticky top-0 z-10 flex h-20 items-center justify-between border-b bg-background/80 px-4 backdrop-blur-sm sm:px-6">
+              <div className="flex items-center gap-4">
+                 <SidebarTrigger className="md:hidden" />
+                <div>
+                  <h1 className="text-2xl font-bold">Painel Principal</h1>
+                  <p className="text-muted-foreground">Sua visão geral do Vida á Dois.</p>
+                </div>
               </div>
-              <UserNav />
+              <Button variant="ghost" size="icon">
+                <EyeOff className="h-5 w-5" />
+              </Button>
             </header>
             <main className="flex-1 overflow-auto p-4 sm:p-6">{children}</main>
           </SidebarInset>
