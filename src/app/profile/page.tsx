@@ -53,9 +53,8 @@ export default function ProfilePage() {
     resetAllData
   } = useContext(FinanceContext);
 
-  const [isMounted, setIsMounted] = useState(false);
   const [theme, setTheme] = useState<Theme>('system');
-  const [selectedColor, setSelectedColor] = useState('');
+  const [selectedColor, setSelectedColor] = useState(pastelColors[0].value);
   const [profileImage, setProfileImage] = useState<string>(defaultProfileImage);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -70,18 +69,13 @@ export default function ProfilePage() {
     }
     if (storedColor) {
         setSelectedColor(storedColor);
-    } else {
-        setSelectedColor(pastelColors[0].value);
     }
     if (storedImage) {
         setProfileImage(storedImage);
     }
-    setIsMounted(true);
   }, []);
 
   useEffect(() => {
-    if (!isMounted) return;
-    
     if (theme === 'system') {
         const systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
         document.documentElement.classList.toggle('dark', systemTheme === 'dark');
@@ -89,18 +83,16 @@ export default function ProfilePage() {
         document.documentElement.classList.toggle('dark', theme === 'dark');
     }
     localStorage.setItem('app-theme', theme);
-  }, [theme, isMounted]);
+  }, [theme]);
 
   useEffect(() => {
-    if (!isMounted) return;
-
     if (selectedColor) {
         document.documentElement.style.setProperty('--primary', selectedColor);
         document.documentElement.style.setProperty('--accent', selectedColor);
         document.documentElement.style.setProperty('--ring', selectedColor);
         localStorage.setItem('app-color', selectedColor);
     }
-  }, [selectedColor, isMounted]);
+  }, [selectedColor]);
 
   useEffect(() => {
     if (profileImage && profileImage !== defaultProfileImage) {
@@ -127,10 +119,6 @@ export default function ProfilePage() {
     }
   };
 
-
-  if (!isMounted) {
-    return null; // ou um spinner de carregamento
-  }
 
   return (
     <div className="space-y-8 -mx-4 -mt-4 sm:-mx-6 sm:-mt-6">
