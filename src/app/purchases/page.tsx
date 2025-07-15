@@ -360,8 +360,9 @@ export default function PurchasesPage() {
                         {selectedList.shared && <Badge variant="secondary" className="font-normal"><Users className="mr-1.5 h-3 w-3"/>Compartilhada</Badge>}
                     </div>
                     <div className="flex items-center gap-2 pt-2">
-                        <Button onClick={() => setIsAddItemDialogOpen(true)} variant="ghost" size="icon" className="border rounded-full bg-background"><ListPlus className="h-5 w-5"/></Button>
-                        <Button onClick={() => setIsAddItemDialogOpen(true)} variant="outline" className="bg-background"><Plus className="mr-2 h-4 w-4"/> Adicionar Item</Button>
+                        <Button onClick={() => setIsAddItemDialogOpen(true)}>
+                            <Plus className="mr-2 h-4 w-4"/> Adicionar Item
+                        </Button>
                     </div>
                 </CardHeader>
                 <CardContent>
