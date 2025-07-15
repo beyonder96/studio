@@ -11,7 +11,7 @@ import {
   CardTitle,
   CardFooter
 } from '@/components/ui/card';
-import { PlusCircle, ShoppingCart, Text, Sparkles, Trash2, Check, X } from 'lucide-react';
+import { PlusCircle, ShoppingCart, Trash2 } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { CreateListDialog } from '@/components/purchases/create-list-dialog';
@@ -59,6 +59,10 @@ export default function PurchasesPage() {
   const addShoppingList = (newList: Omit<ShoppingList, 'id'>) => {
     setShoppingLists(prev => [...prev, { ...newList, id: crypto.randomUUID() }]);
   };
+
+  const deleteShoppingList = (listId: string) => {
+    setShoppingLists(prev => prev.filter(list => list.id !== listId));
+  }
   
   const toggleItemChecked = (listId: string, itemId: string) => {
     setShoppingLists(prevLists => 
@@ -85,10 +89,7 @@ export default function PurchasesPage() {
   return (
     <div className="flex flex-col gap-6">
         <div className="flex items-center justify-between">
-            <div>
-                <h1 className="text-2xl font-bold">Listas de Compras</h1>
-                <p className="text-muted-foreground">Crie e gerencie suas listas de compras.</p>
-            </div>
+            <h1 className="text-2xl font-bold">Listas de Compras</h1>
             <Button onClick={() => setIsDialogOpen(true)}>
                 <PlusCircle className="mr-2 h-4 w-4" />
                 Criar Nova Lista
@@ -101,12 +102,12 @@ export default function PurchasesPage() {
                     <CardHeader>
                         <div className="flex items-center justify-between">
                             <CardTitle>{list.name}</CardTitle>
-                             <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive">
+                             <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={() => deleteShoppingList(list.id)}>
                                 <Trash2 className="h-4 w-4" />
                             </Button>
                         </div>
                         <CardDescription>
-                            {list.items.length} itens na lista.
+                            {list.items.filter(i => i.checked).length} de {list.items.length} itens comprados.
                         </CardDescription>
                     </CardHeader>
                     <CardContent className="flex-grow space-y-3">
@@ -139,7 +140,7 @@ export default function PurchasesPage() {
                            </div>
                            <div className="w-full bg-muted rounded-full h-2.5">
                                 <div 
-                                    className="bg-primary h-2.5 rounded-full" 
+                                    className="bg-primary h-2.5 rounded-full transition-all duration-300" 
                                     style={{ width: `${getProgress(list)}%` }}
                                 ></div>
                            </div>
