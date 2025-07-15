@@ -123,7 +123,7 @@ export default function ProfilePage() {
   return (
     <div className="space-y-8 -mx-4 -mt-4 sm:-mx-6 sm:-mt-6">
         {/* Profile Header */}
-        <div className="relative w-full h-[60vh] md:h-[50vh] text-white group/header">
+        <div className="relative w-full h-[50vh] md:h-[40vh] text-white">
             <Image 
                 src={profileImage}
                 alt="Foto do casal" 
@@ -134,15 +134,6 @@ export default function ProfilePage() {
             />
             <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent"></div>
             
-            <button
-              onClick={handleImageClick}
-              className="absolute inset-0 flex items-center justify-center bg-black/20 opacity-0 group-hover/header:opacity-100 transition-opacity cursor-pointer z-10"
-            >
-                <div className="flex flex-col items-center gap-2 p-4 rounded-lg bg-black/40 backdrop-blur-sm">
-                    <Camera className="w-8 h-8" />
-                    <span className="font-semibold">Trocar Foto</span>
-                </div>
-            </button>
             <input
                 type="file"
                 ref={fileInputRef}
@@ -150,7 +141,6 @@ export default function ProfilePage() {
                 className="hidden"
                 accept="image/*"
             />
-
 
             <div className="absolute top-6 left-4 right-4 flex justify-between z-20">
                 <Button variant="ghost" size="icon" className="bg-black/20 hover:bg-black/40 rounded-full" onClick={() => window.history.back()}>
@@ -163,6 +153,10 @@ export default function ProfilePage() {
                         </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent>
+                        <DropdownMenuItem onSelect={handleImageClick}>
+                           <Camera className="mr-2 h-4 w-4" />
+                           Trocar Foto
+                        </DropdownMenuItem>
                         <DropdownMenuItem>Editar Nomes</DropdownMenuItem>
                         <DropdownMenuItem>Editar Data</DropdownMenuItem>
                         <DropdownMenuItem>Editar E-mails</DropdownMenuItem>
@@ -172,7 +166,7 @@ export default function ProfilePage() {
 
             <div className="absolute bottom-0 left-0 right-0 p-6 space-y-6 z-10">
                 <div className="text-center">
-                    <h1 className="text-4xl font-bold">Kenned & Nicoli</h1>
+                    <h1 className="text-3xl md:text-4xl font-bold">Kenned & Nicoli</h1>
                     <p className="text-lg text-white/80">Juntos há 2 anos</p>
                 </div>
                 
@@ -323,5 +317,3 @@ export default function ProfilePage() {
     </div>
   );
 }
-
-    
