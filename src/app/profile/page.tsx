@@ -42,7 +42,7 @@ const pastelColors = [
     { name: 'Laranja', value: '25 95% 65%' },
 ]
 
-type Theme = 'light' | 'dark' | 'system';
+type Theme = 'light' | 'dark';
 
 const defaultProfileImage = "https://placehold.co/600x800.png";
 
@@ -53,7 +53,7 @@ export default function ProfilePage() {
     resetAllData
   } = useContext(FinanceContext);
 
-  const [theme, setTheme] = useState<Theme>('system');
+  const [theme, setTheme] = useState<Theme>('light');
   const [selectedColor, setSelectedColor] = useState(pastelColors[0].value);
   const [profileImage, setProfileImage] = useState<string>(defaultProfileImage);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -75,12 +75,7 @@ export default function ProfilePage() {
   }, []);
 
   useEffect(() => {
-    if (theme === 'system') {
-        const systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-        document.documentElement.classList.toggle('dark', systemTheme === 'dark');
-    } else {
-        document.documentElement.classList.toggle('dark', theme === 'dark');
-    }
+    document.documentElement.classList.toggle('dark', theme === 'dark');
     localStorage.setItem('app-theme', theme);
   }, [theme]);
 
