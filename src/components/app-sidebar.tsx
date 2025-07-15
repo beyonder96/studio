@@ -32,9 +32,35 @@ import { Logo } from "@/components/logo";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { usePathname } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
+import { useState, useEffect } from "react";
+
+const defaultProfileImage = "https://placehold.co/80x80.png";
 
 export default function AppSidebar() {
   const pathname = usePathname();
+  const [profileImage, setProfileImage] = useState(defaultProfileImage);
+
+  useEffect(() => {
+    // Load image from localStorage only on the client-side
+    const savedImage = localStorage.getItem('app-profile-image');
+    if (savedImage) {
+      setProfileImage(savedImage);
+    }
+    
+    const handleStorageChange = () => {
+        const updatedImage = localStorage.getItem('app-profile-image');
+        if (updatedImage) {
+            setProfileImage(updatedImage);
+        }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+
+    return () => {
+        window.removeEventListener('storage', handleStorageChange);
+    };
+
+  }, []);
 
   const isActive = (path: string) => pathname === path || (path === '/dashboard' && pathname === '/');
 
@@ -151,7 +177,7 @@ export default function AppSidebar() {
       <SidebarFooter className="p-4">
         <div className="flex items-center gap-3 rounded-md p-2 -m-2">
             <Avatar className="h-10 w-10">
-                <AvatarImage src="https://placehold.co/80x80.png" alt="Foto do casal" data-ai-hint="couple photo"/>
+                <AvatarImage src={profileImage} alt="Foto do casal" data-ai-hint="couple photo"/>
                 <AvatarFallback className="bg-neutral-300">KN</AvatarFallback>
             </Avatar>
             <div>
