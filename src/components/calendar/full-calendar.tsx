@@ -30,6 +30,7 @@ type CalendarEvent = {
   title: string;
   start: Date;
   end: Date;
+  allDay: boolean;
   participants?: string[];
   color: string;
   type: 'recurring' | 'appointment';
@@ -37,19 +38,15 @@ type CalendarEvent = {
 
 // Map categories to colors for consistent styling
 const categoryColors: { [key: string]: string } = {
-  Moradia: 'bg-blue-200/70 border-blue-400',
-  Salário: 'bg-green-200/70 border-green-400',
-  // Add more mappings as needed
+  Moradia: 'bg-blue-200/70 border-blue-400 text-blue-800',
+  Salário: 'bg-green-200/70 border-green-400 text-green-800',
+  Alimentação: 'bg-yellow-200/70 border-yellow-400 text-yellow-800',
 };
-const defaultColor = 'bg-gray-200/70 border-gray-400';
-
-const timeToMinutes = (time: string) => {
-    const [hours, minutes] = time.split(':').map(Number);
-    return hours * 60 + minutes;
-};
+const defaultColor = 'bg-gray-200/70 border-gray-400 text-gray-800';
+const appointmentColor = 'bg-purple-200/70 border-purple-400 text-purple-800';
 
 // Example appointments
-const exampleAppointments: Omit<CalendarEvent, 'id' | 'type' | 'color'>[] = [
+const exampleAppointments: Omit<CalendarEvent, 'id' | 'type' | 'color' | 'allDay'>[] = [
     { title: "Reunião de Design", start: new Date(new Date().setHours(10, 0, 0, 0)), end: new Date(new Date().setHours(11, 30, 0, 0)), participants: ["https://placehold.co/32x32.png", "https://placehold.co/32x32.png"] },
     { title: "Consulta Médica", start: new Date(new Date().setDate(new Date().getDate() + 1)), end: new Date(new Date(new Date().setDate(new Date().getDate() + 1)).setHours(14, 0, 0, 0)), participants: [] },
     { title: "Almoço com a equipe", start: new Date(new Date().setDate(new Date().getDate() - 1)), end: new Date(new Date(new Date().setDate(new Date().getDate() - 1)).setHours(13, 0, 0, 0)), participants: ["https://placehold.co/32x32.png", "https://placehold.co/32x32.png", "https://placehold.co/32x32.png"] },
@@ -67,18 +64,15 @@ export function FullCalendar() {
     return transactions
       .filter((t: Transaction) => t.isRecurring && t.frequency === 'monthly')
       .map((t: Transaction): CalendarEvent => {
-         // Create a date object from the transaction's date string
         const transactionDate = parse(t.date, 'yyyy-MM-dd', new Date());
+        const dayInCurrentMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), transactionDate.getDate());
         
-        // Let's assume recurring transactions are all-day events for simplicity
-        const startDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), transactionDate.getDate());
-        const endDate = new Date(startDate);
-
         return {
           id: `trans-${t.id}`,
           title: t.description,
-          start: startDate,
-          end: endDate,
+          start: dayInCurrentMonth,
+          end: dayInCurrentMonth,
+          allDay: true,
           color: categoryColors[t.category] || defaultColor,
           type: 'recurring',
         };
@@ -89,8 +83,9 @@ export function FullCalendar() {
     return exampleAppointments.map((appt, index) => ({
       ...appt,
       id: `appt-${index}`,
-      color: 'bg-purple-200/70 border-purple-400',
+      color: appointmentColor,
       type: 'appointment',
+      allDay: false,
     }));
   }, []);
 
@@ -115,42 +110,34 @@ export function FullCalendar() {
 
   const hours = Array.from({ length: 10 }, (_, i) => i + 8); // 8 AM to 5 PM
 
-  const renderEvent = (event: CalendarEvent, day: Date) => {
-    if (!isSameDay(event.start, day)) return null;
+  const renderTimedEvent = (event: CalendarEvent, day: Date) => {
+    if (!isSameDay(event.start, day) || event.allDay) return null;
     
-    if(event.type === 'recurring') {
-        return (
-            <div key={event.id} className={cn("absolute left-2 right-2 p-1 rounded-lg text-xs", event.color)}>
-                {event.title}
-            </div>
-        )
-    }
-
     const startHour = getHours(event.start);
     const startMinute = getMinutes(event.start);
     const endHour = getHours(event.end);
     const endMinute = getMinutes(event.end);
 
-    const top = ((startHour - 8) * 60 + startMinute) / (10 * 60) * 100;
-    const height = ((endHour * 60 + endMinute) - (startHour * 60 + startMinute)) / (10 * 60) * 100;
+    const totalMinutesInView = 10 * 60; // 8 AM to 6 PM (10 hours)
+    const top = ((startHour - 8) * 60 + startMinute) / totalMinutesInView * 100;
+    const height = ((endHour * 60 + endMinute) - (startHour * 60 + startMinute)) / totalMinutesInView * 100;
     
-    if (top < 0 || top > 100) return null;
-
+    if (top < 0 || top >= 100) return null;
 
     return (
         <div 
             key={event.id}
-            className={cn("absolute left-2 right-2 p-2 rounded-lg text-xs flex flex-col justify-between overflow-hidden", event.color)}
-            style={{ top: `${top}%`, height: `${height}%`}}
+            className={cn("absolute left-2 right-2 p-2 rounded-lg flex flex-col justify-between overflow-hidden", event.color)}
+            style={{ top: `${top}%`, height: `${height}%`, minHeight: '30px' }}
         >
             <div>
-                <p className="font-bold">{event.title}</p>
-                <p className="text-gray-600">{format(event.start, 'HH:mm')} - {format(event.end, 'HH:mm')}</p>
+                <p className="font-bold text-sm leading-tight">{event.title}</p>
+                <p className="text-xs opacity-80">{format(event.start, 'HH:mm')} - {format(event.end, 'HH:mm')}</p>
             </div>
             {event.participants && event.participants.length > 0 && (
-                <div className="flex -space-x-2">
+                <div className="flex -space-x-2 mt-1">
                     {event.participants.map((p, i) => (
-                         <Avatar key={i} className="h-5 w-5 border-2 border-white">
+                         <Avatar key={i} className="h-5 w-5 border-2 border-white dark:border-gray-800">
                             <AvatarImage src={p} data-ai-hint="person face" />
                             <AvatarFallback>P</AvatarFallback>
                         </Avatar>
@@ -160,6 +147,16 @@ export function FullCalendar() {
         </div>
     );
   };
+  
+  const renderAllDayEvent = (event: CalendarEvent, day: Date) => {
+     if (!isSameDay(event.start, day) || !event.allDay) return null;
+     
+      return (
+            <div key={event.id} className={cn("mx-1 p-1 rounded-md text-xs truncate", event.color)}>
+                {event.title}
+            </div>
+        )
+  }
 
 
   return (
@@ -167,7 +164,7 @@ export function FullCalendar() {
       {/* Header */}
       <header className="flex flex-shrink-0 items-center justify-between border-b p-4">
         <div className="flex items-center gap-4">
-          <h1 className="text-xl font-bold">
+          <h1 className="text-xl font-bold capitalize">
             {format(currentDate, 'MMMM yyyy', { locale: ptBR })}
           </h1>
           <div className="flex items-center gap-1">
@@ -198,10 +195,10 @@ export function FullCalendar() {
         {/* Timeline */}
         <div className="flex w-16 flex-col text-xs text-muted-foreground">
            {/* Placeholder for day headers */}
-           <div className="h-16 flex-shrink-0 border-b"></div>
+           <div className="h-[76px] flex-shrink-0 border-b"></div>
            <div className="flex-1 relative">
             {hours.map(hour => (
-              <div key={hour} className="relative h-[calc(100%/10)]">
+              <div key={hour} className="relative h-[10%]">
                  <span className="absolute -top-2 right-2">{hour}:00</span>
               </div>
             ))}
@@ -209,11 +206,11 @@ export function FullCalendar() {
         </div>
 
         {/* Week View */}
-        <div className="flex flex-1 flex-col">
-            {/* Day Headers */}
-            <div className="grid grid-cols-7 h-16 flex-shrink-0">
-                {weekDays.map(day => (
-                    <div key={day.toString()} className="flex flex-col items-center justify-center border-b border-l">
+        <div className="grid grid-cols-7 flex-1">
+            {weekDays.map(day => (
+                <div key={day.toString()} className="flex flex-col border-l">
+                    {/* Day Header */}
+                    <div className="flex flex-col items-center justify-center border-b h-14">
                         <p className="text-sm uppercase text-muted-foreground">
                             {format(day, 'E', { locale: ptBR })}
                         </p>
@@ -224,24 +221,23 @@ export function FullCalendar() {
                             {format(day, 'd')}
                         </p>
                     </div>
-                ))}
-            </div>
-             {/* Event Grid */}
-            <div className="grid flex-1 grid-cols-7 overflow-y-auto">
-                {weekDays.map(day => (
-                    <div key={day.toString()} className="relative border-l">
+                    {/* All-day events area */}
+                    <div className="h-5 border-b py-0.5 space-y-0.5">
+                       {allEvents.map(event => renderAllDayEvent(event, day))}
+                    </div>
+                     {/* Timed events area */}
+                    <div className="relative flex-1">
                          {/* Hour lines */}
                         {hours.map(hour => (
-                            <div key={`${day.toString()}-${hour}`} className="h-[calc(100%/10)] border-b"></div>
+                            <div key={`${day.toString()}-${hour}`} className="h-[10%] border-b"></div>
                         ))}
                          {/* Events for this day */}
-                        {allEvents.map(event => renderEvent(event, day))}
+                        {allEvents.map(event => renderTimedEvent(event, day))}
                     </div>
-                ))}
-            </div>
+                </div>
+            ))}
         </div>
       </div>
     </div>
   );
 }
-
