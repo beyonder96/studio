@@ -46,7 +46,7 @@ export default function AppSidebar() {
           <SidebarMenuItem>
             <SidebarMenuButton
               asChild
-              isActive={isActive("/dashboard")}
+              isActive={isActive("/")}
               tooltip="Dashboard"
             >
               <Link href="/">
@@ -73,7 +73,7 @@ export default function AppSidebar() {
           </SidebarMenuItem>
            <SidebarMenuItem>
             <SidebarMenuButton asChild isActive={isActive("/finance")} tooltip="Finanças">
-              <Link href="#">
+              <Link href="/finance">
                 <Banknote />
                 <span>Finanças</span>
               </Link>
