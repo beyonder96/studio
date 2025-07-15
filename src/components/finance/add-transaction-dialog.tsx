@@ -26,6 +26,8 @@ import { Transaction } from './transactions-table';
 import { CurrencyInput } from './currency-input';
 import { useEffect, useContext, useMemo } from 'react';
 import { FinanceContext } from '@/contexts/finance-context';
+import { Input } from '@/components/ui/input';
+import { addMonths, format } from 'date-fns';
 
 const transactionSchema = z.object({
   id: z.string().optional(),
@@ -34,9 +36,10 @@ const transactionSchema = z.object({
   date: z.string().min(1, 'Data é obrigatória'),
   type: z.enum(['income', 'expense', 'transfer']),
   category: z.string().min(1, 'Categoria é obrigatória'),
-  account: z.string().optional(),
+  account: z.string().min(1, 'Conta/Cartão é obrigatório'),
   isRecurring: z.boolean().optional(),
   frequency: z.enum(['daily', 'weekly', 'monthly', 'annual']).optional(),
+  installments: z.coerce.number().min(1).optional(),
 });
 
 type TransactionFormData = z.infer<typeof transactionSchema>;
@@ -44,7 +47,7 @@ type TransactionFormData = z.infer<typeof transactionSchema>;
 type AddTransactionDialogProps = {
   isOpen: boolean;
   onClose: () => void;
-  onSaveTransaction: (transaction: Omit<Transaction, 'id' > & { id?: string }) => void;
+  onSaveTransaction: (transaction: Omit<Transaction, 'id' > & { id?: string }, installments?: number) => void;
   transaction: Transaction | null;
 };
 
@@ -57,7 +60,10 @@ export function AddTransactionDialog({
   const isEditing = !!transaction;
   const { accounts, cards, incomeCategories, expenseCategories } = useContext(FinanceContext);
 
-  const combinedAccounts = useMemo(() => [...accounts, ...cards], [accounts, cards]);
+  const combinedAccounts = useMemo(() => [
+      ...accounts.map(a => ({...a, type: 'account'})), 
+      ...cards.map(c => ({...c, type: 'card'}))
+    ], [accounts, cards]);
 
   const {
     register,
@@ -77,6 +83,7 @@ export function AddTransactionDialog({
       category: '',
       account: '',
       isRecurring: false,
+      installments: 1,
     },
   });
 
@@ -85,7 +92,8 @@ export function AddTransactionDialog({
       // Pre-fill form for editing
       reset({
         ...transaction,
-        amount: Math.abs(transaction.amount) // Form expects positive number
+        amount: Math.abs(transaction.amount), // Form expects positive number
+        installments: transaction.totalInstallments || 1,
       });
     } else if (isOpen && !transaction) {
       // Reset form for adding new
@@ -97,6 +105,7 @@ export function AddTransactionDialog({
         category: '',
         account: '',
         isRecurring: false,
+        installments: 1,
       });
     }
   }, [transaction, isOpen, reset]);
@@ -104,14 +113,30 @@ export function AddTransactionDialog({
 
   const transactionType = watch('type');
   const isRecurring = watch('isRecurring');
+  const selectedAccountId = watch('account');
+  
+  const selectedAccount = useMemo(() => {
+    return combinedAccounts.find(acc => acc.name === selectedAccountId);
+  }, [selectedAccountId, combinedAccounts]);
+
+  const isCreditCard = selectedAccount?.type === 'card';
 
   const onSubmit = (data: TransactionFormData) => {
     const amount = data.type === 'expense' ? -Math.abs(data.amount) : Math.abs(data.amount);
-    const finalData = { ...data, amount };
+    
+    // Don't pass installment data if not a credit card purchase
+    const installments = (isCreditCard && (data.installments || 1) > 1) ? data.installments : undefined;
+
+    const finalData = { ...data, amount, installments: data.installments };
+
     if (!finalData.isRecurring) {
         delete finalData.frequency;
     }
-    onSaveTransaction(finalData);
+     if (!isCreditCard || (finalData.installments || 1) <= 1) {
+      delete finalData.installments;
+    }
+
+    onSaveTransaction(finalData, installments);
     onClose();
   };
   
@@ -170,7 +195,7 @@ export function AddTransactionDialog({
                     name="type"
                     control={control}
                     render={({ field }) => (
-                        <Select onValueChange={field.onChange} value={field.value}>
+                        <Select onValueChange={field.onChange} value={field.value} disabled={isEditing}>
                             <SelectTrigger className="col-span-3">
                                 <SelectValue placeholder="Selecione o tipo" />
                             </SelectTrigger>
@@ -228,7 +253,19 @@ export function AddTransactionDialog({
                             </Select>
                         )}
                     />
+                    {errors.account && <p className="col-span-4 text-red-500 text-xs text-right">{errors.account.message}</p>}
                 </div>
+                
+                 {isCreditCard && transactionType === 'expense' && !isEditing && (
+                   <div className="grid grid-cols-4 items-center gap-4">
+                       <Label htmlFor="installments" className="text-right">
+                           Parcelas
+                       </Label>
+                       <Input id="installments" type="number" {...register('installments')} min="1" className="col-span-3" />
+                   </div>
+                 )}
+
+
                 <div className="grid grid-cols-4 items-center gap-4">
                     <Label htmlFor="isRecurring" className="text-right">
                         Recorrente
@@ -241,11 +278,12 @@ export function AddTransactionDialog({
                                 id="isRecurring"
                                 checked={field.value}
                                 onCheckedChange={field.onChange}
+                                disabled={isEditing}
                             />
                         )}
                     />
                 </div>
-                {isRecurring && (
+                {isRecurring && !isEditing && (
                     <div className="grid grid-cols-4 items-center gap-4">
                         <Label htmlFor="frequency" className="text-right">
                             Frequência
@@ -292,3 +330,5 @@ export function AddTransactionDialog({
     </Dialog>
   );
 }
+
+    

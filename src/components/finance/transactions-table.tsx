@@ -23,6 +23,9 @@ export type Transaction = {
   account?: string;
   isRecurring?: boolean;
   frequency?: 'daily' | 'weekly' | 'monthly' | 'annual';
+  installmentGroupId?: string;
+  currentInstallment?: number;
+  totalInstallments?: number;
 };
 
 type TransactionsTableProps = {
@@ -34,12 +37,14 @@ type TransactionsTableProps = {
 export function TransactionsTable({ transactions, onEdit, onDelete }: TransactionsTableProps) {
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
+    const userTimezoneOffset = date.getTimezoneOffset() * 60000;
+    const correctedDate = new Date(date.getTime() + userTimezoneOffset);
+    
     return new Intl.DateTimeFormat('pt-BR', {
       day: '2-digit',
       month: '2-digit',
       year: 'numeric',
-      timeZone: 'UTC',
-    }).format(date);
+    }).format(correctedDate);
   };
 
   return (
@@ -59,7 +64,10 @@ export function TransactionsTable({ transactions, onEdit, onDelete }: Transactio
             <TableCell className="font-medium">
                 <div className="flex items-center gap-2">
                     {transaction.isRecurring && <Repeat className="h-4 w-4 text-muted-foreground" />}
-                    <span>{transaction.description}</span>
+                    <span>
+                      {transaction.description}
+                      {transaction.totalInstallments && ` (${transaction.currentInstallment}/${transaction.totalInstallments})`}
+                    </span>
                 </div>
             </TableCell>
             <TableCell>
@@ -92,3 +100,5 @@ export function TransactionsTable({ transactions, onEdit, onDelete }: Transactio
     </Table>
   );
 }
+
+    

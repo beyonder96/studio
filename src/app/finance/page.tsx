@@ -29,13 +29,13 @@ export default function FinancePage() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
 
-  const handleSaveTransaction = (transaction: Omit<Transaction, 'id'> & { id?: string }) => {
+  const handleSaveTransaction = (transaction: Omit<Transaction, 'id'> & { id?: string }, installments?: number) => {
     if (transaction.id) {
       // Update existing transaction
       updateTransaction(transaction.id, transaction);
     } else {
       // Add new transaction
-      addTransaction(transaction);
+      addTransaction(transaction, installments);
     }
   };
 
@@ -126,3 +126,5 @@ export default function FinancePage() {
     </div>
   );
 }
+
+    

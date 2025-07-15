@@ -3,6 +3,7 @@
 
 import React, { createContext, useState, ReactNode } from 'react';
 import type { Transaction } from '@/components/finance/transactions-table';
+import { addMonths, format } from 'date-fns';
 
 // Mock Data
 const initialTransactions: Transaction[] = [
@@ -89,7 +90,7 @@ type Card = {
 
 type FinanceContextType = {
   transactions: Transaction[];
-  addTransaction: (transaction: Omit<Transaction, 'id'>) => void;
+  addTransaction: (transaction: Omit<Transaction, 'id'>, installments?: number) => void;
   updateTransaction: (id: string, transaction: Partial<Omit<Transaction, 'id'>>) => void;
   deleteTransaction: (id: string) => void;
   accounts: Account[];
@@ -110,12 +111,33 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
   const [incomeCategories, setIncomeCategories] = useState<string[]>(initialIncomeCategories);
   const [expenseCategories, setExpenseCategories] = useState<string[]>(initialExpenseCategories);
 
-  const addTransaction = (transaction: Omit<Transaction, 'id'>) => {
-    const newTransaction = {
-      ...transaction,
-      id: (transactions.length + 1).toString(),
-    };
-    setTransactions(prev => [newTransaction, ...prev]);
+  const addTransaction = (transaction: Omit<Transaction, 'id'>, installments: number = 1) => {
+     if (installments > 1) {
+      const installmentAmount = transaction.amount / installments;
+      const installmentGroupId = crypto.randomUUID();
+      const newTransactions: Transaction[] = [];
+
+      for (let i = 1; i <= installments; i++) {
+        const installmentDate = addMonths(new Date(transaction.date), i - 1);
+        newTransactions.push({
+          ...transaction,
+          id: crypto.randomUUID(),
+          amount: installmentAmount,
+          date: format(installmentDate, 'yyyy-MM-dd'),
+          installmentGroupId,
+          currentInstallment: i,
+          totalInstallments: installments,
+          isRecurring: false, // Installments are not recurring in the same way
+        });
+      }
+      setTransactions(prev => [...newTransactions, ...prev].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
+    } else {
+      const newTransaction = {
+        ...transaction,
+        id: crypto.randomUUID(),
+      };
+      setTransactions(prev => [newTransaction, ...prev].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
+    }
   };
 
   const updateTransaction = (id: string, updatedTransaction: Partial<Omit<Transaction, 'id'>>) => {
@@ -163,3 +185,5 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
     </FinanceContext.Provider>
   );
 };
+
+    
