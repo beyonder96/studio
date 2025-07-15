@@ -30,7 +30,7 @@ function Header() {
 
   const isDashboard = pathname === '/';
   
-  if (pathname === '/profile') {
+  if (pathname === '/profile' || pathname === '/calendar') {
     return null;
   }
   
@@ -85,6 +85,7 @@ export default function RootLayout({
 }>) {
   const pathname = usePathname();
   const isProfilePage = pathname === '/profile';
+  const isCalendarPage = pathname === '/calendar';
 
   return (
     <html lang="en" suppressHydrationWarning>
@@ -104,7 +105,7 @@ export default function RootLayout({
         <FinanceProvider>
             <SidebarProvider>
             <AppSidebar />
-             {isProfilePage ? (
+             {isProfilePage || isCalendarPage ? (
                 <main className="flex-1 bg-background">{children}</main>
             ) : (
                 <SidebarInset>

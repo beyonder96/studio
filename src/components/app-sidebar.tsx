@@ -139,7 +139,7 @@ export default function AppSidebar() {
           </SidebarMenuItem>
           <SidebarMenuItem>
             <SidebarMenuButton asChild isActive={isActive("/calendar")} tooltip="Calendário">
-              <Link href="#">
+              <Link href="/calendar">
                 <Calendar />
                 <span>Calendário</span>
               </Link>
