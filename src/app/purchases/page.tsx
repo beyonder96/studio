@@ -194,24 +194,6 @@ export default function PurchasesPage() {
       setIsGenerating(false);
     }
   };
-
-  const handleAddNewItem = () => {
-    setNewListItems([...newListItems, { name: '', quantity: 1 }]);
-  };
-
-  const handleNewItemChange = (index: number, field: 'name' | 'quantity', value: string | number) => {
-    const newItems = [...newListItems];
-    if (field === 'quantity' && typeof value === 'string') {
-      newItems[index][field] = parseInt(value, 10) || 1;
-    } else if (field === 'name' && typeof value === 'string') {
-      newItems[index][field] = value;
-    }
-    setNewListItems(newItems);
-  };
-
-  const handleRemoveNewItem = (index: number) => {
-    setNewListItems(newListItems.filter((_, i) => i !== index));
-  };
   
   const handleSaveNewList = () => {
     if (!newListName || newListItems.length === 0) return;
@@ -271,28 +253,16 @@ export default function PurchasesPage() {
                         
                         <div className="space-y-3">
                             <Label>Itens</Label>
-                            <div className="space-y-2 max-h-48 overflow-y-auto pr-2">
-                               {newListItems.map((item, index) => (
-                                    <div key={index} className="flex items-center gap-2">
-                                        <Input
-                                            type="number"
-                                            value={item.quantity}
-                                            onChange={(e) => handleNewItemChange(index, 'quantity', e.target.value)}
-                                            className="w-20"
-                                            min="1"
-                                        />
-                                        <Input
-                                            type="text"
-                                            value={item.name}
-                                            onChange={(e) => handleNewItemChange(index, 'name', e.target.value)}
-                                            placeholder="Nome do item"
-                                            className="flex-1"
-                                        />
-                                        <Button variant="ghost" size="icon" onClick={() => handleRemoveNewItem(index)} className="text-destructive hover:text-destructive">
-                                            <Trash2 className="h-4 w-4"/>
-                                        </Button>
+                            <div className="space-y-2 max-h-48 overflow-y-auto pr-2 rounded-md bg-background p-3">
+                               {newListItems.length > 0 ? (
+                                newListItems.map((item, index) => (
+                                    <div key={index} className="flex items-center text-sm">
+                                        <p><span className="font-semibold">{item.quantity}x</span> {item.name}</p>
                                     </div>
-                                ))}
+                                ))
+                               ) : (
+                                <p className="text-sm text-muted-foreground text-center py-2">Os itens gerados pela IA aparecerão aqui.</p>
+                               )}
                             </div>
                         </div>
                         <Button onClick={handleSaveNewList} disabled={!newListName || newListItems.length === 0} className="w-full">
