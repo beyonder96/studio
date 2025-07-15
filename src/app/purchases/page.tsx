@@ -29,6 +29,22 @@ import {
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 
 
 export type ShoppingListItem = {
@@ -81,6 +97,7 @@ export default function PurchasesPage() {
   const [isCreatingList, setIsCreatingList] = useState(false);
   const [newListName, setNewListName] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
+  const [listToDelete, setListToDelete] = useState<ShoppingList | null>(null);
 
 
   const handleSetPrice = (itemId: string, price: number) => {
@@ -226,6 +243,19 @@ export default function PurchasesPage() {
     setIsCreatingList(false);
   };
 
+  const handleDeleteList = () => {
+    if (!listToDelete) return;
+
+    const newLists = shoppingLists.filter(list => list.id !== listToDelete.id);
+    setShoppingLists(newLists);
+
+    if (selectedList?.id === listToDelete.id) {
+        setSelectedList(newLists[0] || null);
+    }
+
+    setListToDelete(null);
+  }
+
   useEffect(() => {
     if (!selectedList && shoppingLists.length > 0) {
       setSelectedList(shoppingLists[0]);
@@ -292,9 +322,28 @@ export default function PurchasesPage() {
                             </div>
                             <div className="flex items-center gap-2">
                                {list.shared && <Users className="h-5 w-5" />}
-                               <Button variant="ghost" size="icon" className={`hover:bg-black/10 ${selectedList?.id === list.id ? 'text-primary-foreground' : ''}`}>
-                                 <MoreHorizontal className="h-5 w-5" />
-                               </Button>
+                               <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                        <Button 
+                                            variant="ghost" 
+                                            size="icon" 
+                                            className={`hover:bg-black/10 ${selectedList?.id === list.id ? 'text-primary-foreground' : ''}`}
+                                            onClick={(e) => e.stopPropagation()} // Prevent list selection
+                                        >
+                                            <MoreHorizontal className="h-5 w-5" />
+                                        </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
+                                        <DropdownMenuItem disabled>
+                                            <Pencil className="mr-2 h-4 w-4" />
+                                            Renomear
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem className="text-destructive" onClick={() => setListToDelete(list)}>
+                                            <Trash2 className="mr-2 h-4 w-4" />
+                                            Excluir Lista
+                                        </DropdownMenuItem>
+                                    </DropdownMenuContent>
+                               </DropdownMenu>
                             </div>
                         </div>
                     ))}
@@ -416,6 +465,25 @@ export default function PurchasesPage() {
             onClose={() => setIsAddItemDialogOpen(false)}
             onAddItem={handleAddItemToList}
         />
+        
+        <AlertDialog open={!!listToDelete} onOpenChange={(open) => !open && setListToDelete(null)}>
+            <AlertDialogContent>
+                <AlertDialogHeader>
+                    <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                        Esta ação não pode ser desfeita. Isso irá excluir permanentemente a lista de compras
+                        <span className="font-semibold"> "{listToDelete?.name}"</span> e todos os seus itens.
+                    </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                    <AlertDialogCancel onClick={() => setListToDelete(null)}>Cancelar</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleDeleteList} className="bg-destructive hover:bg-destructive/90">
+                        Sim, excluir
+                    </AlertDialogAction>
+                </AlertDialogFooter>
+            </AlertDialogContent>
+        </AlertDialog>
+
 
     </div>
   );
