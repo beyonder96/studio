@@ -79,6 +79,18 @@ const initialPantryItems: PantryItem[] = [
     { id: 'p3', name: 'Peito de Frango (kg)', quantity: 1, pantryCategory: 'Carnes' },
 ];
 
+const initialTasks: Task[] = [
+    { id: 'task1', text: 'Pagar conta de luz', completed: false },
+    { id: 'task2', text: 'Agendar consulta no dentista', completed: false },
+    { id: 'task3', text: 'Comprar presente para mamãe', completed: true },
+];
+
+const initialWishes: Wish[] = [
+    { id: 'wish1', name: 'Viagem para a Praia do Forte', price: 3500, purchased: false, imageUrl: 'https://placehold.co/600x400.png', link: '' },
+    { id: 'wish2', name: 'Nova Smart TV 55"', price: 2800, purchased: false, imageUrl: 'https://placehold.co/600x400.png', link: ''  },
+    { id: 'wish3', name: 'Air Fryer', price: 450, purchased: true, imageUrl: 'https://placehold.co/600x400.png', link: ''  },
+];
+
 
 type Account = {
     id: string;
@@ -102,6 +114,22 @@ export type PantryItem = {
     quantity: number;
     pantryCategory: PantryCategory;
 }
+
+export type Task = {
+  id: string;
+  text: string;
+  completed: boolean;
+};
+
+export type Wish = {
+  id: string;
+  name: string;
+  price: number;
+  link?: string;
+  imageUrl?: string;
+  purchased: boolean;
+};
+
 
 const mapShoppingItemToPantryCategory = (itemName: string): PantryCategory => {
     const lowerCaseName = itemName.toLowerCase();
@@ -133,6 +161,15 @@ type FinanceContextType = {
   pantryItems: PantryItem[];
   addItemsToPantry: (items: { name: string, quantity: number }[]) => void;
   updatePantryItemQuantity: (itemId: string, newQuantity: number) => void;
+  tasks: Task[];
+  addTask: (text: string) => void;
+  toggleTask: (id: string) => void;
+  deleteTask: (id: string) => void;
+  wishes: Wish[];
+  addWish: (wish: Omit<Wish, 'id' | 'purchased'>) => void;
+  updateWish: (id: string, wish: Partial<Omit<Wish, 'id'>>) => void;
+  deleteWish: (id: string) => void;
+  toggleWishPurchased: (id: string) => void;
 };
 
 export const FinanceContext = createContext<FinanceContextType>({} as FinanceContextType);
@@ -145,6 +182,8 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
   const [expenseCategories, setExpenseCategories] = useState<string[]>(initialExpenseCategories);
   const [isSensitiveDataVisible, setIsSensitiveDataVisible] = useState(true);
   const [pantryItems, setPantryItems] = useState<PantryItem[]>(initialPantryItems);
+  const [tasks, setTasks] = useState<Task[]>(initialTasks);
+  const [wishes, setWishes] = useState<Wish[]>(initialWishes);
 
   const toggleSensitiveDataVisibility = () => {
     setIsSensitiveDataVisible(prev => !prev);
@@ -257,9 +296,53 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
     setAccounts([]);
     setCards([]);
     setPantryItems([]);
+    setTasks([]);
+    setWishes([]);
     // We keep the categories for convenience
     setIncomeCategories(initialIncomeCategories);
     setExpenseCategories(initialExpenseCategories);
+  };
+  
+  // Task Management
+  const addTask = (text: string) => {
+    const newTask: Task = { id: crypto.randomUUID(), text, completed: false };
+    setTasks(prev => [newTask, ...prev]);
+  };
+
+  const toggleTask = (id: string) => {
+    setTasks(prev =>
+      prev.map(task =>
+        task.id === id ? { ...task, completed: !task.completed } : task
+      )
+    );
+  };
+
+  const deleteTask = (id: string) => {
+    setTasks(prev => prev.filter(task => task.id !== id));
+  };
+  
+  // Wish Management
+  const addWish = (wish: Omit<Wish, 'id' | 'purchased'>) => {
+    const newWish: Wish = { ...wish, id: crypto.randomUUID(), purchased: false };
+    setWishes(prev => [newWish, ...prev]);
+  };
+  
+  const updateWish = (id: string, updatedWish: Partial<Omit<Wish, 'id'>>) => {
+    setWishes(prev =>
+      prev.map(wish => (wish.id === id ? { ...wish, ...updatedWish } as Wish : wish))
+    );
+  };
+
+  const deleteWish = (id: string) => {
+    setWishes(prev => prev.filter(wish => wish.id !== id));
+  };
+
+  const toggleWishPurchased = (id: string) => {
+    setWishes(prev =>
+      prev.map(wish =>
+        wish.id === id ? { ...wish, purchased: !wish.purchased } : wish
+      )
+    );
   };
 
   const value = {
@@ -282,6 +365,15 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
     pantryItems,
     addItemsToPantry,
     updatePantryItemQuantity,
+    tasks,
+    addTask,
+    toggleTask,
+    deleteTask,
+    wishes,
+    addWish,
+    updateWish,
+    deleteWish,
+    toggleWishPurchased,
   };
 
   return (

@@ -115,7 +115,7 @@ export default function AppSidebar() {
           </SidebarMenuItem>
           <SidebarMenuItem>
             <SidebarMenuButton asChild isActive={isActive("/wishes")} tooltip="Desejos">
-              <Link href="#">
+              <Link href="/wishes">
                 <Gift />
                 <span>Desejos</span>
               </Link>
@@ -123,7 +123,7 @@ export default function AppSidebar() {
           </SidebarMenuItem>
           <SidebarMenuItem>
             <SidebarMenuButton asChild isActive={isActive("/tasks")} tooltip="Tarefas">
-              <Link href="#">
+              <Link href="/tasks">
                 <CheckSquare />
                 <span>Tarefas</span>
               </Link>

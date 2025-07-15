@@ -48,6 +48,10 @@ function Header() {
             return { title: 'Compras', description: 'Crie e gerencie suas listas de compras.' };
         case '/pantry':
             return { title: 'Despensa', description: 'Veja o que você tem em casa.' };
+        case '/tasks':
+            return { title: 'Tarefas', description: 'Gerencie suas tarefas do dia a dia.' };
+        case '/wishes':
+            return { title: 'Lista de Desejos', description: 'Realizem seus sonhos juntos.' };
         case '/settings':
             return { title: 'Ajustes', description: 'Personalize o aplicativo e gerencie seus dados.' };
         default:
