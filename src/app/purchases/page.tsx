@@ -1,13 +1,14 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   Card,
   CardContent,
   CardHeader,
   CardTitle,
+  CardDescription,
 } from '@/components/ui/card';
 import {
   Accordion,
@@ -20,6 +21,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { CreateListDialog } from '@/components/purchases/create-list-dialog';
+import { SetPriceDialog } from '@/components/purchases/set-price-dialog';
 import { 
     Plus, 
     Sparkles, 
@@ -28,15 +30,20 @@ import {
     MoreHorizontal, 
     ListPlus, 
     Search,
-    Trash2
+    Trash2,
+    DollarSign,
+    Pencil
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { cn } from '@/lib/utils';
+
 
 export type ShoppingListItem = {
   id: string;
   name: string;
   quantity: number;
   checked: boolean;
+  price?: number;
 };
 
 export type ShoppingList = {
@@ -52,10 +59,10 @@ const initialShoppingLists: ShoppingList[] = [
         name: 'Mercado',
         shared: true,
         items: [
-            { id: 'item1', name: 'Leite Integral', quantity: 6, checked: false },
-            { id: 'item2', name: 'Pão de Forma', quantity: 2, checked: false },
+            { id: 'item1', name: 'Leite Integral', quantity: 6, checked: false, price: 30.00 },
+            { id: 'item2', name: 'Pão de Forma', quantity: 2, checked: true, price: 15.50 },
             { id: 'item3', name: 'Dúzia de Ovos', quantity: 2, checked: false },
-            { id: 'item4', name: 'Queijo Mussarela (kg)', quantity: 1, checked: false },
+            { id: 'item4', name: 'Queijo Mussarela (kg)', quantity: 1, checked: true, price: 45.00 },
             { id: 'item5', name: 'Peito de Frango (kg)', quantity: 3, checked: false },
         ]
     },
@@ -65,7 +72,7 @@ const initialShoppingLists: ShoppingList[] = [
         shared: false,
         items: [
              { id: 'item6', name: 'Vitamina C', quantity: 1, checked: false },
-             { id: 'item7', name: 'Pasta de dente', quantity: 2, checked: true },
+             { id: 'item7', name: 'Pasta de dente', quantity: 2, checked: true, price: 8.90 },
              { id: 'item8', name: 'Fio dental', quantity: 3, checked: false },
         ]
     }
@@ -74,31 +81,27 @@ const initialShoppingLists: ShoppingList[] = [
 export default function PurchasesPage() {
   const [shoppingLists, setShoppingLists] = useState<ShoppingList[]>(initialShoppingLists);
   const [selectedList, setSelectedList] = useState<ShoppingList | null>(initialShoppingLists[0] || null);
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [isPriceDialogOpen, setIsPriceDialogOpen] = useState(false);
+  const [itemToPrice, setItemToPrice] = useState<ShoppingListItem | null>(null);
+  const [activeTab, setActiveTab] = useState('all');
+
   
   const addShoppingList = (newList: Omit<ShoppingList, 'id'>) => {
     const listToAdd = { ...newList, id: crypto.randomUUID() };
     setShoppingLists(prev => [...prev, listToAdd]);
-    setSelectedList(listToAdd); // Select the new list
+    setSelectedList(listToAdd);
   };
-
-  const deleteShoppingList = (listId: string) => {
-    setShoppingLists(prev => {
-        const remainingLists = prev.filter(list => list.id !== listId);
-        if (selectedList?.id === listId) {
-            setSelectedList(remainingLists[0] || null);
-        }
-        return remainingLists;
-    });
-  }
   
-  const toggleItemChecked = (listId: string, itemId: string) => {
+  const handleSetPrice = (itemId: string, price: number) => {
+    if (!selectedList) return;
+
     const newLists = shoppingLists.map(list => {
-      if (list.id === listId) {
+      if (list.id === selectedList.id) {
         return {
           ...list,
           items: list.items.map(item => 
-            item.id === itemId ? { ...item, checked: !item.checked } : item
+            item.id === itemId ? { ...item, price: price, checked: true } : item
           )
         };
       }
@@ -106,12 +109,37 @@ export default function PurchasesPage() {
     });
     setShoppingLists(newLists);
     
-    // Update selectedList if it's the one being changed
-    if (selectedList && selectedList.id === listId) {
-        setSelectedList(newLists.find(l => l.id === listId) || null);
-    }
+    // Update selectedList state
+    const updatedList = newLists.find(l => l.id === selectedList.id) || null;
+    setSelectedList(updatedList);
+    
+    setItemToPrice(null);
+    setIsPriceDialogOpen(false);
   };
   
+  const handleCheckboxChange = (item: ShoppingListItem) => {
+    if (item.checked) {
+      // Uncheck and clear price
+      const newLists = shoppingLists.map(list => {
+          if (list.id === selectedList?.id) {
+              return {
+                  ...list,
+                  items: list.items.map(i => 
+                      i.id === item.id ? { ...i, checked: false, price: undefined } : i
+                  )
+              };
+          }
+          return list;
+      });
+      setShoppingLists(newLists);
+      setSelectedList(newLists.find(l => l.id === selectedList?.id) || null);
+    } else {
+      // Open price dialog to check
+      setItemToPrice(item);
+      setIsPriceDialogOpen(true);
+    }
+  };
+
   const getProgress = (list: ShoppingList) => {
     if (list.items.length === 0) return 0;
     const checkedItems = list.items.filter(item => item.checked).length;
@@ -121,22 +149,38 @@ export default function PurchasesPage() {
   const getCheckedCount = (list: ShoppingList) => {
       return list.items.filter(item => item.checked).length;
   }
+  
+  const filteredItems = useMemo(() => {
+    if (!selectedList) return [];
+    if (activeTab === 'pending') {
+      return selectedList.items.filter(item => !item.checked);
+    }
+    if (activeTab === 'completed') {
+      return selectedList.items.filter(item => item.checked);
+    }
+    return selectedList.items;
+  }, [selectedList, activeTab]);
+  
+  const totalCost = useMemo(() => {
+    if (!selectedList) return 0;
+    return selectedList.items.reduce((total, item) => {
+      return item.checked && item.price ? total + item.price : total;
+    }, 0);
+  }, [selectedList, shoppingLists]);
 
   return (
     <div className="flex flex-col gap-6">
-        {/* Header */}
         <div className="flex items-center justify-between">
             <div>
                 <h1 className="text-3xl font-bold">Listas de Compras</h1>
                 <p className="text-muted-foreground">Organize suas compras com a ajuda da IA</p>
             </div>
-            <Button onClick={() => setIsDialogOpen(true)} variant="outline">
+            <Button onClick={() => setIsCreateDialogOpen(true)} variant="outline">
                 <Plus className="mr-2 h-4 w-4" />
                 Nova Lista
             </Button>
         </div>
         
-        {/* AI Assistant */}
          <Accordion type="single" collapsible>
             <AccordionItem value="item-1" className="border-none">
                 <AccordionTrigger className="bg-muted hover:no-underline rounded-lg p-4 font-normal text-base">
@@ -154,7 +198,6 @@ export default function PurchasesPage() {
             </AccordionItem>
         </Accordion>
 
-        {/* My Lists Section */}
         <Card>
             <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-lg">
@@ -167,7 +210,10 @@ export default function PurchasesPage() {
                     <div
                         key={list.id}
                         onClick={() => setSelectedList(list)}
-                        className={`flex items-center justify-between p-3 rounded-lg cursor-pointer transition-colors ${selectedList?.id === list.id ? 'bg-primary text-primary-foreground' : 'bg-muted hover:bg-muted/80'}`}
+                        className={cn(
+                            'flex items-center justify-between p-3 rounded-lg cursor-pointer transition-colors',
+                            selectedList?.id === list.id ? 'bg-primary text-primary-foreground' : 'bg-muted hover:bg-muted/80'
+                        )}
                     >
                         <div>
                             <p className="font-semibold">{list.name}</p>
@@ -183,8 +229,25 @@ export default function PurchasesPage() {
                 ))}
             </CardContent>
         </Card>
+        
+        {totalCost > 0 && (
+            <Card>
+                <CardHeader className="flex-row items-center justify-between p-4">
+                    <div className="flex items-center gap-3">
+                        <DollarSign className="h-6 w-6 text-primary" />
+                        <div>
+                            <CardTitle className="text-base">Total da Compra</CardTitle>
+                            <CardDescription>Valor total dos itens marcados</CardDescription>
+                        </div>
+                    </div>
+                     <p className="text-2xl font-bold text-primary">
+                        {totalCost.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                    </p>
+                </CardHeader>
+            </Card>
+        )}
 
-        {/* Selected List Details */}
+
         {selectedList ? (
             <Card className="bg-muted">
                 <CardHeader>
@@ -206,7 +269,7 @@ export default function PurchasesPage() {
                         <Input placeholder="Buscar itens..." className="pl-9 bg-background"/>
                     </div>
 
-                    <Tabs defaultValue="all">
+                    <Tabs value={activeTab} onValueChange={setActiveTab}>
                         <TabsList className="grid w-full grid-cols-3 bg-background">
                             <TabsTrigger value="all">Todos</TabsTrigger>
                             <TabsTrigger value="pending">Pendentes</TabsTrigger>
@@ -214,26 +277,39 @@ export default function PurchasesPage() {
                         </TabsList>
                         
                         <div className="mt-4 space-y-3">
-                           {selectedList.items.map(item => (
+                           {filteredItems.map(item => (
                                <div key={item.id} className="flex items-center space-x-3 p-3 bg-background rounded-lg">
                                     <Checkbox 
                                         id={`${selectedList.id}-${item.id}`} 
                                         checked={item.checked} 
-                                        onCheckedChange={() => toggleItemChecked(selectedList.id, item.id)}
+                                        onCheckedChange={() => handleCheckboxChange(item)}
                                     />
                                     <Label
                                         htmlFor={`${selectedList.id}-${item.id}`}
-                                        className={`flex-1 text-sm ${
-                                        item.checked ? "text-muted-foreground line-through" : ""
-                                        }`}
+                                        className={cn('flex-1 text-sm', item.checked && "text-muted-foreground line-through")}
                                     >
                                         {item.quantity}x {item.name}
                                     </Label>
-                                     <Button variant="ghost" size="icon" onClick={() => {}} className="text-muted-foreground">
+                                    {item.checked && item.price !== undefined && (
+                                      <div className="flex items-center gap-2">
+                                        <Badge variant="secondary" className="font-mono">
+                                          {item.price.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                                        </Badge>
+                                        <Button variant="ghost" size="icon" onClick={() => { setItemToPrice(item); setIsPriceDialogOpen(true); }} className="h-7 w-7 text-muted-foreground">
+                                            <Pencil className="h-4 w-4"/>
+                                        </Button>
+                                      </div>
+                                    )}
+                                     <Button variant="ghost" size="icon" onClick={() => {}} className="h-7 w-7 text-muted-foreground">
                                         <Trash2 className="h-4 w-4"/>
                                     </Button>
                                </div>
                            ))}
+                           {filteredItems.length === 0 && (
+                             <div className="text-center text-muted-foreground py-8">
+                                <p>Nenhum item nesta categoria.</p>
+                             </div>
+                           )}
                         </div>
 
                     </Tabs>
@@ -248,10 +324,19 @@ export default function PurchasesPage() {
         )}
 
         <CreateListDialog
-            isOpen={isDialogOpen}
-            onClose={() => setIsDialogOpen(false)}
+            isOpen={isCreateDialogOpen}
+            onClose={() => setIsCreateDialogOpen(false)}
             onSave={addShoppingList}
         />
+        
+        {itemToPrice && (
+            <SetPriceDialog
+                isOpen={isPriceDialogOpen}
+                onClose={() => { setItemToPrice(null); setIsPriceDialogOpen(false); }}
+                onSetPrice={handleSetPrice}
+                item={itemToPrice}
+            />
+        )}
     </div>
   );
 }
