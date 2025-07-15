@@ -30,7 +30,7 @@ function Header() {
 
   const isDashboard = pathname === '/';
   
-  if (pathname === '/profile' || pathname === '/calendar') {
+  if (pathname === '/profile' || pathname === '/calendar' || pathname === '/discover') {
     return null;
   }
   
@@ -54,6 +54,8 @@ function Header() {
             return { title: 'Lista de Desejos', description: 'Realizem seus sonhos juntos.' };
         case '/settings':
             return { title: 'Ajustes', description: 'Personalize o aplicativo e gerencie seus dados.' };
+        case '/discover':
+            return { title: 'Descobrir', description: 'Encontre lugares incríveis para visitar.' };
         default:
             return { title: 'Vida a 2', description: '' };
     }
@@ -92,6 +94,7 @@ export default function RootLayout({
   const pathname = usePathname();
   const isProfilePage = pathname === '/profile';
   const isCalendarPage = pathname === '/calendar';
+  const isDiscoverPage = pathname === '/discover';
 
   return (
     <html lang="en" suppressHydrationWarning>
@@ -111,7 +114,7 @@ export default function RootLayout({
         <FinanceProvider>
             <SidebarProvider>
             <AppSidebar />
-             {isProfilePage || isCalendarPage ? (
+             {isProfilePage || isCalendarPage || isDiscoverPage ? (
                 <main className="flex-1 bg-background">{children}</main>
             ) : (
                 <SidebarInset>
