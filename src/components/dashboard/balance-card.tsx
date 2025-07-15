@@ -9,7 +9,7 @@ export function BalanceCard() {
   const { totalBalance, formatCurrency } = useContext(FinanceContext);
 
   return (
-    <Card className="flex flex-col">
+    <Card className="flex flex-col card-hover-effect">
       <CardHeader>
         <div className="flex items-start justify-between">
           <div className="flex flex-col gap-1.5">
@@ -20,7 +20,7 @@ export function BalanceCard() {
               {formatCurrency(totalBalance())}
             </span>
           </div>
-          <div className="rounded-full bg-gray-100 p-2">
+          <div className="rounded-full bg-secondary p-2">
             <Banknote className="h-5 w-5 text-muted-foreground" />
           </div>
         </div>

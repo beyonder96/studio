@@ -86,14 +86,14 @@ export default function WishesPage() {
         {pendingWishes.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {pendingWishes.map(wish => (
-                <Card key={wish.id} className="flex flex-col">
+                <Card key={wish.id} className="flex flex-col card-hover-effect">
                     <CardHeader className="relative p-0">
                          <Image
                             src={wish.imageUrl || "https://placehold.co/600x400.png"}
                             alt={wish.name}
                             width={600}
                             height={400}
-                            className="w-full h-48 object-cover rounded-t-2xl"
+                            className="w-full h-48 object-cover rounded-t-lg"
                             data-ai-hint="product gift"
                         />
                          <div className="absolute top-2 right-2">
@@ -154,13 +154,13 @@ export default function WishesPage() {
         {purchasedWishes.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {purchasedWishes.map(wish => (
-                    <Card key={wish.id} className="relative opacity-70">
+                    <Card key={wish.id} className="relative">
                          <Image
                             src={wish.imageUrl || "https://placehold.co/600x400.png"}
                             alt={wish.name}
                             width={600}
                             height={400}
-                            className="w-full h-48 object-cover rounded-2xl brightness-50"
+                            className="w-full h-48 object-cover rounded-lg brightness-50"
                             data-ai-hint="product gift"
                         />
                         <div className="absolute inset-0 flex flex-col justify-between p-4 text-white">

@@ -14,24 +14,52 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { CreditCard, HelpCircle, LogOut, Settings, User as UserIcon } from "lucide-react";
+import { useState, useEffect } from "react";
 
 export function UserNav() {
+    const [profileImage, setProfileImage] = useState("https://placehold.co/80x80.png");
+    const [profileName, setProfileName] = useState("Kenned & Nicoli");
+    const [profileEmail, setProfileEmail] = useState("casal@email.com");
+
+
+    useEffect(() => {
+        const savedImage = localStorage.getItem('app-profile-image');
+        if (savedImage) setProfileImage(savedImage);
+        
+        const savedData = localStorage.getItem('app-profile-data');
+        if (savedData) setProfileName(JSON.parse(savedData).names);
+
+        const handleStorageChange = (e: StorageEvent) => {
+            if (e.key === 'app-profile-image') {
+                const updatedImage = localStorage.getItem('app-profile-image');
+                if (updatedImage) setProfileImage(updatedImage);
+            }
+             if (e.key === 'app-profile-data') {
+                const updatedData = localStorage.getItem('app-profile-data');
+                if(updatedData) setProfileName(JSON.parse(updatedData).names);
+            }
+        };
+
+        window.addEventListener('storage', handleStorageChange);
+        return () => window.removeEventListener('storage', handleStorageChange);
+    }, []);
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" className="relative h-10 w-10 rounded-full">
           <Avatar className="h-10 w-10">
-            <AvatarImage src="https://placehold.co/80x80.png" alt="Foto do casal" data-ai-hint="couple photo"/>
-            <AvatarFallback className="bg-primary/20">U</AvatarFallback>
+            <AvatarImage src={profileImage} alt="Foto do casal" data-ai-hint="couple photo"/>
+            <AvatarFallback className="bg-primary/20">KN</AvatarFallback>
           </Avatar>
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent className="w-56" align="end" forceMount>
         <DropdownMenuLabel className="font-normal">
           <div className="flex flex-col space-y-1">
-            <p className="text-sm font-medium leading-none">Kenned & Nicoli</p>
+            <p className="text-sm font-medium leading-none">{profileName}</p>
             <p className="text-xs leading-none text-muted-foreground">
-              casal@email.com
+              {profileEmail}
             </p>
           </div>
         </DropdownMenuLabel>

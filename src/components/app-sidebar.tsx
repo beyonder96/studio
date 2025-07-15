@@ -33,24 +33,39 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { usePathname } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { useState, useEffect } from "react";
+import { cn } from "@/lib/utils";
+
 
 const defaultProfileImage = "https://placehold.co/80x80.png";
 
 export default function AppSidebar() {
   const pathname = usePathname();
   const [profileImage, setProfileImage] = useState(defaultProfileImage);
+  const [profileName, setProfileName] = useState("Kenned & Nicoli");
 
   useEffect(() => {
-    // Load image from localStorage only on the client-side
+    // Load image and data from localStorage only on the client-side
     const savedImage = localStorage.getItem('app-profile-image');
     if (savedImage) {
       setProfileImage(savedImage);
     }
+    const savedData = localStorage.getItem('app-profile-data');
+    if (savedData) {
+        setProfileName(JSON.parse(savedData).names);
+    }
     
-    const handleStorageChange = () => {
-        const updatedImage = localStorage.getItem('app-profile-image');
-        if (updatedImage) {
-            setProfileImage(updatedImage);
+    const handleStorageChange = (e: StorageEvent) => {
+        if (e.key === 'app-profile-image') {
+            const updatedImage = localStorage.getItem('app-profile-image');
+            if (updatedImage) {
+                setProfileImage(updatedImage);
+            }
+        }
+        if (e.key === 'app-profile-data') {
+            const updatedData = localStorage.getItem('app-profile-data');
+            if(updatedData) {
+                setProfileName(JSON.parse(updatedData).names)
+            }
         }
     };
 
@@ -62,14 +77,14 @@ export default function AppSidebar() {
 
   }, []);
 
-  const isActive = (path: string) => pathname === path || (path === '/dashboard' && pathname === '/');
+  const isActive = (path: string) => pathname === path;
 
   return (
     <Sidebar>
-      <SidebarHeader className="p-4">
+      <SidebarHeader>
         <Logo />
       </SidebarHeader>
-      <SidebarContent className="p-4">
+      <SidebarContent>
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton
@@ -88,7 +103,7 @@ export default function AppSidebar() {
               <Link href="#">
                 <Sparkles />
                 <span>Copiloto IA</span>
-                 <Badge variant="outline" className="ml-auto !text-xs text-muted-foreground font-medium">Em Breve</Badge>
+                 <Badge variant="secondary" className="ml-auto !text-xs text-muted-foreground font-medium group-data-[collapsible=icon]:hidden">Em Breve</Badge>
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
@@ -157,10 +172,11 @@ export default function AppSidebar() {
             </SidebarMenuButton>
           </SidebarMenuItem>
           <SidebarMenuItem>
-            <SidebarMenuButton asChild isActive={isActive("/goals")} tooltip="Metas">
+            <SidebarMenuButton asChild isActive={isActive("/goals")} tooltip="Metas (Em Breve)" disabled>
               <Link href="#">
                 <Target />
                 <span>Metas</span>
+                <Badge variant="secondary" className="ml-auto !text-xs text-muted-foreground font-medium group-data-[collapsible=icon]:hidden">Em Breve</Badge>
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
@@ -174,15 +190,18 @@ export default function AppSidebar() {
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarContent>
-      <SidebarFooter className="p-4">
-        <div className="flex items-center gap-3 rounded-md p-2 -m-2">
+      <SidebarFooter>
+         <div className={cn(
+            "flex items-center gap-3 rounded-md p-2 transition-colors",
+            "group-data-[state=collapsed]:p-0"
+         )}>
             <Avatar className="h-10 w-10">
                 <AvatarImage src={profileImage} alt="Foto do casal" data-ai-hint="couple photo"/>
-                <AvatarFallback className="bg-neutral-300">KN</AvatarFallback>
+                <AvatarFallback className="bg-primary/20">KN</AvatarFallback>
             </Avatar>
-            <div>
-                <p className="font-semibold">Kenned & Nicoli</p>
-                <p className="text-sm text-muted-foreground">Juntos há 2 anos</p>
+            <div className="group-data-[state=collapsed]:hidden">
+                <p className="font-semibold truncate">{profileName}</p>
+                 <Link href="/settings" className="text-sm text-muted-foreground hover:text-primary">Ver perfil</Link>
             </div>
         </div>
       </SidebarFooter>

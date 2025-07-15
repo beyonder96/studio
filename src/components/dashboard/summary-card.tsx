@@ -17,19 +17,19 @@ export function SummaryCard({ type }: SummaryCardProps) {
   const title = isIncome ? "Receitas no Mês" : "Despesas no Mês";
   const amount = isIncome ? totalIncome() : totalExpenses();
   const icon = isIncome ? (
-    <ArrowUpCircle className="h-5 w-5 text-muted-foreground" />
+    <ArrowUpCircle className="h-5 w-5 text-green-500" />
   ) : (
-    <ArrowDownCircle className="h-5 w-5 text-muted-foreground" />
+    <ArrowDownCircle className="h-5 w-5 text-red-500" />
   );
 
   return (
-    <Card>
+    <Card className="card-hover-effect">
       <CardHeader>
         <div className="flex items-start justify-between">
             <CardTitle className="text-sm font-medium text-muted-foreground">
                 {title}
             </CardTitle>
-            <div className="rounded-full bg-gray-100 p-2">
+            <div className="rounded-full bg-secondary p-2">
               {icon}
             </div>
         </div>

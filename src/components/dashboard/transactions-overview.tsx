@@ -23,6 +23,8 @@ import { useContext } from "react";
 import { FinanceContext } from "@/contexts/finance-context";
 import Link from "next/link";
 import { Skeleton } from "../ui/skeleton";
+import { cn } from "@/lib/utils";
+
 
 const categoryIcons: { [key: string]: React.ReactNode } = {
   'Alimentação': <Utensils className="h-5 w-5" />,
@@ -44,7 +46,7 @@ export function TransactionsOverview() {
   const recentTransactions = transactions.slice(0, 5);
 
   return (
-    <Card className="h-full">
+    <Card className="h-full card-hover-effect">
       <CardHeader>
         <CardTitle>Transações Recentes</CardTitle>
         <CardDescription>
@@ -57,7 +59,7 @@ export function TransactionsOverview() {
             <Link href="/finance" key={transaction.id} className="block rounded-lg -mx-2 px-2 py-2 hover:bg-muted">
                 <div className="flex items-center gap-3">
                 <Avatar className="h-9 w-9">
-                    <AvatarFallback className="bg-muted text-muted-foreground">
+                    <AvatarFallback className="bg-secondary text-muted-foreground">
                     {getIconForCategory(transaction.category)}
                     </AvatarFallback>
                 </Avatar>
@@ -71,16 +73,14 @@ export function TransactionsOverview() {
                     </p>
                 </div>
                 {isSensitiveDataVisible ? (
-                  <Badge
-                      variant={transaction.type === "income" ? "default" : "secondary"}
-                      className={
-                      transaction.type === 'income'
-                          ? 'text-green-600 bg-green-100 dark:text-green-400 dark:bg-green-900/50 font-semibold'
-                          : 'text-red-600 bg-red-100 dark:text-red-400 dark:bg-red-900/50 font-semibold'
-                      }
+                  <p
+                    className={cn(
+                        'font-mono text-sm font-medium',
+                        transaction.type === 'income' ? 'text-green-500' : 'text-red-500'
+                    )}
                   >
-                      {formatCurrency(transaction.amount)}
-                  </Badge>
+                      {transaction.amount > 0 ? '+' : ''}{formatCurrency(transaction.amount)}
+                  </p>
                 ) : (
                   <Skeleton className="h-6 w-24 rounded-full" />
                 )}

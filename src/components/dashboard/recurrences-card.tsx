@@ -10,13 +10,13 @@ export function RecurrencesCard() {
   const { countRecurringTransactions } = useContext(FinanceContext);
 
   return (
-    <Card>
+    <Card className="card-hover-effect">
       <CardHeader>
         <div className="flex items-start justify-between">
             <CardTitle className="text-sm font-medium text-muted-foreground">
                 Recorrências
             </CardTitle>
-            <div className="rounded-full bg-gray-100 p-2">
+            <div className="rounded-full bg-secondary p-2">
               <Repeat className="h-5 w-5 text-muted-foreground" />
             </div>
         </div>

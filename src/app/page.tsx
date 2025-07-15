@@ -10,7 +10,7 @@ import { Heart } from 'lucide-react';
 export default function Home() {
   return (
     <div className="flex flex-col gap-6">
-       <Badge variant="secondary" className="w-fit gap-2 rounded-lg p-2 text-sm font-normal">
+       <Badge variant="outline" className="w-fit gap-2 rounded-full p-2 text-sm font-normal border-pink-500/50 text-pink-600 dark:text-pink-400">
           <Heart className="h-4 w-4 text-pink-500 fill-pink-500" />
           <span>2 anos. Próximo aniversário em 347 dias.</span>
         </Badge>
