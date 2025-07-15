@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useContext } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -27,7 +27,8 @@ import {
     DollarSign,
     Pencil,
     Save,
-    Eraser
+    Eraser,
+    CheckCircle2
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
@@ -47,6 +48,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
+import { useToast } from '@/hooks/use-toast';
+import { FinanceContext } from '@/contexts/finance-context';
 
 
 export type ShoppingListItem = {
@@ -90,6 +93,9 @@ const initialShoppingLists: ShoppingList[] = [
 ];
 
 export default function PurchasesPage() {
+  const { toast } = useToast();
+  const { addItemsToPantry } = useContext(FinanceContext);
+
   const [shoppingLists, setShoppingLists] = useState<ShoppingList[]>(initialShoppingLists);
   const [selectedList, setSelectedList] = useState<ShoppingList | null>(initialShoppingLists[0] || null);
   const [isPriceDialogOpen, setIsPriceDialogOpen] = useState(false);
@@ -103,6 +109,7 @@ export default function PurchasesPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [listToDelete, setListToDelete] = useState<ShoppingList | null>(null);
   const [listToClear, setListToClear] = useState<ShoppingList | null>(null);
+  const [listToFinish, setListToFinish] = useState<ShoppingList | null>(null);
   const [editingListId, setEditingListId] = useState<string | null>(null);
   const [editingListName, setEditingListName] = useState('');
 
@@ -318,6 +325,32 @@ export default function PurchasesPage() {
     setSelectedList(updatedList);
     setEditingListId(null);
   };
+  
+  const handleFinishList = () => {
+    if (!listToFinish) return;
+
+    const itemsToAdd = listToFinish.items.filter(item => item.checked);
+    addItemsToPantry(itemsToAdd);
+
+    // Remove checked items from the list
+    const newLists = shoppingLists.map(list => {
+      if (list.id === listToFinish.id) {
+        return {
+          ...list,
+          items: list.items.filter(item => !item.checked)
+        };
+      }
+      return list;
+    });
+    setShoppingLists(newLists);
+    setSelectedList(newLists.find(l => l.id === listToFinish.id) || null);
+    setListToFinish(null);
+
+    toast({
+        title: 'Despensa Atualizada!',
+        description: `${itemsToAdd.length} itens foram adicionados à sua despensa.`
+    })
+  };
 
 
   useEffect(() => {
@@ -521,9 +554,18 @@ export default function PurchasesPage() {
                              </div>
                            )}
                         </div>
-
                     </Tabs>
                 </CardContent>
+                 <CardHeader>
+                    <Button 
+                        onClick={() => setListToFinish(selectedList)}
+                        disabled={getCheckedCount(selectedList) === 0}
+                        className="w-full"
+                    >
+                        <CheckCircle2 className="mr-2 h-4 w-4" />
+                        Finalizar Compra ({getCheckedCount(selectedList)} Itens)
+                    </Button>
+                </CardHeader>
             </Card>
         ) : (
              <div className="text-center text-muted-foreground py-16 border-2 border-dashed rounded-lg">
@@ -589,6 +631,23 @@ export default function PurchasesPage() {
                     <AlertDialogCancel onClick={() => setListToClear(null)}>Cancelar</AlertDialogCancel>
                     <AlertDialogAction onClick={handleClearCompletedItems}>
                         Sim, limpar
+                    </AlertDialogAction>
+                </AlertDialogFooter>
+            </AlertDialogContent>
+        </AlertDialog>
+        
+        <AlertDialog open={!!listToFinish} onOpenChange={(open) => !open && setListToFinish(null)}>
+            <AlertDialogContent>
+                <AlertDialogHeader>
+                    <AlertDialogTitle>Finalizar compra e atualizar despensa?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                        Os <span className="font-semibold">{getCheckedCount(listToFinish!)}</span> itens marcados serão movidos para a sua despensa e removidos desta lista.
+                    </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                    <AlertDialogCancel onClick={() => setListToFinish(null)}>Cancelar</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleFinishList}>
+                        Sim, finalizar
                     </AlertDialogAction>
                 </AlertDialogFooter>
             </AlertDialogContent>

@@ -107,7 +107,7 @@ export default function AppSidebar() {
           </SidebarMenuItem>
           <SidebarMenuItem>
             <SidebarMenuButton asChild isActive={isActive("/pantry")} tooltip="Despensa">
-              <Link href="#">
+              <Link href="/pantry">
                 <Carrot />
                 <span>Despensa</span>
               </Link>

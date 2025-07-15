@@ -73,6 +73,12 @@ const initialCards = [
 const initialIncomeCategories = ['Salário', 'Freelance', 'Investimentos', 'Outros'];
 const initialExpenseCategories = ['Alimentação', 'Moradia', 'Transporte', 'Lazer', 'Saúde', 'Educação', 'Compras', 'Outros'];
 
+const initialPantryItems: PantryItem[] = [
+    { id: 'p1', name: 'Leite Integral', quantity: 2, pantryCategory: 'Laticínios' },
+    { id: 'p2', name: 'Ovos', quantity: 12, pantryCategory: 'Outros' },
+    { id: 'p3', name: 'Peito de Frango (kg)', quantity: 1, pantryCategory: 'Carnes' },
+];
+
 
 type Account = {
     id: string;
@@ -87,6 +93,25 @@ type Card = {
     limit: number;
     dueDay: number;
 }
+
+export type PantryCategory = 'Laticínios' | 'Carnes' | 'Peixes' | 'Frutas e Vegetais' | 'Outros';
+
+export type PantryItem = {
+    id: string;
+    name: string;
+    quantity: number;
+    pantryCategory: PantryCategory;
+}
+
+const mapShoppingItemToPantryCategory = (itemName: string): PantryCategory => {
+    const lowerCaseName = itemName.toLowerCase();
+    if (lowerCaseName.includes('leite') || lowerCaseName.includes('queijo') || lowerCaseName.includes('iogurte')) return 'Laticínios';
+    if (lowerCaseName.includes('frango') || lowerCaseName.includes('carne') || lowerCaseName.includes('bife')) return 'Carnes';
+    if (lowerCaseName.includes('peixe') || lowerCaseName.includes('salmão') || lowerCaseName.includes('atum')) return 'Peixes';
+    if (lowerCaseName.includes('maçã') || lowerCaseName.includes('banana') || lowerCaseName.includes('cenoura') || lowerCaseName.includes('alface')) return 'Frutas e Vegetais';
+    return 'Outros';
+}
+
 
 type FinanceContextType = {
   transactions: Transaction[];
@@ -105,6 +130,8 @@ type FinanceContextType = {
   toggleSensitiveDataVisibility: () => void;
   formatCurrency: (value: number) => string;
   resetAllData: () => void;
+  pantryItems: PantryItem[];
+  addItemsToPantry: (items: { name: string, quantity: number }[]) => void;
 };
 
 export const FinanceContext = createContext<FinanceContextType>({} as FinanceContextType);
@@ -116,6 +143,7 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
   const [incomeCategories, setIncomeCategories] = useState<string[]>(initialIncomeCategories);
   const [expenseCategories, setExpenseCategories] = useState<string[]>(initialExpenseCategories);
   const [isSensitiveDataVisible, setIsSensitiveDataVisible] = useState(true);
+  const [pantryItems, setPantryItems] = useState<PantryItem[]>(initialPantryItems);
 
   const toggleSensitiveDataVisibility = () => {
     setIsSensitiveDataVisible(prev => !prev);
@@ -187,10 +215,36 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
     return transactions.filter(t => t.isRecurring).length;
   }
   
+  const addItemsToPantry = (items: { name: string, quantity: number }[]) => {
+    setPantryItems(prevPantryItems => {
+        const newPantryItems = [...prevPantryItems];
+
+        items.forEach(itemToAdd => {
+            const existingItemIndex = newPantryItems.findIndex(pItem => pItem.name.toLowerCase() === itemToAdd.name.toLowerCase());
+
+            if (existingItemIndex > -1) {
+                // Item exists, update quantity
+                newPantryItems[existingItemIndex].quantity += itemToAdd.quantity;
+            } else {
+                // Item is new, add it
+                newPantryItems.push({
+                    id: crypto.randomUUID(),
+                    name: itemToAdd.name,
+                    quantity: itemToAdd.quantity,
+                    pantryCategory: mapShoppingItemToPantryCategory(itemToAdd.name),
+                });
+            }
+        });
+
+        return newPantryItems;
+    });
+  };
+
   const resetAllData = () => {
     setTransactions([]);
     setAccounts([]);
     setCards([]);
+    setPantryItems([]);
     // We keep the categories for convenience
     setIncomeCategories(initialIncomeCategories);
     setExpenseCategories(initialExpenseCategories);
@@ -213,6 +267,8 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
     toggleSensitiveDataVisibility,
     formatCurrency,
     resetAllData,
+    pantryItems,
+    addItemsToPantry,
   };
 
   return (

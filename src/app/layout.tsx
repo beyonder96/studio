@@ -46,6 +46,8 @@ function Header() {
             return { title: 'Recorrências', description: 'Visualize suas transações recorrentes.' };
         case '/purchases':
             return { title: 'Compras', description: 'Crie e gerencie suas listas de compras.' };
+        case '/pantry':
+            return { title: 'Despensa', description: 'Veja o que você tem em casa.' };
         case '/settings':
             return { title: 'Ajustes', description: 'Personalize o aplicativo e gerencie seus dados.' };
         default:
