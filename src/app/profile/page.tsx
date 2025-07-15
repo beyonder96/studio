@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import {
@@ -15,17 +15,18 @@ import { useToast } from '@/hooks/use-toast';
 
 const defaultProfileImage = "https://placehold.co/600x800.png";
 
-const getInitialProfileImage = (): string => {
-  if (typeof window === 'undefined') {
-    return defaultProfileImage;
-  }
-  return localStorage.getItem('app-profile-image') || defaultProfileImage;
-};
-
 export default function ProfilePage() {
   const { toast } = useToast();
-  const [profileImage, setProfileImage] = useState<string>(getInitialProfileImage);
+  const [profileImage, setProfileImage] = useState<string>(defaultProfileImage);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    // Load image from localStorage only on the client-side after initial render
+    const savedImage = localStorage.getItem('app-profile-image');
+    if (savedImage) {
+      setProfileImage(savedImage);
+    }
+  }, []);
 
   const handleImageClick = () => {
     fileInputRef.current?.click();
@@ -111,7 +112,7 @@ export default function ProfilePage() {
             <p className="text-lg text-white/80">Juntos há 2 anos</p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-foreground">
+          <div className="grid grid-cols-2 md:grid-cols-1 gap-4 text-foreground">
             <div className="bg-white/20 dark:bg-black/20 backdrop-blur-md p-4 rounded-xl space-y-1 border border-white/20">
               <div className="flex items-center gap-2 text-sm text-white/80">
                 <Cake className="w-4 h-4" />
