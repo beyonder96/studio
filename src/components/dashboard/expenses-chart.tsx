@@ -2,6 +2,8 @@
 "use client"
 
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis, Tooltip } from "recharts"
+import { useContext } from "react";
+import { FinanceContext } from "@/contexts/finance-context";
 
 import {
   Card,
@@ -50,6 +52,18 @@ const chartConfig = {
 }
 
 export function ExpensesChart() {
+  const { isSensitiveDataVisible, formatCurrency } = useContext(FinanceContext);
+
+  const customTooltipFormatter = (value: number) => {
+    if (!isSensitiveDataVisible) return 'R$ ••••••';
+    return `R$ ${Number(value).toLocaleString('pt-BR')}`;
+  };
+  
+  const customTickFormatter = (value: number) => {
+    if (!isSensitiveDataVisible) return '•';
+     return `R$ ${value}`;
+  }
+
   return (
     <Card className="h-full">
       <CardHeader>
@@ -67,19 +81,20 @@ export function ExpensesChart() {
               axisLine={false}
             />
             <YAxis
-              tickFormatter={(value) => `R$ ${value}`}
+              tickFormatter={customTickFormatter}
               tickLine={false}
               axisLine={false}
-              width={60}
+              width={80}
+              hide={!isSensitiveDataVisible}
             />
              <Tooltip
               cursor={false}
               content={<ChartTooltipContent
-                formatter={(value) => `R$ ${Number(value).toLocaleString('pt-BR')}`}
+                formatter={customTooltipFormatter}
                 indicator="dot"
               />}
             />
-            <Bar dataKey="expenses" radius={8} />
+            <Bar dataKey={isSensitiveDataVisible ? "expenses" : ""} radius={8} />
           </BarChart>
         </ChartContainer>
       </CardContent>

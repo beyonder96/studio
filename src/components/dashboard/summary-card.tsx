@@ -11,7 +11,7 @@ type SummaryCardProps = {
 };
 
 export function SummaryCard({ type }: SummaryCardProps) {
-  const { totalIncome, totalExpenses } = useContext(FinanceContext);
+  const { totalIncome, totalExpenses, formatCurrency } = useContext(FinanceContext);
   const isIncome = type === "income";
 
   const title = isIncome ? "Receitas no Mês" : "Despesas no Mês";
@@ -36,7 +36,7 @@ export function SummaryCard({ type }: SummaryCardProps) {
       </CardHeader>
       <CardContent>
         <span className="block text-3xl font-bold tracking-tight">
-          {amount.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+          {formatCurrency(amount)}
         </span>
       </CardContent>
     </Card>

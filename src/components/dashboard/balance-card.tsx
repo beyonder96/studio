@@ -6,7 +6,7 @@ import { useContext } from "react";
 import { FinanceContext } from "@/contexts/finance-context";
 
 export function BalanceCard() {
-  const { totalBalance } = useContext(FinanceContext);
+  const { totalBalance, formatCurrency } = useContext(FinanceContext);
 
   return (
     <Card className="flex flex-col">
@@ -17,7 +17,7 @@ export function BalanceCard() {
               Saldo Combinado
             </CardTitle>
             <span className="text-3xl font-bold tracking-tight">
-              {totalBalance().toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+              {formatCurrency(totalBalance())}
             </span>
           </div>
           <div className="rounded-full bg-gray-100 p-2">

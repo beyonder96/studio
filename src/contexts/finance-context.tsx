@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { createContext, useState, ReactNode } from 'react';
+import React, { createContext, useState, ReactNode, useContext } from 'react';
 import type { Transaction } from '@/components/finance/transactions-table';
 import { addMonths, format } from 'date-fns';
 
@@ -101,6 +101,9 @@ type FinanceContextType = {
   totalExpenses: () => number;
   totalBalance: () => number;
   countRecurringTransactions: () => number;
+  isSensitiveDataVisible: boolean;
+  toggleSensitiveDataVisibility: () => void;
+  formatCurrency: (value: number) => string;
 };
 
 export const FinanceContext = createContext<FinanceContextType>({} as FinanceContextType);
@@ -111,6 +114,19 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
   const [cards, setCards] = useState<Card[]>(initialCards);
   const [incomeCategories, setIncomeCategories] = useState<string[]>(initialIncomeCategories);
   const [expenseCategories, setExpenseCategories] = useState<string[]>(initialExpenseCategories);
+  const [isSensitiveDataVisible, setIsSensitiveDataVisible] = useState(true);
+
+  const toggleSensitiveDataVisibility = () => {
+    setIsSensitiveDataVisible(prev => !prev);
+  }
+
+  const formatCurrency = (value: number) => {
+    if (!isSensitiveDataVisible) {
+        return 'R$ ••••••';
+    }
+    return value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+  };
+
 
   const addTransaction = (transaction: Omit<Transaction, 'id'>, installments: number = 1) => {
      if (installments > 1) {
@@ -183,6 +199,9 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
     totalExpenses,
     totalBalance,
     countRecurringTransactions,
+    isSensitiveDataVisible,
+    toggleSensitiveDataVisibility,
+    formatCurrency,
   };
 
   return (

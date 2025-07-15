@@ -22,6 +22,7 @@ import { Badge } from "../ui/badge";
 import { useContext } from "react";
 import { FinanceContext } from "@/contexts/finance-context";
 import Link from "next/link";
+import { Skeleton } from "../ui/skeleton";
 
 const categoryIcons: { [key: string]: React.ReactNode } = {
   'Alimentação': <Utensils className="h-5 w-5" />,
@@ -39,7 +40,7 @@ const getIconForCategory = (category: string) => {
 
 
 export function TransactionsOverview() {
-  const { transactions } = useContext(FinanceContext);
+  const { transactions, formatCurrency, isSensitiveDataVisible } = useContext(FinanceContext);
   const recentTransactions = transactions.slice(0, 5);
 
   return (
@@ -69,19 +70,20 @@ export function TransactionsOverview() {
                     {transaction.category}
                     </p>
                 </div>
-                <Badge
-                    variant={transaction.type === "income" ? "default" : "secondary"}
-                    className={
-                    transaction.type === 'income'
-                        ? 'text-green-600 bg-green-100 dark:text-green-400 dark:bg-green-900/50 font-semibold'
-                        : 'text-red-600 bg-red-100 dark:text-red-400 dark:bg-red-900/50 font-semibold'
-                    }
-                >
-                    {transaction.amount.toLocaleString("pt-BR", {
-                    style: "currency",
-                    currency: "BRL",
-                    })}
-                </Badge>
+                {isSensitiveDataVisible ? (
+                  <Badge
+                      variant={transaction.type === "income" ? "default" : "secondary"}
+                      className={
+                      transaction.type === 'income'
+                          ? 'text-green-600 bg-green-100 dark:text-green-400 dark:bg-green-900/50 font-semibold'
+                          : 'text-red-600 bg-red-100 dark:text-red-400 dark:bg-red-900/50 font-semibold'
+                      }
+                  >
+                      {formatCurrency(transaction.amount)}
+                  </Badge>
+                ) : (
+                  <Skeleton className="h-6 w-24 rounded-full" />
+                )}
                 </div>
             </Link>
           ))}
