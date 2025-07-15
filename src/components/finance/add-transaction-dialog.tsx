@@ -10,7 +10,6 @@ import {
   DialogClose,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
   Select,
@@ -23,6 +22,7 @@ import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Transaction } from './transactions-table';
+import { CurrencyInput } from './currency-input';
 
 const transactionSchema = z.object({
   description: z.string().min(1, 'Descrição é obrigatória'),
@@ -57,12 +57,14 @@ export function AddTransactionDialog({
     control,
     watch,
     reset,
+    setValue,
     formState: { errors },
   } = useForm<TransactionFormData>({
     resolver: zodResolver(transactionSchema),
     defaultValues: {
       type: 'expense',
       date: new Date().toISOString().split('T')[0],
+      amount: 0,
     },
   });
 
@@ -76,7 +78,7 @@ export function AddTransactionDialog({
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+    <Dialog open={isOpen} onOpenChange={(open) => { if (!open) { reset(); onClose(); }}}>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Adicionar Transação</DialogTitle>
@@ -87,7 +89,7 @@ export function AddTransactionDialog({
               <Label htmlFor="description" className="text-right">
                 Descrição
               </Label>
-              <Input id="description" {...register('description')} className="col-span-3" />
+              <input id="description" {...register('description')} className="col-span-3 flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-base ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm" />
                {errors.description && <p className="col-span-4 text-red-500 text-xs text-right">{errors.description.message}</p>}
             </div>
 
@@ -95,7 +97,17 @@ export function AddTransactionDialog({
               <Label htmlFor="amount" className="text-right">
                 Valor
               </Label>
-              <Input id="amount" type="number" step="0.01" {...register('amount')} className="col-span-3" />
+               <Controller
+                name="amount"
+                control={control}
+                render={({ field }) => (
+                  <CurrencyInput
+                    className="col-span-3"
+                    value={field.value}
+                    onValueChange={(value) => setValue('amount', value || 0)}
+                  />
+                )}
+              />
                {errors.amount && <p className="col-span-4 text-red-500 text-xs text-right">{errors.amount.message}</p>}
             </div>
             
@@ -103,7 +115,7 @@ export function AddTransactionDialog({
               <Label htmlFor="date" className="text-right">
                 Data
               </Label>
-              <Input id="date" type="date" {...register('date')} className="col-span-3" />
+              <input id="date" type="date" {...register('date')} className="col-span-3 flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-base ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm" />
                {errors.date && <p className="col-span-4 text-red-500 text-xs text-right">{errors.date.message}</p>}
             </div>
 
@@ -186,7 +198,7 @@ export function AddTransactionDialog({
           </div>
           <DialogFooter>
             <DialogClose asChild>
-              <Button type="button" variant="secondary">
+              <Button type="button" variant="secondary" onClick={() => { reset(); onClose(); }}>
                 Cancelar
               </Button>
             </DialogClose>
