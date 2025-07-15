@@ -27,7 +27,7 @@ import {
     DollarSign,
     Pencil,
     Save,
-    Broom
+    Eraser
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
@@ -456,7 +456,7 @@ export default function PurchasesPage() {
                         </div>
                         <div className="flex items-center gap-2">
                              <Button variant="outline" size="sm" onClick={() => setListToClear(selectedList)} disabled={getCheckedCount(selectedList) === 0}>
-                                <Broom className="mr-2 h-4 w-4"/> Limpar Concluídos
+                                <Eraser className="mr-2 h-4 w-4"/> Limpar Concluídos
                             </Button>
                             <Button size="sm" onClick={() => setIsAddItemDialogOpen(true)}>
                                 <Plus className="mr-2 h-4 w-4"/> Adicionar Item
