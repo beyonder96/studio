@@ -11,7 +11,7 @@ import {
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Edit, Trash2 } from 'lucide-react';
+import { Edit, Trash2, Repeat } from 'lucide-react';
 
 export type Transaction = {
   id: string;
@@ -21,6 +21,8 @@ export type Transaction = {
   type: 'income' | 'expense' | 'transfer';
   category: string;
   account?: string;
+  isRecurring?: boolean;
+  frequency?: 'daily' | 'weekly' | 'monthly' | 'annual';
 };
 
 type TransactionsTableProps = {
@@ -31,7 +33,7 @@ type TransactionsTableProps = {
 
 export function TransactionsTable({ transactions, onEdit, onDelete }: TransactionsTableProps) {
   const formatDate = (dateString: string) => {
-    const date = new Date(`${dateString}T00:00:00Z`);
+    const date = new Date(dateString);
     return new Intl.DateTimeFormat('pt-BR', {
       day: '2-digit',
       month: '2-digit',
@@ -54,7 +56,12 @@ export function TransactionsTable({ transactions, onEdit, onDelete }: Transactio
       <TableBody>
         {transactions.map((transaction) => (
           <TableRow key={transaction.id}>
-            <TableCell className="font-medium">{transaction.description}</TableCell>
+            <TableCell className="font-medium">
+                <div className="flex items-center gap-2">
+                    {transaction.isRecurring && <Repeat className="h-4 w-4 text-muted-foreground" />}
+                    <span>{transaction.description}</span>
+                </div>
+            </TableCell>
             <TableCell>
                  <Badge variant="secondary">{transaction.category}</Badge>
             </TableCell>

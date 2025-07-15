@@ -18,12 +18,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { Switch } from '@/components/ui/switch';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Transaction } from './transactions-table';
 import { CurrencyInput } from './currency-input';
-import { useEffect, useContext } from 'react';
+import { useEffect, useContext, useMemo } from 'react';
 import { FinanceContext } from '@/contexts/finance-context';
 
 const transactionSchema = z.object({
@@ -34,6 +35,8 @@ const transactionSchema = z.object({
   type: z.enum(['income', 'expense', 'transfer']),
   category: z.string().min(1, 'Categoria é obrigatória'),
   account: z.string().optional(),
+  isRecurring: z.boolean().optional(),
+  frequency: z.enum(['daily', 'weekly', 'monthly', 'annual']).optional(),
 });
 
 type TransactionFormData = z.infer<typeof transactionSchema>;
@@ -52,7 +55,9 @@ export function AddTransactionDialog({
   transaction,
 }: AddTransactionDialogProps) {
   const isEditing = !!transaction;
-  const { accounts, incomeCategories, expenseCategories } = useContext(FinanceContext);
+  const { accounts, cards, incomeCategories, expenseCategories } = useContext(FinanceContext);
+
+  const combinedAccounts = useMemo(() => [...accounts, ...cards], [accounts, cards]);
 
   const {
     register,
@@ -71,6 +76,7 @@ export function AddTransactionDialog({
       description: '',
       category: '',
       account: '',
+      isRecurring: false,
     },
   });
 
@@ -90,16 +96,22 @@ export function AddTransactionDialog({
         description: '',
         category: '',
         account: '',
+        isRecurring: false,
       });
     }
   }, [transaction, isOpen, reset]);
 
 
   const transactionType = watch('type');
+  const isRecurring = watch('isRecurring');
 
   const onSubmit = (data: TransactionFormData) => {
     const amount = data.type === 'expense' ? -Math.abs(data.amount) : Math.abs(data.amount);
-    onSaveTransaction({ ...data, amount });
+    const finalData = { ...data, amount };
+    if (!finalData.isRecurring) {
+        delete finalData.frequency;
+    }
+    onSaveTransaction(finalData);
     onClose();
   };
   
@@ -206,10 +218,10 @@ export function AddTransactionDialog({
                         render={({ field }) => (
                             <Select onValueChange={field.onChange} value={field.value}>
                                 <SelectTrigger className="col-span-3">
-                                    <SelectValue placeholder="Selecione uma conta" />
+                                    <SelectValue placeholder="Selecione uma conta ou cartão" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    {accounts.map(acc => (
+                                    {combinedAccounts.map(acc => (
                                         <SelectItem key={acc.id} value={acc.name}>{acc.name}</SelectItem>
                                     ))}
                                 </SelectContent>
@@ -217,6 +229,46 @@ export function AddTransactionDialog({
                         )}
                     />
                 </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="isRecurring" className="text-right">
+                        Recorrente
+                    </Label>
+                    <Controller
+                        name="isRecurring"
+                        control={control}
+                        render={({ field }) => (
+                           <Switch
+                                id="isRecurring"
+                                checked={field.value}
+                                onCheckedChange={field.onChange}
+                            />
+                        )}
+                    />
+                </div>
+                {isRecurring && (
+                    <div className="grid grid-cols-4 items-center gap-4">
+                        <Label htmlFor="frequency" className="text-right">
+                            Frequência
+                        </Label>
+                         <Controller
+                            name="frequency"
+                            control={control}
+                            render={({ field }) => (
+                                <Select onValueChange={field.onChange} value={field.value}>
+                                    <SelectTrigger className="col-span-3">
+                                        <SelectValue placeholder="Selecione a frequência" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="daily">Diária</SelectItem>
+                                        <SelectItem value="weekly">Semanal</SelectItem>
+                                        <SelectItem value="monthly">Mensal</SelectItem>
+                                        <SelectItem value="annual">Anual</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            )}
+                        />
+                    </div>
+                )}
               </>
             )}
 

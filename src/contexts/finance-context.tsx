@@ -13,7 +13,9 @@ const initialTransactions: Transaction[] = [
       date: '2024-07-05',
       type: 'income',
       category: 'Salário',
-      account: 'Conta Corrente - Itaú'
+      account: 'Conta Corrente - Itaú',
+      isRecurring: true,
+      frequency: 'monthly',
     },
     {
       id: '2',
@@ -22,7 +24,9 @@ const initialTransactions: Transaction[] = [
       date: '2024-07-05',
       type: 'income',
       category: 'Salário',
-      account: 'Conta Corrente - Itaú'
+      account: 'Conta Corrente - Itaú',
+      isRecurring: true,
+      frequency: 'monthly',
     },
     {
       id: '3',
@@ -31,7 +35,9 @@ const initialTransactions: Transaction[] = [
       date: '2024-07-10',
       type: 'expense',
       category: 'Moradia',
-      account: 'Conta Corrente - Itaú'
+      account: 'Conta Corrente - Itaú',
+      isRecurring: true,
+      frequency: 'monthly',
     },
     {
       id: '4',
@@ -113,7 +119,7 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const updateTransaction = (id: string, updatedTransaction: Partial<Omit<Transaction, 'id'>>) => {
-    setTransactions(prev => prev.map(t => t.id === id ? { ...t, ...updatedTransaction } : t));
+    setTransactions(prev => prev.map(t => t.id === id ? { ...t, ...updatedTransaction } as Transaction : t));
   };
 
   const deleteTransaction = (id: string) => {
