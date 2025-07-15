@@ -179,7 +179,7 @@ export default function PurchasesPage() {
     }, 0);
   }, [selectedList, shoppingLists]);
   
-  // --- New List Form Logic ---
+  // --- New List Logic ---
   const handleGenerateListFromText = async () => {
     if (!pastedText) return;
     setIsGenerating(true);
@@ -294,9 +294,6 @@ export default function PurchasesPage() {
                                     </div>
                                 ))}
                             </div>
-                            <Button onClick={handleAddNewItem} variant="outline" className="w-full">
-                                Adicionar Item Manualmente
-                            </Button>
                         </div>
                         <Button onClick={handleSaveNewList} disabled={!newListName || newListItems.length === 0} className="w-full">
                            <Save className="mr-2 h-4 w-4" />
@@ -443,5 +440,3 @@ export default function PurchasesPage() {
     </div>
   );
 }
-
-    
