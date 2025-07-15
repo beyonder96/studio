@@ -4,13 +4,8 @@
 import { useState, useRef, useEffect } from 'react';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import { ArrowLeft, MoreHorizontal, Mail, Cake, Camera } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { ArrowLeft, Camera, Edit, Share2, Film, Music, Utensils, MapPin } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 const defaultProfileImage = "https://placehold.co/600x800.png";
@@ -62,9 +57,9 @@ export default function ProfilePage() {
   };
 
   return (
-    <div className="flex flex-col min-h-screen -mx-4 -mt-4 sm:-mx-6 sm:-mt-6">
+    <div className="flex flex-col min-h-screen -mx-4 -mt-4 sm:-mx-6 sm:-mt-6 bg-background">
       {/* Profile Header */}
-      <div className="relative w-full h-[60vh] md:h-[50vh] text-white">
+      <div className="relative w-full h-[45vh] text-white">
         <Image
           src={profileImage}
           alt="Foto do casal"
@@ -88,54 +83,78 @@ export default function ProfilePage() {
           <Button variant="ghost" size="icon" className="bg-black/20 hover:bg-black/40 rounded-full" onClick={handleBackClick}>
             <ArrowLeft />
           </Button>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" className="bg-black/20 hover:bg-black/40 rounded-full">
-                <MoreHorizontal />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onSelect={handleImageClick}>
-                <Camera className="mr-2 h-4 w-4" />
-                Trocar Foto
-              </DropdownMenuItem>
-              <DropdownMenuItem disabled>Editar Nomes</DropdownMenuItem>
-              <DropdownMenuItem disabled>Editar Data</DropdownMenuItem>
-              <DropdownMenuItem disabled>Editar E-mails</DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
         </div>
 
-        <div className="absolute bottom-0 left-0 right-0 p-6 space-y-6 z-10">
-          <div className="text-center">
-            <h1 className="text-3xl md:text-4xl font-bold">Kenned & Nicoli</h1>
-            <p className="text-lg text-white/80">Juntos há 2 anos</p>
-          </div>
-
-          <div className="grid grid-cols-2 md:grid-cols-1 gap-4 text-foreground">
-            <div className="bg-white/20 dark:bg-black/20 backdrop-blur-md p-4 rounded-xl space-y-1 border border-white/20">
-              <div className="flex items-center gap-2 text-sm text-white/80">
-                <Cake className="w-4 h-4" />
-                <span>Aniversário de Namoro</span>
-              </div>
-              <p className="text-xl font-semibold text-white">15 de Agosto</p>
-              <p className="text-sm text-white/80">de 2022</p>
-            </div>
-            <div className="bg-white/20 dark:bg-black/20 backdrop-blur-md p-4 rounded-xl space-y-1 border border-white/20">
-              <div className="flex items-center gap-2 text-sm text-white/80">
-                <Mail className="w-4 h-4" />
-                <span>E-mails</span>
-              </div>
-              <p className="font-semibold truncate text-white">kenned@example.com</p>
-              <p className="font-semibold truncate text-white">nicoli@example.com</p>
-            </div>
-          </div>
+        <div className="absolute bottom-6 left-0 right-0 p-6 text-center z-10">
+            <h1 className="text-4xl md:text-5xl font-bold">Kenned & Nicoli</h1>
+            <p className="text-lg text-white/80 mt-1">Juntos há 2 anos</p>
         </div>
       </div>
       
-       {/* Empty content area to push footer down if needed */}
-       <div className="flex-grow bg-background"></div>
+       {/* Actions */}
+        <div className="flex justify-center gap-2 p-4 -mt-8 relative z-20">
+            <Button variant="secondary" onClick={handleImageClick}>
+                <Camera className="mr-2 h-4 w-4" />
+                Trocar Foto
+            </Button>
+             <Button variant="secondary" disabled>
+                <Edit className="mr-2 h-4 w-4" />
+                Editar Perfil
+            </Button>
+             <Button variant="secondary" disabled>
+                <Share2 className="mr-2 h-4 w-4" />
+                Compartilhar
+            </Button>
+        </div>
 
+       {/* Content Area */}
+       <div className="flex-grow p-4 md:p-6 space-y-6">
+        <Card>
+            <CardHeader>
+                <CardTitle>Nossos Favoritos</CardTitle>
+            </CardHeader>
+            <CardContent>
+                <ul className="space-y-4">
+                    <li className="flex items-center gap-4">
+                        <div className="bg-muted p-3 rounded-full">
+                            <Utensils className="h-5 w-5 text-muted-foreground" />
+                        </div>
+                        <div>
+                            <p className="text-sm text-muted-foreground">Comida Favorita</p>
+                            <p className="font-semibold">Pizza</p>
+                        </div>
+                    </li>
+                     <li className="flex items-center gap-4">
+                        <div className="bg-muted p-3 rounded-full">
+                            <Film className="h-5 w-5 text-muted-foreground" />
+                        </div>
+                        <div>
+                            <p className="text-sm text-muted-foreground">Filme Favorito</p>
+                            <p className="font-semibold">Interestelar</p>
+                        </div>
+                    </li>
+                     <li className="flex items-center gap-4">
+                        <div className="bg-muted p-3 rounded-full">
+                            <Music className="h-5 w-5 text-muted-foreground" />
+                        </div>
+                        <div>
+                            <p className="text-sm text-muted-foreground">Música Favorita</p>
+                            <p className="font-semibold">Bohemian Rhapsody</p>
+                        </div>
+                    </li>
+                     <li className="flex items-center gap-4">
+                        <div className="bg-muted p-3 rounded-full">
+                            <MapPin className="h-5 w-5 text-muted-foreground" />
+                        </div>
+                        <div>
+                            <p className="text-sm text-muted-foreground">Lugar Favorito</p>
+                            <p className="font-semibold">A praia ao entardecer</p>
+                        </div>
+                    </li>
+                </ul>
+            </CardContent>
+        </Card>
+       </div>
     </div>
   );
 }
