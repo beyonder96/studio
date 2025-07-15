@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -16,7 +16,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { SetPriceDialog } from '@/components/purchases/set-price-dialog';
 import { AddItemDialog } from '@/components/purchases/add-item-dialog';
-import { CreateListDialog } from '@/components/purchases/create-list-dialog';
 import { 
     Plus, 
     ShoppingCart, 
@@ -25,11 +24,11 @@ import {
     Search,
     Trash2,
     DollarSign,
-    Pencil
+    Pencil,
+    Save
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
-import { generateShoppingList } from '@/ai/flows/generate-shopping-list-flow';
 
 
 export type ShoppingListItem = {
@@ -77,9 +76,11 @@ export default function PurchasesPage() {
   const [selectedList, setSelectedList] = useState<ShoppingList | null>(initialShoppingLists[0] || null);
   const [isPriceDialogOpen, setIsPriceDialogOpen] = useState(false);
   const [isAddItemDialogOpen, setIsAddItemDialogOpen] = useState(false);
-  const [isCreateListDialogOpen, setIsCreateListDialogOpen] = useState(false);
   const [itemToPrice, setItemToPrice] = useState<ShoppingListItem | null>(null);
   const [activeTab, setActiveTab] = useState('all');
+  const [isCreatingList, setIsCreatingList] = useState(false);
+  const [newListName, setNewListName] = useState('');
+
 
   const handleSetPrice = (itemId: string, price: number) => {
     if (!selectedList) return;
@@ -181,22 +182,33 @@ export default function PurchasesPage() {
     setIsAddItemDialogOpen(false);
   };
 
-  const handleCreateList = (list: Omit<ShoppingList, 'id' | 'shared' | 'items'> & { items: Omit<ShoppingListItem, 'id' | 'checked'>[] }) => {
+  const handleCreateListSave = () => {
+    if (!newListName.trim()) return;
     const newList: ShoppingList = {
         id: crypto.randomUUID(),
-        name: list.name,
-        shared: false, // Default to not shared
-        items: list.items.map(item => ({
-            ...item,
-            id: crypto.randomUUID(),
-            checked: false,
-        }))
+        name: newListName.trim(),
+        shared: false,
+        items: []
     };
     setShoppingLists(prev => [newList, ...prev]);
     setSelectedList(newList);
-    setIsCreateListDialogOpen(false);
+    setNewListName('');
+    setIsCreatingList(false);
   };
 
+  const handleCreateListCancel = () => {
+    setNewListName('');
+    setIsCreatingList(false);
+  };
+
+  useEffect(() => {
+    if (!selectedList && shoppingLists.length > 0) {
+      setSelectedList(shoppingLists[0]);
+    }
+    if (shoppingLists.length === 0) {
+      setSelectedList(null);
+    }
+  }, [shoppingLists, selectedList]);
 
   return (
     <div className="flex flex-col gap-6">
@@ -205,41 +217,66 @@ export default function PurchasesPage() {
             <p className="text-muted-foreground">Organize suas compras com a ajuda da IA</p>
         </div>
         
-        <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
-                <CardTitle className="flex items-center gap-2 text-lg">
-                    <ShoppingCart className="h-5 w-5"/>
-                    Suas Listas
-                </CardTitle>
-                 <Button variant="ghost" size="icon" onClick={() => setIsCreateListDialogOpen(true)}>
-                    <Plus className="h-5 w-5" />
-                    <span className="sr-only">Adicionar Lista</span>
-                </Button>
-            </CardHeader>
-            <CardContent className="space-y-2">
-                {shoppingLists.map(list => (
-                    <div
-                        key={list.id}
-                        onClick={() => setSelectedList(list)}
-                        className={cn(
-                            'flex items-center justify-between p-3 rounded-lg cursor-pointer transition-colors',
-                            selectedList?.id === list.id ? 'bg-primary text-primary-foreground' : 'bg-muted hover:bg-muted/80'
-                        )}
-                    >
-                        <div>
-                            <p className="font-semibold">{list.name}</p>
-                            <p className={`text-sm ${selectedList?.id === list.id ? 'text-primary-foreground/80' : 'text-muted-foreground'}`}>{list.items.length} itens</p>
+        {isCreatingList ? (
+             <Card>
+                <CardHeader>
+                    <CardTitle>Criar Nova Lista</CardTitle>
+                </CardHeader>
+                <CardContent className="flex items-center gap-2">
+                    <Input 
+                        placeholder="Dê um nome para a sua lista..."
+                        value={newListName}
+                        onChange={(e) => setNewListName(e.target.value)}
+                        onKeyDown={(e) => e.key === 'Enter' && handleCreateListSave()}
+                        autoFocus
+                    />
+                    <Button onClick={handleCreateListSave}><Save className="h-4 w-4" /></Button>
+                    <Button variant="ghost" onClick={handleCreateListCancel}><Trash2 className="h-4 w-4" /></Button>
+                </CardContent>
+            </Card>
+        ) : (
+            <Card>
+                <CardHeader className="flex flex-row items-center justify-between">
+                    <CardTitle className="flex items-center gap-2 text-lg">
+                        <ShoppingCart className="h-5 w-5"/>
+                        Suas Listas
+                    </CardTitle>
+                     <Button variant="ghost" size="icon" onClick={() => setIsCreatingList(true)}>
+                        <Plus className="h-5 w-5" />
+                        <span className="sr-only">Adicionar Lista</span>
+                    </Button>
+                </CardHeader>
+                <CardContent className="space-y-2">
+                    {shoppingLists.length === 0 && !isCreatingList && (
+                         <div className="text-center text-muted-foreground py-4">
+                            <p>Nenhuma lista ainda. <Button variant="link" className="p-0 h-auto" onClick={() => setIsCreatingList(true)}>Crie uma nova!</Button></p>
+                         </div>
+                    )}
+                    {shoppingLists.map(list => (
+                        <div
+                            key={list.id}
+                            onClick={() => setSelectedList(list)}
+                            className={cn(
+                                'flex items-center justify-between p-3 rounded-lg cursor-pointer transition-colors',
+                                selectedList?.id === list.id ? 'bg-primary text-primary-foreground' : 'bg-muted hover:bg-muted/80'
+                            )}
+                        >
+                            <div>
+                                <p className="font-semibold">{list.name}</p>
+                                <p className={`text-sm ${selectedList?.id === list.id ? 'text-primary-foreground/80' : 'text-muted-foreground'}`}>{list.items.length} itens</p>
+                            </div>
+                            <div className="flex items-center gap-2">
+                               {list.shared && <Users className="h-5 w-5" />}
+                               <Button variant="ghost" size="icon" className={`hover:bg-black/10 ${selectedList?.id === list.id ? 'text-primary-foreground' : ''}`}>
+                                 <MoreHorizontal className="h-5 w-5" />
+                               </Button>
+                            </div>
                         </div>
-                        <div className="flex items-center gap-2">
-                           {list.shared && <Users className="h-5 w-5" />}
-                           <Button variant="ghost" size="icon" className={`hover:bg-black/10 ${selectedList?.id === list.id ? 'text-primary-foreground' : ''}`}>
-                             <MoreHorizontal className="h-5 w-5" />
-                           </Button>
-                        </div>
-                    </div>
-                ))}
-            </CardContent>
-        </Card>
+                    ))}
+                </CardContent>
+            </Card>
+        )}
+        
         
         {totalCost > 0 && (
             <Card>
@@ -348,12 +385,6 @@ export default function PurchasesPage() {
             isOpen={isAddItemDialogOpen}
             onClose={() => setIsAddItemDialogOpen(false)}
             onAddItem={handleAddItemToList}
-        />
-        
-        <CreateListDialog
-            isOpen={isCreateListDialogOpen}
-            onClose={() => setIsCreateListDialogOpen(false)}
-            onCreateList={handleCreateList}
         />
 
     </div>
