@@ -26,11 +26,14 @@ type TransactionsTableProps = {
 
 export function TransactionsTable({ transactions }: TransactionsTableProps) {
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('pt-BR', {
+    // Add time and timezone to avoid inconsistencies between server and client
+    const date = new Date(`${dateString}T00:00:00`);
+    return new Intl.DateTimeFormat('pt-BR', {
       day: '2-digit',
       month: '2-digit',
       year: 'numeric',
-    });
+      timeZone: 'America/Sao_Paulo', // Or a more generic UTC
+    }).format(date);
   };
 
   return (
