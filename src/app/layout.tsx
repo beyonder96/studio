@@ -33,14 +33,36 @@ function Header() {
   if (pathname === '/profile') {
     return null;
   }
+  
+  const getPageTitle = () => {
+    switch (pathname) {
+        case '/':
+            return { title: 'Painel Principal', description: 'Sua visão geral do Vida a Dois.' };
+        case '/finance':
+            return { title: 'Finanças', description: 'Gerencie suas transações.' };
+        case '/accounts':
+            return { title: 'Categorias', description: 'Gerencie suas categorias de receita e despesa.' };
+        case '/recurrences':
+            return { title: 'Recorrências', description: 'Visualize suas transações recorrentes.' };
+        case '/purchases':
+            return { title: 'Compras', description: 'Crie e gerencie suas listas de compras.' };
+        case '/settings':
+            return { title: 'Ajustes', description: 'Personalize o aplicativo e gerencie seus dados.' };
+        default:
+            return { title: 'Vida a 2', description: '' };
+    }
+  }
+  
+  const { title, description } = getPageTitle();
+
 
   return (
     <header className="sticky top-0 z-20 flex h-20 items-center justify-between border-b bg-background/80 px-4 backdrop-blur-sm sm:px-6">
       <div className="flex items-center gap-4">
         <SidebarTrigger className="md:hidden" />
         <div>
-          <h1 className="text-2xl font-bold">Painel Principal</h1>
-          <p className="text-muted-foreground">Sua visão geral do Vida á Dois.</p>
+          <h1 className="text-2xl font-bold">{title}</h1>
+          <p className="text-muted-foreground">{description}</p>
         </div>
       </div>
       <div className="flex items-center gap-2">
@@ -83,7 +105,7 @@ export default function RootLayout({
             <SidebarProvider>
             <AppSidebar />
              {isProfilePage ? (
-                <main className="flex-1">{children}</main>
+                <main className="flex-1 bg-background">{children}</main>
             ) : (
                 <SidebarInset>
                     <Header />
@@ -97,5 +119,3 @@ export default function RootLayout({
     </html>
   );
 }
-
-    
