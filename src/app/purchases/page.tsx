@@ -26,7 +26,8 @@ import {
     Trash2,
     DollarSign,
     Pencil,
-    Save
+    Save,
+    Broom
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
@@ -101,6 +102,7 @@ export default function PurchasesPage() {
   const [newListName, setNewListName] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [listToDelete, setListToDelete] = useState<ShoppingList | null>(null);
+  const [listToClear, setListToClear] = useState<ShoppingList | null>(null);
   const [editingListId, setEditingListId] = useState<string | null>(null);
   const [editingListName, setEditingListName] = useState('');
 
@@ -187,6 +189,22 @@ export default function PurchasesPage() {
     setIsEditItemDialogOpen(false);
     setItemToEdit(null);
   };
+  
+  const handleClearCompletedItems = () => {
+    if (!listToClear) return;
+    const newLists = shoppingLists.map(list => {
+      if (list.id === listToClear.id) {
+        return {
+          ...list,
+          items: list.items.filter(item => !item.checked)
+        };
+      }
+      return list;
+    });
+    setShoppingLists(newLists);
+    setSelectedList(newLists.find(l => l.id === listToClear.id) || null);
+    setListToClear(null);
+  }
 
   const getProgress = (list: ShoppingList) => {
     if (list.items.length === 0) return 0;
@@ -431,15 +449,21 @@ export default function PurchasesPage() {
         {selectedList ? (
             <Card className="bg-muted">
                 <CardHeader>
-                    <div className="flex items-center gap-4">
-                        <h2 className="text-2xl font-bold">{selectedList.name}</h2>
-                        {selectedList.shared && <Badge variant="secondary" className="font-normal"><Users className="mr-1.5 h-3 w-3"/>Compartilhada</Badge>}
+                    <div className="flex items-center justify-between">
+                         <div className="flex items-center gap-4">
+                            <h2 className="text-2xl font-bold">{selectedList.name}</h2>
+                            {selectedList.shared && <Badge variant="secondary" className="font-normal"><Users className="mr-1.5 h-3 w-3"/>Compartilhada</Badge>}
+                        </div>
+                        <div className="flex items-center gap-2">
+                             <Button variant="outline" size="sm" onClick={() => setListToClear(selectedList)} disabled={getCheckedCount(selectedList) === 0}>
+                                <Broom className="mr-2 h-4 w-4"/> Limpar Concluídos
+                            </Button>
+                            <Button size="sm" onClick={() => setIsAddItemDialogOpen(true)}>
+                                <Plus className="mr-2 h-4 w-4"/> Adicionar Item
+                            </Button>
+                        </div>
                     </div>
-                    <div className="flex items-center gap-2 pt-2">
-                        <Button onClick={() => setIsAddItemDialogOpen(true)}>
-                            <Plus className="mr-2 h-4 w-4"/> Adicionar Item
-                        </Button>
-                    </div>
+                   
                 </CardHeader>
                 <CardContent>
                      <p className="text-sm text-muted-foreground mb-4">
@@ -546,6 +570,25 @@ export default function PurchasesPage() {
                     <AlertDialogCancel onClick={() => setListToDelete(null)}>Cancelar</AlertDialogCancel>
                     <AlertDialogAction onClick={handleDeleteList} className="bg-destructive hover:bg-destructive/90">
                         Sim, excluir
+                    </AlertDialogAction>
+                </AlertDialogFooter>
+            </AlertDialogContent>
+        </AlertDialog>
+        
+        <AlertDialog open={!!listToClear} onOpenChange={(open) => !open && setListToClear(null)}>
+            <AlertDialogContent>
+                <AlertDialogHeader>
+                    <AlertDialogTitle>Limpar itens concluídos?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                        Esta ação removerá todos os itens marcados como concluídos da lista 
+                        <span className="font-semibold"> "{listToClear?.name}"</span>.
+                         Os itens pendentes permanecerão.
+                    </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                    <AlertDialogCancel onClick={() => setListToClear(null)}>Cancelar</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleClearCompletedItems}>
+                        Sim, limpar
                     </AlertDialogAction>
                 </AlertDialogFooter>
             </AlertDialogContent>
