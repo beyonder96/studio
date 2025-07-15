@@ -104,6 +104,7 @@ type FinanceContextType = {
   isSensitiveDataVisible: boolean;
   toggleSensitiveDataVisibility: () => void;
   formatCurrency: (value: number) => string;
+  resetAllData: () => void;
 };
 
 export const FinanceContext = createContext<FinanceContextType>({} as FinanceContextType);
@@ -185,6 +186,15 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
   const countRecurringTransactions = () => {
     return transactions.filter(t => t.isRecurring).length;
   }
+  
+  const resetAllData = () => {
+    setTransactions([]);
+    setAccounts([]);
+    setCards([]);
+    // We keep the categories for convenience
+    setIncomeCategories(initialIncomeCategories);
+    setExpenseCategories(initialExpenseCategories);
+  };
 
   const value = {
     transactions,
@@ -202,6 +212,7 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
     isSensitiveDataVisible,
     toggleSensitiveDataVisibility,
     formatCurrency,
+    resetAllData,
   };
 
   return (

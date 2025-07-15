@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useContext, useState } from 'react';
+import { useContext, useState, useEffect } from 'react';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import {
@@ -23,10 +23,8 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
-import { PlusCircle, Edit, Trash2, Camera, Palette, Moon, Sun, AlertTriangle, ArrowLeft, MoreHorizontal, Mail, Cake } from 'lucide-react';
-import { Separator } from '@/components/ui/separator';
+import { PlusCircle, Edit, Trash2, Moon, Sun, AlertTriangle, ArrowLeft, MoreHorizontal, Mail, Cake, Check } from 'lucide-react';
 import { FinanceContext } from '@/contexts/finance-context';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 
 const pastelColors = [
@@ -38,19 +36,56 @@ const pastelColors = [
     { name: 'Laranja', value: '25 95% 65%' },
 ]
 
+type Theme = 'light' | 'dark' | 'system';
+
 export default function ProfilePage() {
   const { 
     accounts,
     cards,
+    resetAllData
   } = useContext(FinanceContext);
-  const [theme, setTheme] = useState('system');
-  const [selectedColor, setSelectedColor] = useState(pastelColors[0].value);
+
+  const [theme, setTheme] = useState<Theme>('system');
+  const [selectedColor, setSelectedColor] = useState('');
+
+  useEffect(() => {
+    const storedTheme = localStorage.getItem('app-theme') as Theme | null;
+    const storedColor = localStorage.getItem('app-color');
+
+    if (storedTheme) {
+        setTheme(storedTheme);
+    }
+    if (storedColor) {
+        setSelectedColor(storedColor);
+    } else {
+        // Set default if nothing is stored
+        const defaultColor = pastelColors[0].value;
+        setSelectedColor(defaultColor);
+        localStorage.setItem('app-color', defaultColor);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (theme === 'system') {
+        const systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+        document.documentElement.classList.toggle('dark', systemTheme === 'dark');
+    } else {
+        document.documentElement.classList.toggle('dark', theme === 'dark');
+    }
+    localStorage.setItem('app-theme', theme);
+  }, [theme]);
+
+  useEffect(() => {
+    if (selectedColor) {
+        document.documentElement.style.setProperty('--primary', selectedColor);
+        document.documentElement.style.setProperty('--accent', selectedColor);
+        document.documentElement.style.setProperty('--ring', selectedColor);
+        localStorage.setItem('app-color', selectedColor);
+    }
+  }, [selectedColor]);
   
   const handleColorChange = (colorValue: string) => {
     setSelectedColor(colorValue);
-    document.documentElement.style.setProperty('--primary', colorValue);
-    document.documentElement.style.setProperty('--accent', colorValue);
-    document.documentElement.style.setProperty('--ring', colorValue);
   }
 
   return (
@@ -208,15 +243,15 @@ export default function ProfilePage() {
                             <AlertDialogTitle>Você tem certeza absoluta?</AlertDialogTitle>
                             <AlertDialogDescription>
                                 Esta ação é irreversível. Todos os dados de transações, contas,
-                                listas de compras e outras informações inseridas serão permanentemente
-                                excluídos. Sua conta de usuário não será deletada.
+                                cartões, categorias e listas de compras serão permanentemente
+                                excluídos. Suas personalizações de aparência serão mantidas.
                             </AlertDialogDescription>
                             </AlertDialogHeader>
                             <AlertDialogFooter>
                             <AlertDialogCancel>Cancelar</AlertDialogCancel>
                             <AlertDialogAction
                                 className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                                onClick={() => console.log('Dados Limpos!')} // Add reset logic here
+                                onClick={resetAllData}
                             >
                                 Sim, limpar tudo
                             </AlertDialogAction>
