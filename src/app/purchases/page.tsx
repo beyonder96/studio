@@ -16,6 +16,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { SetPriceDialog } from '@/components/purchases/set-price-dialog';
 import { AddItemDialog } from '@/components/purchases/add-item-dialog';
+import { CreateListDialog } from '@/components/purchases/create-list-dialog';
 import { 
     Plus, 
     ShoppingCart, 
@@ -76,6 +77,7 @@ export default function PurchasesPage() {
   const [selectedList, setSelectedList] = useState<ShoppingList | null>(initialShoppingLists[0] || null);
   const [isPriceDialogOpen, setIsPriceDialogOpen] = useState(false);
   const [isAddItemDialogOpen, setIsAddItemDialogOpen] = useState(false);
+  const [isCreateListDialogOpen, setIsCreateListDialogOpen] = useState(false);
   const [itemToPrice, setItemToPrice] = useState<ShoppingListItem | null>(null);
   const [activeTab, setActiveTab] = useState('all');
 
@@ -179,6 +181,22 @@ export default function PurchasesPage() {
     setIsAddItemDialogOpen(false);
   };
 
+  const handleCreateList = (list: Omit<ShoppingList, 'id' | 'shared' | 'items'> & { items: Omit<ShoppingListItem, 'id' | 'checked'>[] }) => {
+    const newList: ShoppingList = {
+        id: crypto.randomUUID(),
+        name: list.name,
+        shared: false, // Default to not shared
+        items: list.items.map(item => ({
+            ...item,
+            id: crypto.randomUUID(),
+            checked: false,
+        }))
+    };
+    setShoppingLists(prev => [newList, ...prev]);
+    setSelectedList(newList);
+    setIsCreateListDialogOpen(false);
+  };
+
 
   return (
     <div className="flex flex-col gap-6">
@@ -188,11 +206,15 @@ export default function PurchasesPage() {
         </div>
         
         <Card>
-            <CardHeader>
+            <CardHeader className="flex flex-row items-center justify-between">
                 <CardTitle className="flex items-center gap-2 text-lg">
                     <ShoppingCart className="h-5 w-5"/>
                     Suas Listas
                 </CardTitle>
+                 <Button variant="ghost" size="icon" onClick={() => setIsCreateListDialogOpen(true)}>
+                    <Plus className="h-5 w-5" />
+                    <span className="sr-only">Adicionar Lista</span>
+                </Button>
             </CardHeader>
             <CardContent className="space-y-2">
                 {shoppingLists.map(list => (
@@ -326,6 +348,12 @@ export default function PurchasesPage() {
             isOpen={isAddItemDialogOpen}
             onClose={() => setIsAddItemDialogOpen(false)}
             onAddItem={handleAddItemToList}
+        />
+        
+        <CreateListDialog
+            isOpen={isCreateListDialogOpen}
+            onClose={() => setIsCreateListDialogOpen(false)}
+            onCreateList={handleCreateList}
         />
 
     </div>
