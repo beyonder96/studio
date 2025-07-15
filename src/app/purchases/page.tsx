@@ -22,6 +22,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { SetPriceDialog } from '@/components/purchases/set-price-dialog';
+import { AddItemDialog } from '@/components/purchases/add-item-dialog';
 import { 
     Plus, 
     Sparkles, 
@@ -84,12 +85,13 @@ export default function PurchasesPage() {
   const [shoppingLists, setShoppingLists] = useState<ShoppingList[]>(initialShoppingLists);
   const [selectedList, setSelectedList] = useState<ShoppingList | null>(initialShoppingLists[0] || null);
   const [isPriceDialogOpen, setIsPriceDialogOpen] = useState(false);
+  const [isAddItemDialogOpen, setIsAddItemDialogOpen] = useState(false);
   const [itemToPrice, setItemToPrice] = useState<ShoppingListItem | null>(null);
   const [activeTab, setActiveTab] = useState('all');
 
   // State for the new list form
   const [newListName, setNewListName] = useState('');
-  const [newListItems, setNewListItems] = useState<Omit<ShoppingListItem, 'id' | 'checked'>[]>([]);
+  const [newListItems, setNewListItems] = useState<Omit<ShoppingListItem, 'id' | 'checked' | 'price'>[]>([]);
   const [pastedText, setPastedText] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
 
@@ -177,7 +179,7 @@ export default function PurchasesPage() {
     return selectedList.items.reduce((total, item) => {
       return item.checked && item.price ? total + item.price : total;
     }, 0);
-  }, [selectedList, shoppingLists]);
+  }, [shoppingLists, selectedList]);
   
   // --- New List Logic ---
   const handleGenerateListFromText = async () => {
@@ -186,7 +188,7 @@ export default function PurchasesPage() {
     try {
       const result = await generateShoppingList({ text: pastedText });
       if (result && result.items) {
-        setNewListItems(result.items);
+        setNewListItems(result.items.map(item => ({name: item.name, quantity: item.quantity})));
       }
     } catch (error) {
       console.error('Error generating shopping list:', error);
@@ -203,6 +205,32 @@ export default function PurchasesPage() {
       shared: false, // Default to not shared
     });
   };
+  
+  const handleAddItemToList = (name: string, quantity: number) => {
+    if (!selectedList) return;
+
+    const newItem: ShoppingListItem = {
+        id: crypto.randomUUID(),
+        name,
+        quantity,
+        checked: false,
+    };
+
+    const newLists = shoppingLists.map(list => {
+        if (list.id === selectedList.id) {
+            return {
+                ...list,
+                items: [...list.items, newItem],
+            };
+        }
+        return list;
+    });
+
+    setShoppingLists(newLists);
+    setSelectedList(newLists.find(l => l.id === selectedList.id) || null);
+    setIsAddItemDialogOpen(false);
+  };
+
 
   return (
     <div className="flex flex-col gap-6">
@@ -332,8 +360,8 @@ export default function PurchasesPage() {
                         {selectedList.shared && <Badge variant="secondary" className="font-normal"><Users className="mr-1.5 h-3 w-3"/>Compartilhada</Badge>}
                     </div>
                     <div className="flex items-center gap-2 pt-2">
-                        <Button variant="ghost" size="icon" className="border rounded-full bg-background"><ListPlus className="h-5 w-5"/></Button>
-                        <Button variant="outline" className="bg-background"><Plus className="mr-2 h-4 w-4"/> Adicionar Item</Button>
+                        <Button onClick={() => setIsAddItemDialogOpen(true)} variant="ghost" size="icon" className="border rounded-full bg-background"><ListPlus className="h-5 w-5"/></Button>
+                        <Button onClick={() => setIsAddItemDialogOpen(true)} variant="outline" className="bg-background"><Plus className="mr-2 h-4 w-4"/> Adicionar Item</Button>
                     </div>
                 </CardHeader>
                 <CardContent>
@@ -407,6 +435,13 @@ export default function PurchasesPage() {
                 item={itemToPrice}
             />
         )}
+        
+        <AddItemDialog
+            isOpen={isAddItemDialogOpen}
+            onClose={() => setIsAddItemDialogOpen(false)}
+            onAddItem={handleAddItemToList}
+        />
+
     </div>
   );
 }
