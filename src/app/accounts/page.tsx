@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useContext } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -13,28 +13,16 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { PlusCircle, Edit, Trash2 } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
-
-// Mock Data
-const initialAccounts = [
-  { id: 'acc1', name: 'Conta Corrente - Itaú', balance: 10500.50, type: 'checking' },
-  { id: 'acc2', name: 'Conta Poupança - Bradesco', balance: 25000.00, type: 'savings' },
-];
-
-const initialCards = [
-    { id: 'card1', name: 'Cartão de Crédito - Nubank', limit: 8000.00, dueDay: 10 },
-    { id: 'card2', name: 'Cartão de Crédito - Inter', limit: 12000.00, dueDay: 15 },
-];
-
-const initialIncomeCategories = ['Salário', 'Freelance', 'Investimentos', 'Outros'];
-const initialExpenseCategories = ['Alimentação', 'Moradia', 'Transporte', 'Lazer', 'Saúde', 'Educação', 'Compras', 'Outros'];
+import { FinanceContext } from '@/contexts/finance-context';
 
 
 export default function AccountsPage() {
-  // In a real app, this state would be managed by a global state manager or fetched from an API
-  const [accounts, setAccounts] = useState(initialAccounts);
-  const [cards, setCards] = useState(initialCards);
-  const [incomeCategories, setIncomeCategories] = useState(initialIncomeCategories);
-  const [expenseCategories, setExpenseCategories] = useState(initialExpenseCategories);
+  const { 
+    accounts,
+    cards,
+    incomeCategories,
+    expenseCategories,
+  } = useContext(FinanceContext);
 
   return (
     <Tabs defaultValue="accounts">

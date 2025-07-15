@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useContext } from 'react';
 import { Button } from '@/components/ui/button';
 import { PlusCircle } from 'lucide-react';
 import { TransactionsTable, Transaction } from '@/components/finance/transactions-table';
@@ -13,77 +13,34 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { ArrowUpCircle, ArrowDownCircle } from 'lucide-react';
+import { FinanceContext } from '@/contexts/finance-context';
 
-
-const initialTransactions: Transaction[] = [
-    {
-      id: '1',
-      description: 'Salário Kenned',
-      amount: 5000,
-      date: '2024-07-05',
-      type: 'income',
-      category: 'Salário',
-      account: 'Conta Corrente - Itaú'
-    },
-    {
-      id: '2',
-      description: 'Salário Nicoli',
-      amount: 4500,
-      date: '2024-07-05',
-      type: 'income',
-      category: 'Salário',
-      account: 'Conta Corrente - Itaú'
-    },
-    {
-      id: '3',
-      description: 'Aluguel',
-      amount: -1500,
-      date: '2024-07-10',
-      type: 'expense',
-      category: 'Moradia',
-      account: 'Conta Corrente - Itaú'
-    },
-    {
-      id: '4',
-      description: 'Supermercado',
-      amount: -650,
-      date: '2024-07-12',
-      type: 'expense',
-      category: 'Alimentação',
-      account: 'Cartão de Crédito - Nubank'
-    },
-     {
-      id: '5',
-      description: 'iFood',
-      amount: -55.90,
-      date: '2024-07-15',
-      type: 'expense',
-      category: 'Alimentação',
-      account: 'Cartão de Crédito - Nubank'
-    },
-];
 
 export default function FinancePage() {
-  const [transactions, setTransactions] = useState<Transaction[]>(initialTransactions);
+  const { 
+    transactions, 
+    addTransaction,
+    updateTransaction,
+    deleteTransaction,
+    totalIncome,
+    totalExpenses
+  } = useContext(FinanceContext);
+
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
 
   const handleSaveTransaction = (transaction: Omit<Transaction, 'id'> & { id?: string }) => {
     if (transaction.id) {
       // Update existing transaction
-      setTransactions(prev => prev.map(t => t.id === transaction.id ? { ...t, ...transaction } : t));
+      updateTransaction(transaction.id, transaction);
     } else {
       // Add new transaction
-      const newTransaction = {
-        ...transaction,
-        id: (transactions.length + 1).toString(),
-      };
-      setTransactions(prev => [newTransaction, ...prev]);
+      addTransaction(transaction);
     }
   };
 
   const handleDeleteTransaction = (id: string) => {
-    setTransactions(prev => prev.filter(t => t.id !== id));
+    deleteTransaction(id);
   };
   
   const openEditDialog = (transaction: Transaction) => {
@@ -101,13 +58,9 @@ export default function FinancePage() {
     setIsDialogOpen(false);
   }
 
-  const totalIncome = transactions
-    .filter((t) => t.type === 'income')
-    .reduce((sum, t) => sum + t.amount, 0);
+  const monthlyIncome = totalIncome();
+  const monthlyExpenses = totalExpenses();
 
-  const totalExpenses = transactions
-    .filter((t) => t.type === 'expense')
-    .reduce((sum, t) => sum + t.amount, 0);
 
   return (
     <div className="flex flex-col gap-6">
@@ -119,7 +72,7 @@ export default function FinancePage() {
             </CardHeader>
             <CardContent>
                 <div className="text-2xl font-bold text-green-500">
-                    {totalIncome.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                    {monthlyIncome.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
                 </div>
             </CardContent>
          </Card>
@@ -130,7 +83,7 @@ export default function FinancePage() {
             </CardHeader>
             <CardContent>
                 <div className="text-2xl font-bold text-red-500">
-                     {totalExpenses.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                     {monthlyExpenses.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
                 </div>
             </CardContent>
          </Card>
@@ -140,7 +93,7 @@ export default function FinancePage() {
             </CardHeader>
             <CardContent>
                 <div className="text-2xl font-bold">
-                     {(totalIncome + totalExpenses).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                     {(monthlyIncome + monthlyExpenses).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
                 </div>
             </CardContent>
          </Card>

@@ -1,14 +1,21 @@
+
+'use client';
+
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { PlusCircle, ArrowDownCircle, ArrowUpCircle } from "lucide-react";
+import { ArrowDownCircle, ArrowUpCircle } from "lucide-react";
+import { useContext } from "react";
+import { FinanceContext } from "@/contexts/finance-context";
 
 type SummaryCardProps = {
   type: "income" | "expenses";
 };
 
 export function SummaryCard({ type }: SummaryCardProps) {
+  const { totalIncome, totalExpenses } = useContext(FinanceContext);
   const isIncome = type === "income";
+
   const title = isIncome ? "Receitas no Mês" : "Despesas no Mês";
-  const amount = "R$ 0,00";
+  const amount = isIncome ? totalIncome() : totalExpenses();
   const icon = isIncome ? (
     <ArrowUpCircle className="h-5 w-5 text-muted-foreground" />
   ) : (
@@ -28,7 +35,9 @@ export function SummaryCard({ type }: SummaryCardProps) {
         </div>
       </CardHeader>
       <CardContent>
-        <span className="block text-3xl font-bold tracking-tight">{amount}</span>
+        <span className="block text-3xl font-bold tracking-tight">
+          {amount.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+        </span>
       </CardContent>
     </Card>
   );

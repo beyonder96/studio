@@ -23,7 +23,8 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Transaction } from './transactions-table';
 import { CurrencyInput } from './currency-input';
-import { useEffect } from 'react';
+import { useEffect, useContext } from 'react';
+import { FinanceContext } from '@/contexts/finance-context';
 
 const transactionSchema = z.object({
   id: z.string().optional(),
@@ -44,11 +45,6 @@ type AddTransactionDialogProps = {
   transaction: Transaction | null;
 };
 
-const incomeCategories = ['Salário', 'Freelance', 'Investimentos', 'Outros'];
-const expenseCategories = ['Alimentação', 'Moradia', 'Transporte', 'Lazer', 'Saúde', 'Educação', 'Outros'];
-const accounts = ['Conta Corrente - Itaú', 'Conta Poupança - Bradesco', 'Cartão de Crédito - Nubank', 'Carteira'];
-
-
 export function AddTransactionDialog({
   isOpen,
   onClose,
@@ -56,6 +52,7 @@ export function AddTransactionDialog({
   transaction,
 }: AddTransactionDialogProps) {
   const isEditing = !!transaction;
+  const { accounts, incomeCategories, expenseCategories } = useContext(FinanceContext);
 
   const {
     register,
@@ -213,7 +210,7 @@ export function AddTransactionDialog({
                                 </SelectTrigger>
                                 <SelectContent>
                                     {accounts.map(acc => (
-                                        <SelectItem key={acc} value={acc}>{acc}</SelectItem>
+                                        <SelectItem key={acc.id} value={acc.name}>{acc.name}</SelectItem>
                                     ))}
                                 </SelectContent>
                             </Select>
