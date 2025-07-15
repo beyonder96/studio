@@ -61,8 +61,8 @@ export function AddTransactionDialog({
   const { accounts, cards, incomeCategories, expenseCategories } = useContext(FinanceContext);
 
   const combinedAccounts = useMemo(() => [
-      ...accounts.map(a => ({...a, type: 'account'})), 
-      ...cards.map(c => ({...c, type: 'card'}))
+      ...accounts.map(a => ({...a, type: 'account', limit: undefined})), 
+      ...cards.map(c => ({...c, type: 'card', balance: undefined}))
     ], [accounts, cards]);
 
   const {
@@ -114,20 +114,38 @@ export function AddTransactionDialog({
   const transactionType = watch('type');
   const isRecurring = watch('isRecurring');
   const selectedAccountId = watch('account');
+  const amount = watch('amount');
+  const installments = watch('installments');
   
   const selectedAccount = useMemo(() => {
     return combinedAccounts.find(acc => acc.name === selectedAccountId);
   }, [selectedAccountId, combinedAccounts]);
 
   const isCreditCard = selectedAccount?.type === 'card';
+  
+  const installmentValue = useMemo(() => {
+    if (isCreditCard && amount && installments && installments > 1) {
+      return amount / installments;
+    }
+    return null;
+  }, [isCreditCard, amount, installments]);
+
+  const remainingLimit = useMemo(() => {
+    if (isCreditCard && selectedAccount.limit !== undefined && amount) {
+       // In a real scenario, this would also check for other pending transactions
+      return selectedAccount.limit - amount;
+    }
+    return null;
+  }, [isCreditCard, selectedAccount, amount]);
+
 
   const onSubmit = (data: TransactionFormData) => {
-    const amount = data.type === 'expense' ? -Math.abs(data.amount) : Math.abs(data.amount);
+    const transactionAmount = data.type === 'expense' ? -Math.abs(data.amount) : Math.abs(data.amount);
     
     // Don't pass installment data if not a credit card purchase
-    const installments = (isCreditCard && (data.installments || 1) > 1) ? data.installments : undefined;
+    const finalInstallments = (isCreditCard && (data.installments || 1) > 1) ? data.installments : undefined;
 
-    const finalData = { ...data, amount, installments: data.installments };
+    const finalData = { ...data, amount: transactionAmount, installments: data.installments };
 
     if (!finalData.isRecurring) {
         delete finalData.frequency;
@@ -136,13 +154,17 @@ export function AddTransactionDialog({
       delete finalData.installments;
     }
 
-    onSaveTransaction(finalData, installments);
+    onSaveTransaction(finalData, finalInstallments);
     onClose();
   };
   
   const handleClose = () => {
     reset();
     onClose();
+  }
+  
+  const formatCurrency = (value: number) => {
+    return value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
   }
 
   return (
@@ -233,35 +255,54 @@ export function AddTransactionDialog({
                     />
                     {errors.category && <p className="col-span-4 text-red-500 text-xs text-right">{errors.category.message}</p>}
                 </div>
-                <div className="grid grid-cols-4 items-center gap-4">
+                <div className="grid grid-cols-4 items-center gap-4 relative">
                     <Label htmlFor="account" className="text-right">
                         Conta/Cartão
                     </Label>
-                    <Controller
-                        name="account"
-                        control={control}
-                        render={({ field }) => (
-                            <Select onValueChange={field.onChange} value={field.value}>
-                                <SelectTrigger className="col-span-3">
-                                    <SelectValue placeholder="Selecione uma conta ou cartão" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {combinedAccounts.map(acc => (
-                                        <SelectItem key={acc.id} value={acc.name}>{acc.name}</SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
+                    <div className="col-span-3">
+                         <Controller
+                            name="account"
+                            control={control}
+                            render={({ field }) => (
+                                <Select onValueChange={field.onChange} value={field.value}>
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Selecione uma conta ou cartão" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {combinedAccounts.map(acc => (
+                                            <SelectItem key={acc.id} value={acc.name}>{acc.name}</SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            )}
+                        />
+                        {errors.account && <p className="text-red-500 text-xs text-right mt-1">{errors.account.message}</p>}
+
+                         {isCreditCard && selectedAccount.limit !== undefined && (
+                            <div className="text-xs text-muted-foreground mt-1 text-right">
+                                Limite: {formatCurrency(selectedAccount.limit)}
+                                {remainingLimit !== null && (
+                                    <span className="text-blue-500"> | Restante: {formatCurrency(remainingLimit)}</span>
+                                )}
+                            </div>
                         )}
-                    />
-                    {errors.account && <p className="col-span-4 text-red-500 text-xs text-right">{errors.account.message}</p>}
+                    </div>
+                   
                 </div>
                 
                  {isCreditCard && transactionType === 'expense' && !isEditing && (
                    <div className="grid grid-cols-4 items-center gap-4">
-                       <Label htmlFor="installments" className="text-right">
+                        <Label htmlFor="installments" className="text-right">
                            Parcelas
-                       </Label>
-                       <Input id="installments" type="number" {...register('installments')} min="1" className="col-span-3" />
+                        </Label>
+                        <div className="col-span-3">
+                           <Input id="installments" type="number" {...register('installments')} min="1" />
+                           {installmentValue !== null && (
+                                <p className="text-xs text-muted-foreground mt-1 text-right">
+                                    {installments}x de {formatCurrency(installmentValue)}
+                                </p>
+                           )}
+                        </div>
                    </div>
                  )}
 
@@ -278,7 +319,7 @@ export function AddTransactionDialog({
                                 id="isRecurring"
                                 checked={field.value}
                                 onCheckedChange={field.onChange}
-                                disabled={isEditing}
+                                disabled={isEditing || (installments || 1) > 1}
                             />
                         )}
                     />
@@ -330,5 +371,3 @@ export function AddTransactionDialog({
     </Dialog>
   );
 }
-
-    
