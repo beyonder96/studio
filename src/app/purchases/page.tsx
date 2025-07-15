@@ -10,31 +10,21 @@ import {
   CardTitle,
   CardDescription,
 } from '@/components/ui/card';
-import {
-  Accordion,
-  AccordionContent,
-  AccordionTrigger,
-  AccordionItem,
-} from '@/components/ui/accordion';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { SetPriceDialog } from '@/components/purchases/set-price-dialog';
 import { AddItemDialog } from '@/components/purchases/add-item-dialog';
 import { 
     Plus, 
-    Sparkles, 
     ShoppingCart, 
     Users, 
     MoreHorizontal, 
-    ListPlus, 
     Search,
     Trash2,
     DollarSign,
-    Pencil,
-    Save
+    Pencil
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
@@ -89,23 +79,6 @@ export default function PurchasesPage() {
   const [itemToPrice, setItemToPrice] = useState<ShoppingListItem | null>(null);
   const [activeTab, setActiveTab] = useState('all');
 
-  // State for the new list form
-  const [newListName, setNewListName] = useState('');
-  const [newListItems, setNewListItems] = useState<Omit<ShoppingListItem, 'id' | 'checked' | 'price'>[]>([]);
-  const [pastedText, setPastedText] = useState('');
-  const [isGenerating, setIsGenerating] = useState(false);
-
-  
-  const addShoppingList = (newList: Omit<ShoppingList, 'id'>) => {
-    const listToAdd = { ...newList, id: crypto.randomUUID() };
-    setShoppingLists(prev => [...prev, listToAdd]);
-    setSelectedList(listToAdd);
-    // Reset form
-    setNewListName('');
-    setNewListItems([]);
-    setPastedText('');
-  };
-  
   const handleSetPrice = (itemId: string, price: number) => {
     if (!selectedList) return;
 
@@ -180,32 +153,7 @@ export default function PurchasesPage() {
       return item.checked && item.price ? total + item.price : total;
     }, 0);
   }, [shoppingLists, selectedList]);
-  
-  // --- New List Logic ---
-  const handleGenerateListFromText = async () => {
-    if (!pastedText) return;
-    setIsGenerating(true);
-    try {
-      const result = await generateShoppingList({ text: pastedText });
-      if (result && result.items) {
-        setNewListItems(result.items.map(item => ({name: item.name, quantity: item.quantity})));
-      }
-    } catch (error) {
-      console.error('Error generating shopping list:', error);
-    } finally {
-      setIsGenerating(false);
-    }
-  };
-  
-  const handleSaveNewList = () => {
-    if (!newListName || newListItems.length === 0) return;
-    addShoppingList({
-      name: newListName,
-      items: newListItems.map(item => ({...item, id: crypto.randomUUID(), checked: false })),
-      shared: false, // Default to not shared
-    });
-  };
-  
+    
   const handleAddItemToList = (name: string, quantity: number) => {
     if (!selectedList) return;
 
@@ -239,69 +187,6 @@ export default function PurchasesPage() {
             <p className="text-muted-foreground">Organize suas compras com a ajuda da IA</p>
         </div>
         
-         <Accordion type="single" collapsible defaultValue="item-1">
-            <AccordionItem value="item-1">
-                <AccordionTrigger className="bg-muted hover:no-underline rounded-lg p-4 font-normal text-base [&[data-state=closed]>div>div>svg]:rotate-90">
-                     <div className="flex items-center justify-between w-full">
-                        <div className="flex items-center gap-3">
-                            <Plus className="h-5 w-5 text-primary transition-transform duration-300"/>
-                            <div>
-                                <p className="font-semibold">Criar Nova Lista</p>
-                                <p className="text-sm text-muted-foreground text-left">Adicione uma nova lista de compras</p>
-                            </div>
-                        </div>
-                     </div>
-                </AccordionTrigger>
-                <AccordionContent className="p-4 bg-muted rounded-b-lg -mt-2">
-                    <div className="space-y-4">
-                        <div className="space-y-2">
-                            <Label htmlFor="list-name">Nome da Lista</Label>
-                            <Input
-                                id="list-name"
-                                value={newListName}
-                                onChange={(e) => setNewListName(e.target.value)}
-                                placeholder="Ex: Supermercado do Mês"
-                            />
-                        </div>
-
-                         <div className="space-y-2">
-                            <Label htmlFor="pasted-text">Cole sua lista aqui para a IA organizar</Label>
-                            <Textarea
-                                id="pasted-text"
-                                value={pastedText}
-                                onChange={(e) => setPastedText(e.target.value)}
-                                placeholder="Ex: 2L de leite, 1 dúzia de ovos, pão de forma"
-                                rows={3}
-                            />
-                            <Button onClick={handleGenerateListFromText} disabled={isGenerating || !pastedText} className="w-full">
-                                <Sparkles className="mr-2 h-4 w-4" />
-                                {isGenerating ? 'Gerando...' : 'Gerar Itens com IA'}
-                            </Button>
-                        </div>
-                        
-                        <div className="space-y-3">
-                            <Label>Itens</Label>
-                            <div className="space-y-2 max-h-48 overflow-y-auto pr-2 rounded-md bg-background p-3">
-                               {newListItems.length > 0 ? (
-                                newListItems.map((item, index) => (
-                                    <div key={index} className="flex items-center text-sm">
-                                        <p><span className="font-semibold">{item.quantity}x</span> {item.name}</p>
-                                    </div>
-                                ))
-                               ) : (
-                                <p className="text-sm text-muted-foreground text-center py-2">Os itens gerados pela IA aparecerão aqui.</p>
-                               )}
-                            </div>
-                        </div>
-                        <Button onClick={handleSaveNewList} disabled={!newListName || newListItems.length === 0} className="w-full">
-                           <Save className="mr-2 h-4 w-4" />
-                           Salvar Nova Lista
-                        </Button>
-                    </div>
-                </AccordionContent>
-            </AccordionItem>
-        </Accordion>
-
         <Card>
             <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-lg">
