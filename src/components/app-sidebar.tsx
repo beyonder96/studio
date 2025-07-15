@@ -1,3 +1,4 @@
+
 "use client";
 
 import Link from "next/link";
@@ -97,7 +98,7 @@ export default function AppSidebar() {
           </SidebarMenuItem>
           <SidebarMenuItem>
             <SidebarMenuButton asChild isActive={isActive("/purchases")} tooltip="Compras">
-              <Link href="#">
+              <Link href="/purchases">
                 <ShoppingBasket />
                 <span>Compras</span>
               </Link>
