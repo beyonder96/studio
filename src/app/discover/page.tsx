@@ -1,6 +1,7 @@
 
 'use client';
 
+import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import {
   ArrowLeft,
@@ -27,6 +28,12 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 
 export default function DiscoverPage() {
+  const router = useRouter();
+
+  const handleBackClick = () => {
+    router.back();
+  };
+
   return (
     <div className="bg-background -m-4 sm:-m-6">
       <div className="relative h-[40vh] w-full">
@@ -42,7 +49,7 @@ export default function DiscoverPage() {
 
         {/* Header */}
         <div className="absolute top-6 left-4 right-4 flex items-center justify-between text-white">
-          <Button variant="ghost" size="icon" className="rounded-full bg-black/20 hover:bg-black/40">
+          <Button variant="ghost" size="icon" className="rounded-full bg-black/20 hover:bg-black/40" onClick={handleBackClick}>
             <ArrowLeft />
           </Button>
           <div className="flex items-center gap-2">
