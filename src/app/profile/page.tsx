@@ -61,15 +61,14 @@ export default function ProfilePage() {
 
   useEffect(() => {
     const storedTheme = localStorage.getItem('app-theme') as Theme | null;
-    const storedColor = localStorage.getItem('app-color');
-    const storedImage = localStorage.getItem('app-profile-image');
-
     if (storedTheme) {
         setTheme(storedTheme);
     }
+    const storedColor = localStorage.getItem('app-color');
     if (storedColor) {
         setSelectedColor(storedColor);
     }
+    const storedImage = localStorage.getItem('app-profile-image');
     if (storedImage) {
         setProfileImage(storedImage);
     }
@@ -86,12 +85,10 @@ export default function ProfilePage() {
   }, [theme]);
 
   useEffect(() => {
-    if (selectedColor) {
-        document.documentElement.style.setProperty('--primary', selectedColor);
-        document.documentElement.style.setProperty('--accent', selectedColor);
-        document.documentElement.style.setProperty('--ring', selectedColor);
-        localStorage.setItem('app-color', selectedColor);
-    }
+    document.documentElement.style.setProperty('--primary', selectedColor);
+    document.documentElement.style.setProperty('--accent', selectedColor);
+    document.documentElement.style.setProperty('--ring', selectedColor);
+    localStorage.setItem('app-color', selectedColor);
   }, [selectedColor]);
 
   useEffect(() => {
@@ -121,9 +118,9 @@ export default function ProfilePage() {
 
 
   return (
-    <div className="space-y-8 -mx-4 -mt-4 sm:-mx-6 sm:-mt-6">
+    <div className="flex flex-col min-h-screen -mx-4 -mt-4 sm:-mx-6 sm:-mt-6">
         {/* Profile Header */}
-        <div className="relative w-full h-[50vh] md:h-[40vh] text-white">
+        <div className="relative w-full h-[50vh] text-white">
             <Image 
                 src={profileImage}
                 alt="Foto do casal" 
@@ -191,7 +188,8 @@ export default function ProfilePage() {
             </div>
         </div>
 
-        <div className="px-4 sm:px-6 space-y-8">
+        {/* Content Area */}
+        <div className="px-4 sm:px-6 py-8 space-y-8 flex-grow">
             {/* Appearance Settings */}
              <Card>
                 <CardHeader>
