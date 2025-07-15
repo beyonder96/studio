@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { useState, useMemo, useContext } from 'react';
+import React, { useState, useMemo, useContext, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   ChevronLeft,
@@ -45,11 +45,11 @@ const categoryColors: { [key: string]: string } = {
 const defaultColor = 'bg-gray-200/70 border-gray-400 text-gray-800';
 const appointmentColor = 'bg-purple-200/70 border-purple-400 text-purple-800';
 
-// Example appointments
-const exampleAppointments: Omit<CalendarEvent, 'id' | 'type' | 'color' | 'allDay'>[] = [
-    { title: "Reunião de Design", start: new Date(new Date().setHours(10, 0, 0, 0)), end: new Date(new Date().setHours(11, 30, 0, 0)), participants: ["https://placehold.co/32x32.png", "https://placehold.co/32x32.png"] },
-    { title: "Consulta Médica", start: new Date(new Date().setDate(new Date().getDate() + 1)), end: new Date(new Date(new Date().setDate(new Date().getDate() + 1)).setHours(14, 0, 0, 0)), participants: [] },
-    { title: "Almoço com a equipe", start: new Date(new Date().setDate(new Date().getDate() - 1)), end: new Date(new Date(new Date().setDate(new Date().getDate() - 1)).setHours(13, 0, 0, 0)), participants: ["https://placehold.co/32x32.png", "https://placehold.co/32x32.png", "https://placehold.co/32x32.png"] },
+// Example appointments - data will be populated client-side to avoid hydration issues
+const exampleAppointmentsData: Omit<CalendarEvent, 'id' | 'type' | 'color' | 'allDay' | 'start' | 'end'> & {startFn: () => Date, endFn: () => Date}[] = [
+    { title: "Reunião de Design", startFn: () => new Date(new Date().setHours(10, 0, 0, 0)), endFn: () => new Date(new Date().setHours(11, 30, 0, 0)), participants: ["https://placehold.co/32x32.png", "https://placehold.co/32x32.png"] },
+    { title: "Consulta Médica", startFn: () => new Date(new Date().setDate(new Date().getDate() + 1)), endFn: () => new Date(new Date(new Date().setDate(new Date().getDate() + 1)).setHours(14, 0, 0, 0)), participants: [] },
+    { title: "Almoço com a equipe", startFn: () => new Date(new Date().setDate(new Date().getDate() - 1)), endFn: () => new Date(new Date(new Date().setDate(new Date().getDate() - 1)).setHours(13, 0, 0, 0)), participants: ["https://placehold.co/32x32.png", "https://placehold.co/32x32.png", "https://placehold.co/32x32.png"] },
 ];
 
 
@@ -57,6 +57,22 @@ export function FullCalendar() {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [view, setView] = useState('Semana'); // Mês, Semana, Dia
   const { transactions } = useContext(FinanceContext);
+  const [appointments, setAppointments] = useState<CalendarEvent[]>([]);
+
+  useEffect(() => {
+    // We create the appointments on the client-side to avoid hydration mismatch
+    const clientSideAppointments = exampleAppointmentsData.map((appt, index) => ({
+      ...appt,
+      id: `appt-${index}`,
+      color: appointmentColor,
+      type: 'appointment' as const,
+      allDay: false,
+      start: appt.startFn(),
+      end: appt.endFn(),
+    }));
+    setAppointments(clientSideAppointments);
+  }, []);
+
 
   const weekStartsOn = 1; // Monday
 
@@ -79,17 +95,7 @@ export function FullCalendar() {
       });
   }, [transactions, currentDate]);
 
-  const appointments: CalendarEvent[] = useMemo(() => {
-    return exampleAppointments.map((appt, index) => ({
-      ...appt,
-      id: `appt-${index}`,
-      color: appointmentColor,
-      type: 'appointment',
-      allDay: false,
-    }));
-  }, []);
-
-  const allEvents = [...recurringEvents, ...appointments];
+  const allEvents = useMemo(() => [...recurringEvents, ...appointments], [recurringEvents, appointments]);
 
   const weekDays = useMemo(() => {
     const start = startOfWeek(currentDate, { weekStartsOn });
@@ -122,7 +128,7 @@ export function FullCalendar() {
     const top = ((startHour - 8) * 60 + startMinute) / totalMinutesInView * 100;
     const height = ((endHour * 60 + endMinute) - (startHour * 60 + startMinute)) / totalMinutesInView * 100;
     
-    if (top < 0 || top >= 100) return null;
+    if (top < 0 || top >= 100 || height <= 0) return null;
 
     return (
         <div 
