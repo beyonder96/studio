@@ -20,7 +20,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { CreateListDialog } from '@/components/purchases/create-list-dialog';
+import { Textarea } from '@/components/ui/textarea';
 import { SetPriceDialog } from '@/components/purchases/set-price-dialog';
 import { 
     Plus, 
@@ -32,10 +32,12 @@ import {
     Search,
     Trash2,
     DollarSign,
-    Pencil
+    Pencil,
+    Save
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
+import { generateShoppingList } from '@/ai/flows/generate-shopping-list-flow';
 
 
 export type ShoppingListItem = {
@@ -81,16 +83,25 @@ const initialShoppingLists: ShoppingList[] = [
 export default function PurchasesPage() {
   const [shoppingLists, setShoppingLists] = useState<ShoppingList[]>(initialShoppingLists);
   const [selectedList, setSelectedList] = useState<ShoppingList | null>(initialShoppingLists[0] || null);
-  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isPriceDialogOpen, setIsPriceDialogOpen] = useState(false);
   const [itemToPrice, setItemToPrice] = useState<ShoppingListItem | null>(null);
   const [activeTab, setActiveTab] = useState('all');
+
+  // State for the new list form
+  const [newListName, setNewListName] = useState('');
+  const [newListItems, setNewListItems] = useState<Omit<ShoppingListItem, 'id' | 'checked'>[]>([]);
+  const [pastedText, setPastedText] = useState('');
+  const [isGenerating, setIsGenerating] = useState(false);
 
   
   const addShoppingList = (newList: Omit<ShoppingList, 'id'>) => {
     const listToAdd = { ...newList, id: crypto.randomUUID() };
     setShoppingLists(prev => [...prev, listToAdd]);
     setSelectedList(listToAdd);
+    // Reset form
+    setNewListName('');
+    setNewListItems([]);
+    setPastedText('');
   };
   
   const handleSetPrice = (itemId: string, price: number) => {
@@ -167,33 +178,131 @@ export default function PurchasesPage() {
       return item.checked && item.price ? total + item.price : total;
     }, 0);
   }, [selectedList, shoppingLists]);
+  
+  // --- New List Form Logic ---
+  const handleGenerateListFromText = async () => {
+    if (!pastedText) return;
+    setIsGenerating(true);
+    try {
+      const result = await generateShoppingList({ text: pastedText });
+      if (result && result.items) {
+        setNewListItems(result.items);
+      }
+    } catch (error) {
+      console.error('Error generating shopping list:', error);
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  const handleAddNewItem = () => {
+    setNewListItems([...newListItems, { name: '', quantity: 1 }]);
+  };
+
+  const handleNewItemChange = (index: number, field: 'name' | 'quantity', value: string | number) => {
+    const newItems = [...newListItems];
+    if (field === 'quantity' && typeof value === 'string') {
+      newItems[index][field] = parseInt(value, 10) || 1;
+    } else if (field === 'name' && typeof value === 'string') {
+      newItems[index][field] = value;
+    }
+    setNewListItems(newItems);
+  };
+
+  const handleRemoveNewItem = (index: number) => {
+    setNewListItems(newListItems.filter((_, i) => i !== index));
+  };
+  
+  const handleSaveNewList = () => {
+    if (!newListName || newListItems.length === 0) return;
+    addShoppingList({
+      name: newListName,
+      items: newListItems.map(item => ({...item, id: crypto.randomUUID(), checked: false })),
+      shared: false, // Default to not shared
+    });
+  };
 
   return (
     <div className="flex flex-col gap-6">
-        <div className="flex items-center justify-between">
-            <div>
-                <h1 className="text-3xl font-bold">Listas de Compras</h1>
-                <p className="text-muted-foreground">Organize suas compras com a ajuda da IA</p>
-            </div>
-            <Button onClick={() => setIsCreateDialogOpen(true)} variant="outline">
-                <Plus className="mr-2 h-4 w-4" />
-                Nova Lista
-            </Button>
+        <div>
+            <h1 className="text-3xl font-bold">Listas de Compras</h1>
+            <p className="text-muted-foreground">Organize suas compras com a ajuda da IA</p>
         </div>
         
-         <Accordion type="single" collapsible>
-            <AccordionItem value="item-1" className="border-none">
-                <AccordionTrigger className="bg-muted hover:no-underline rounded-lg p-4 font-normal text-base">
-                     <div className="flex items-center gap-3">
-                        <Sparkles className="h-5 w-5 text-primary"/>
-                        <div>
-                            <p className="font-semibold">Assistente IA de Compras</p>
-                            <p className="text-sm text-muted-foreground text-left">Peça receitas ou sugestões de itens</p>
+         <Accordion type="single" collapsible defaultValue="item-1">
+            <AccordionItem value="item-1">
+                <AccordionTrigger className="bg-muted hover:no-underline rounded-lg p-4 font-normal text-base [&[data-state=closed]>div>div>svg]:rotate-90">
+                     <div className="flex items-center justify-between w-full">
+                        <div className="flex items-center gap-3">
+                            <Plus className="h-5 w-5 text-primary transition-transform duration-300"/>
+                            <div>
+                                <p className="font-semibold">Criar Nova Lista</p>
+                                <p className="text-sm text-muted-foreground text-left">Adicione uma nova lista de compras</p>
+                            </div>
                         </div>
                      </div>
                 </AccordionTrigger>
                 <AccordionContent className="p-4 bg-muted rounded-b-lg -mt-2">
-                    Em breve você poderá pedir receitas e criar listas a partir delas!
+                    <div className="space-y-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="list-name">Nome da Lista</Label>
+                            <Input
+                                id="list-name"
+                                value={newListName}
+                                onChange={(e) => setNewListName(e.target.value)}
+                                placeholder="Ex: Supermercado do Mês"
+                            />
+                        </div>
+
+                         <div className="space-y-2">
+                            <Label htmlFor="pasted-text">Cole sua lista aqui para a IA organizar</Label>
+                            <Textarea
+                                id="pasted-text"
+                                value={pastedText}
+                                onChange={(e) => setPastedText(e.target.value)}
+                                placeholder="Ex: 2L de leite, 1 dúzia de ovos, pão de forma"
+                                rows={3}
+                            />
+                            <Button onClick={handleGenerateListFromText} disabled={isGenerating || !pastedText} className="w-full">
+                                <Sparkles className="mr-2 h-4 w-4" />
+                                {isGenerating ? 'Gerando...' : 'Gerar Itens com IA'}
+                            </Button>
+                        </div>
+                        
+                        <div className="space-y-3">
+                            <Label>Itens</Label>
+                            <div className="space-y-2 max-h-48 overflow-y-auto pr-2">
+                               {newListItems.map((item, index) => (
+                                    <div key={index} className="flex items-center gap-2">
+                                        <Input
+                                            type="number"
+                                            value={item.quantity}
+                                            onChange={(e) => handleNewItemChange(index, 'quantity', e.target.value)}
+                                            className="w-20"
+                                            min="1"
+                                        />
+                                        <Input
+                                            type="text"
+                                            value={item.name}
+                                            onChange={(e) => handleNewItemChange(index, 'name', e.target.value)}
+                                            placeholder="Nome do item"
+                                            className="flex-1"
+                                        />
+                                        <Button variant="ghost" size="icon" onClick={() => handleRemoveNewItem(index)} className="text-destructive hover:text-destructive">
+                                            <Trash2 className="h-4 w-4"/>
+                                        </Button>
+                                    </div>
+                                ))}
+                            </div>
+                            <Button onClick={handleAddNewItem} variant="outline" className="w-full">
+                                Adicionar Item Manualmente
+                            </Button>
+                        </div>
+                        <Button onClick={handleSaveNewList} disabled={!newListName || newListItems.length === 0} className="w-full">
+                           <Save className="mr-2 h-4 w-4" />
+                           Salvar Nova Lista
+                        </Button>
+                    </div>
                 </AccordionContent>
             </AccordionItem>
         </Accordion>
@@ -322,12 +431,6 @@ export default function PurchasesPage() {
                 <p className="mt-1 text-sm">Selecione uma lista acima ou crie uma nova.</p>
             </div>
         )}
-
-        <CreateListDialog
-            isOpen={isCreateDialogOpen}
-            onClose={() => setIsCreateDialogOpen(false)}
-            onSave={addShoppingList}
-        />
         
         {itemToPrice && (
             <SetPriceDialog
@@ -341,3 +444,4 @@ export default function PurchasesPage() {
   );
 }
 
+    
