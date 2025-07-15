@@ -16,6 +16,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { SetPriceDialog } from '@/components/purchases/set-price-dialog';
 import { AddItemDialog } from '@/components/purchases/add-item-dialog';
+import { EditItemDialog } from '@/components/purchases/edit-item-dialog';
 import { 
     Plus, 
     ShoppingCart, 
@@ -92,12 +93,16 @@ export default function PurchasesPage() {
   const [selectedList, setSelectedList] = useState<ShoppingList | null>(initialShoppingLists[0] || null);
   const [isPriceDialogOpen, setIsPriceDialogOpen] = useState(false);
   const [isAddItemDialogOpen, setIsAddItemDialogOpen] = useState(false);
+  const [isEditItemDialogOpen, setIsEditItemDialogOpen] = useState(false);
   const [itemToPrice, setItemToPrice] = useState<ShoppingListItem | null>(null);
+  const [itemToEdit, setItemToEdit] = useState<ShoppingListItem | null>(null);
   const [activeTab, setActiveTab] = useState('all');
   const [isCreatingList, setIsCreatingList] = useState(false);
   const [newListName, setNewListName] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [listToDelete, setListToDelete] = useState<ShoppingList | null>(null);
+  const [editingListId, setEditingListId] = useState<string | null>(null);
+  const [editingListName, setEditingListName] = useState('');
 
 
   const handleSetPrice = (itemId: string, price: number) => {
@@ -116,7 +121,6 @@ export default function PurchasesPage() {
     });
     setShoppingLists(newLists);
     
-    // Update selectedList state
     const updatedList = newLists.find(l => l.id === selectedList.id) || null;
     setSelectedList(updatedList);
     
@@ -126,7 +130,6 @@ export default function PurchasesPage() {
   
   const handleCheckboxChange = (item: ShoppingListItem) => {
     if (item.checked) {
-      // Uncheck and clear price
       const newLists = shoppingLists.map(list => {
           if (list.id === selectedList?.id) {
               return {
@@ -141,7 +144,6 @@ export default function PurchasesPage() {
       setShoppingLists(newLists);
       setSelectedList(newLists.find(l => l.id === selectedList?.id) || null);
     } else {
-      // Open price dialog to check
       setItemToPrice(item);
       setIsPriceDialogOpen(true);
     }
@@ -160,6 +162,30 @@ export default function PurchasesPage() {
     });
     setShoppingLists(newLists);
     setSelectedList(newLists.find(l => l.id === selectedList.id) || null);
+  };
+  
+  const handleEditItem = (item: ShoppingListItem) => {
+    setItemToEdit(item);
+    setIsEditItemDialogOpen(true);
+  };
+
+  const handleUpdateItem = (itemId: string, name: string, quantity: number) => {
+     if (!selectedList) return;
+     const newLists = shoppingLists.map(list => {
+        if (list.id === selectedList.id) {
+            return {
+                ...list,
+                items: list.items.map(i => 
+                    i.id === itemId ? { ...i, name, quantity } : i
+                )
+            };
+        }
+        return list;
+    });
+    setShoppingLists(newLists);
+    setSelectedList(newLists.find(l => l.id === selectedList.id) || null);
+    setIsEditItemDialogOpen(false);
+    setItemToEdit(null);
   };
 
   const getProgress = (list: ShoppingList) => {
@@ -256,6 +282,26 @@ export default function PurchasesPage() {
     setListToDelete(null);
   }
 
+  const handleStartRenameList = (list: ShoppingList) => {
+    setEditingListId(list.id);
+    setEditingListName(list.name);
+  };
+
+  const handleRenameList = () => {
+    if (!editingListId || !editingListName.trim()) {
+      setEditingListId(null);
+      return;
+    };
+    const newLists = shoppingLists.map(list => 
+      list.id === editingListId ? { ...list, name: editingListName.trim() } : list
+    );
+    setShoppingLists(newLists);
+    const updatedList = newLists.find(l => l.id === editingListId) || null;
+    setSelectedList(updatedList);
+    setEditingListId(null);
+  };
+
+
   useEffect(() => {
     if (!selectedList && shoppingLists.length > 0) {
       setSelectedList(shoppingLists[0]);
@@ -317,7 +363,19 @@ export default function PurchasesPage() {
                             )}
                         >
                             <div>
-                                <p className="font-semibold">{list.name}</p>
+                                {editingListId === list.id ? (
+                                    <Input
+                                        value={editingListName}
+                                        onChange={(e) => setEditingListName(e.target.value)}
+                                        onBlur={handleRenameList}
+                                        onKeyDown={(e) => e.key === 'Enter' && handleRenameList()}
+                                        className={cn('h-8', selectedList?.id === list.id ? 'bg-primary-foreground/10 text-primary-foreground border-primary-foreground/50' : '')}
+                                        autoFocus
+                                        onClick={(e) => e.stopPropagation()}
+                                    />
+                                ) : (
+                                  <p className="font-semibold">{list.name}</p>
+                                )}
                                 <p className={`text-sm ${selectedList?.id === list.id ? 'text-primary-foreground/80' : 'text-muted-foreground'}`}>{list.items.length} itens</p>
                             </div>
                             <div className="flex items-center gap-2">
@@ -328,13 +386,13 @@ export default function PurchasesPage() {
                                             variant="ghost" 
                                             size="icon" 
                                             className={`hover:bg-black/10 ${selectedList?.id === list.id ? 'text-primary-foreground' : ''}`}
-                                            onClick={(e) => e.stopPropagation()} // Prevent list selection
+                                            onClick={(e) => e.stopPropagation()}
                                         >
                                             <MoreHorizontal className="h-5 w-5" />
                                         </Button>
                                     </DropdownMenuTrigger>
                                     <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
-                                        <DropdownMenuItem disabled>
+                                        <DropdownMenuItem onClick={() => handleStartRenameList(list)}>
                                             <Pencil className="mr-2 h-4 w-4" />
                                             Renomear
                                         </DropdownMenuItem>
@@ -418,19 +476,19 @@ export default function PurchasesPage() {
                                     >
                                         {item.quantity}x {item.name}
                                     </Label>
-                                    {item.checked && item.price !== undefined && (
-                                      <div className="flex items-center gap-2">
-                                        <Badge variant="secondary" className="font-mono">
-                                          {item.price.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
-                                        </Badge>
-                                        <Button variant="ghost" size="icon" onClick={() => { setItemToPrice(item); setIsPriceDialogOpen(true); }} className="h-7 w-7 text-muted-foreground">
+                                    <div className="flex items-center gap-1">
+                                        {item.checked && item.price !== undefined && (
+                                            <Badge variant="secondary" className="font-mono">
+                                            {item.price.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                                            </Badge>
+                                        )}
+                                        <Button variant="ghost" size="icon" onClick={() => handleEditItem(item)} className="h-7 w-7 text-muted-foreground">
                                             <Pencil className="h-4 w-4"/>
                                         </Button>
-                                      </div>
-                                    )}
-                                     <Button variant="ghost" size="icon" onClick={() => handleDeleteItem(item.id)} className="h-7 w-7 text-muted-foreground">
-                                        <Trash2 className="h-4 w-4"/>
-                                    </Button>
+                                        <Button variant="ghost" size="icon" onClick={() => handleDeleteItem(item.id)} className="h-7 w-7 text-muted-foreground">
+                                            <Trash2 className="h-4 w-4"/>
+                                        </Button>
+                                    </div>
                                </div>
                            ))}
                            {filteredItems.length === 0 && (
@@ -457,6 +515,15 @@ export default function PurchasesPage() {
                 onClose={() => { setItemToPrice(null); setIsPriceDialogOpen(false); }}
                 onSetPrice={handleSetPrice}
                 item={itemToPrice}
+            />
+        )}
+        
+        {itemToEdit && (
+            <EditItemDialog
+                isOpen={isEditItemDialogOpen}
+                onClose={() => { setItemToEdit(null); setIsEditItemDialogOpen(false); }}
+                onUpdateItem={handleUpdateItem}
+                item={itemToEdit}
             />
         )}
         
