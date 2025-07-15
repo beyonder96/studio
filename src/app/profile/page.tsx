@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useContext, useState, useEffect } from 'react';
+import { useContext, useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import {
@@ -23,7 +23,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
-import { PlusCircle, Edit, Trash2, Moon, Sun, AlertTriangle, ArrowLeft, MoreHorizontal, Mail, Cake, Check } from 'lucide-react';
+import { PlusCircle, Edit, Trash2, Moon, Sun, AlertTriangle, ArrowLeft, MoreHorizontal, Mail, Cake, Check, Camera } from 'lucide-react';
 import { FinanceContext } from '@/contexts/finance-context';
 import { Label } from '@/components/ui/label';
 
@@ -47,10 +47,14 @@ export default function ProfilePage() {
 
   const [theme, setTheme] = useState<Theme>('system');
   const [selectedColor, setSelectedColor] = useState('');
+  const [profileImage, setProfileImage] = useState<string>("https://placehold.co/600x800.png");
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
 
   useEffect(() => {
     const storedTheme = localStorage.getItem('app-theme') as Theme | null;
     const storedColor = localStorage.getItem('app-color');
+    const storedImage = localStorage.getItem('app-profile-image');
 
     if (storedTheme) {
         setTheme(storedTheme);
@@ -58,10 +62,12 @@ export default function ProfilePage() {
     if (storedColor) {
         setSelectedColor(storedColor);
     } else {
-        // Set default if nothing is stored
         const defaultColor = pastelColors[0].value;
         setSelectedColor(defaultColor);
         localStorage.setItem('app-color', defaultColor);
+    }
+    if (storedImage) {
+        setProfileImage(storedImage);
     }
   }, []);
 
@@ -83,17 +89,39 @@ export default function ProfilePage() {
         localStorage.setItem('app-color', selectedColor);
     }
   }, [selectedColor]);
+
+  useEffect(() => {
+    if (profileImage && profileImage !== "https://placehold.co/600x800.png") {
+      localStorage.setItem('app-profile-image', profileImage);
+    }
+  }, [profileImage]);
   
   const handleColorChange = (colorValue: string) => {
     setSelectedColor(colorValue);
   }
 
+  const handleImageClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setProfileImage(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+
   return (
     <div className="space-y-8 -mx-4 -mt-4 sm:-mx-6 sm:-mt-6">
         {/* Profile Header */}
-        <div className="relative w-full h-[60vh] md:h-[50vh] text-white">
+        <div className="relative w-full h-[60vh] md:h-[50vh] text-white group/header">
             <Image 
-                src="https://placehold.co/600x800.png" 
+                src={profileImage}
                 alt="Foto do casal" 
                 layout="fill" 
                 objectFit="cover"
@@ -101,6 +129,24 @@ export default function ProfilePage() {
                 data-ai-hint="couple photo"
             />
             <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent"></div>
+            
+            <button
+              onClick={handleImageClick}
+              className="absolute inset-0 flex items-center justify-center bg-black/20 opacity-0 group-hover/header:opacity-100 transition-opacity cursor-pointer"
+            >
+                <div className="flex flex-col items-center gap-2 p-4 rounded-lg bg-black/40 backdrop-blur-sm">
+                    <Camera className="w-8 h-8" />
+                    <span className="font-semibold">Trocar Foto</span>
+                </div>
+            </button>
+            <input
+                type="file"
+                ref={fileInputRef}
+                onChange={handleFileChange}
+                className="hidden"
+                accept="image/*"
+            />
+
 
             <div className="absolute top-6 left-4 right-4 flex justify-between">
                 <Button variant="ghost" size="icon" className="bg-black/20 hover:bg-black/40 rounded-full">
