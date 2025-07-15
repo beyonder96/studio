@@ -49,7 +49,7 @@ export default function ProfilePage() {
 
   const [theme, setTheme] = useState<Theme>('system');
   const [selectedColor, setSelectedColor] = useState('');
-  const [profileImage, setProfileImage] = useState<string>(defaultProfileImage);
+  const [profileImage, setProfileImage] = useState<string>('');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
 
@@ -66,11 +66,8 @@ export default function ProfilePage() {
     } else {
         const defaultColor = pastelColors[0].value;
         setSelectedColor(defaultColor);
-        localStorage.setItem('app-color', defaultColor);
     }
-    if (storedImage) {
-        setProfileImage(storedImage);
-    }
+     setProfileImage(storedImage || defaultProfileImage);
   }, []);
 
   useEffect(() => {
@@ -93,7 +90,6 @@ export default function ProfilePage() {
   }, [selectedColor]);
 
   useEffect(() => {
-    // Only save to localStorage if the image is not the default placeholder
     if (profileImage && profileImage !== defaultProfileImage) {
       localStorage.setItem('app-profile-image', profileImage);
     }
@@ -118,6 +114,10 @@ export default function ProfilePage() {
     }
   };
 
+
+  if (!profileImage) {
+    return null; // ou um spinner de carregamento
+  }
 
   return (
     <div className="space-y-8 -mx-4 -mt-4 sm:-mx-6 sm:-mt-6">
@@ -167,21 +167,21 @@ export default function ProfilePage() {
                 </div>
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-foreground">
-                    <div className="bg-white/70 dark:bg-black/50 backdrop-blur-md p-4 rounded-xl space-y-1">
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <div className="bg-white/20 dark:bg-black/20 backdrop-blur-md p-4 rounded-xl space-y-1 border border-white/20">
+                        <div className="flex items-center gap-2 text-sm text-white/80">
                             <Cake className="w-4 h-4" />
                             <span>Aniversário de Namoro</span>
                         </div>
-                        <p className="text-xl font-semibold">15 de Agosto</p>
-                        <p className="text-sm text-muted-foreground">de 2022</p>
+                        <p className="text-xl font-semibold text-white">15 de Agosto</p>
+                        <p className="text-sm text-white/80">de 2022</p>
                     </div>
-                     <div className="bg-white/70 dark:bg-black/50 backdrop-blur-md p-4 rounded-xl space-y-1">
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                     <div className="bg-white/20 dark:bg-black/20 backdrop-blur-md p-4 rounded-xl space-y-1 border border-white/20">
+                        <div className="flex items-center gap-2 text-sm text-white/80">
                             <Mail className="w-4 h-4" />
                             <span>E-mails</span>
                         </div>
-                        <p className="font-semibold truncate">kenned@example.com</p>
-                        <p className="font-semibold truncate">nicoli@example.com</p>
+                        <p className="font-semibold truncate text-white">kenned@example.com</p>
+                        <p className="font-semibold truncate text-white">nicoli@example.com</p>
                     </div>
                 </div>
             </div>
@@ -313,3 +313,5 @@ export default function ProfilePage() {
     </div>
   );
 }
+
+    

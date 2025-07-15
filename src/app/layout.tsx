@@ -29,6 +29,10 @@ function Header() {
 
   const isDashboard = pathname === '/';
 
+  if (pathname === '/profile') {
+    return null;
+  }
+
   return (
     <header className="sticky top-0 z-10 flex h-20 items-center justify-between border-b bg-background/80 px-4 backdrop-blur-sm sm:px-6">
       <div className="flex items-center gap-4">
@@ -53,6 +57,9 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const pathname = usePathname();
+  const isProfilePage = pathname === '/profile';
+
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
@@ -71,10 +78,14 @@ export default function RootLayout({
         <FinanceProvider>
             <SidebarProvider>
             <AppSidebar />
-            <SidebarInset>
-                <Header />
-                <main className="flex-1 overflow-auto p-4 sm:p-6">{children}</main>
-            </SidebarInset>
+             {isProfilePage ? (
+                <main className="flex-1">{children}</main>
+            ) : (
+                <SidebarInset>
+                    <Header />
+                    <main className="flex-1 overflow-auto p-4 sm:p-6">{children}</main>
+                </SidebarInset>
+            )}
             </SidebarProvider>
         </FinanceProvider>
         <Toaster />
@@ -82,3 +93,5 @@ export default function RootLayout({
     </html>
   );
 }
+
+    
