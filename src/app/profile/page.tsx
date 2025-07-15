@@ -13,6 +13,12 @@ import {
   CardFooter,
 } from '@/components/ui/card';
 import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -47,9 +53,10 @@ export default function ProfilePage() {
     resetAllData
   } = useContext(FinanceContext);
 
+  const [isMounted, setIsMounted] = useState(false);
   const [theme, setTheme] = useState<Theme>('system');
   const [selectedColor, setSelectedColor] = useState('');
-  const [profileImage, setProfileImage] = useState<string>('');
+  const [profileImage, setProfileImage] = useState<string>(defaultProfileImage);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
 
@@ -64,13 +71,17 @@ export default function ProfilePage() {
     if (storedColor) {
         setSelectedColor(storedColor);
     } else {
-        const defaultColor = pastelColors[0].value;
-        setSelectedColor(defaultColor);
+        setSelectedColor(pastelColors[0].value);
     }
-     setProfileImage(storedImage || defaultProfileImage);
+    if (storedImage) {
+        setProfileImage(storedImage);
+    }
+    setIsMounted(true);
   }, []);
 
   useEffect(() => {
+    if (!isMounted) return;
+    
     if (theme === 'system') {
         const systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
         document.documentElement.classList.toggle('dark', systemTheme === 'dark');
@@ -78,16 +89,18 @@ export default function ProfilePage() {
         document.documentElement.classList.toggle('dark', theme === 'dark');
     }
     localStorage.setItem('app-theme', theme);
-  }, [theme]);
+  }, [theme, isMounted]);
 
   useEffect(() => {
+    if (!isMounted) return;
+
     if (selectedColor) {
         document.documentElement.style.setProperty('--primary', selectedColor);
         document.documentElement.style.setProperty('--accent', selectedColor);
         document.documentElement.style.setProperty('--ring', selectedColor);
         localStorage.setItem('app-color', selectedColor);
     }
-  }, [selectedColor]);
+  }, [selectedColor, isMounted]);
 
   useEffect(() => {
     if (profileImage && profileImage !== defaultProfileImage) {
@@ -115,7 +128,7 @@ export default function ProfilePage() {
   };
 
 
-  if (!profileImage) {
+  if (!isMounted) {
     return null; // ou um spinner de carregamento
   }
 
@@ -135,7 +148,7 @@ export default function ProfilePage() {
             
             <button
               onClick={handleImageClick}
-              className="absolute inset-0 flex items-center justify-center bg-black/20 opacity-0 group-hover/header:opacity-100 transition-opacity cursor-pointer"
+              className="absolute inset-0 flex items-center justify-center bg-black/20 opacity-0 group-hover/header:opacity-100 transition-opacity cursor-pointer z-10"
             >
                 <div className="flex flex-col items-center gap-2 p-4 rounded-lg bg-black/40 backdrop-blur-sm">
                     <Camera className="w-8 h-8" />
@@ -151,16 +164,25 @@ export default function ProfilePage() {
             />
 
 
-            <div className="absolute top-6 left-4 right-4 flex justify-between">
-                <Button variant="ghost" size="icon" className="bg-black/20 hover:bg-black/40 rounded-full">
+            <div className="absolute top-6 left-4 right-4 flex justify-between z-20">
+                <Button variant="ghost" size="icon" className="bg-black/20 hover:bg-black/40 rounded-full" onClick={() => window.history.back()}>
                     <ArrowLeft />
                 </Button>
-                 <Button variant="ghost" size="icon" className="bg-black/20 hover:bg-black/40 rounded-full">
-                    <MoreHorizontal />
-                </Button>
+                <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                         <Button variant="ghost" size="icon" className="bg-black/20 hover:bg-black/40 rounded-full">
+                            <MoreHorizontal />
+                        </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent>
+                        <DropdownMenuItem>Editar Nomes</DropdownMenuItem>
+                        <DropdownMenuItem>Editar Data</DropdownMenuItem>
+                        <DropdownMenuItem>Editar E-mails</DropdownMenuItem>
+                    </DropdownMenuContent>
+                </DropdownMenu>
             </div>
 
-            <div className="absolute bottom-0 left-0 right-0 p-6 space-y-6">
+            <div className="absolute bottom-0 left-0 right-0 p-6 space-y-6 z-10">
                 <div className="text-center">
                     <h1 className="text-4xl font-bold">Kenned & Nicoli</h1>
                     <p className="text-lg text-white/80">Juntos há 2 anos</p>
@@ -214,12 +236,12 @@ export default function ProfilePage() {
                                     key={color.name}
                                     variant="outline"
                                     size="icon"
-                                    className={`h-10 w-10 rounded-full border-2 ${selectedColor === color.value ? 'border-primary' : 'border-transparent'}`}
+                                    className={`h-10 w-10 rounded-full border-2 flex items-center justify-center ${selectedColor === color.value ? 'border-primary' : 'border-transparent'}`}
                                     onClick={() => handleColorChange(color.value)}
                                     style={{ backgroundColor: `hsl(${color.value})`}}
                                     aria-label={`Selecionar cor ${color.name}`}
                                 >
-                                    {selectedColor === color.value && <div className="h-4 w-4 rounded-full bg-primary-foreground" />}
+                                    {selectedColor === color.value && <Check className="h-5 w-5 text-primary-foreground" />}
                                  </Button>
                             ))}
                         </div>
