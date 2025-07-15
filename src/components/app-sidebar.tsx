@@ -25,7 +25,8 @@ import {
   Carrot,
   Compass,
   Sparkles,
-  Banknote
+  Banknote,
+  User,
 } from "lucide-react";
 import { Logo } from "@/components/logo";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -81,10 +82,10 @@ export default function AppSidebar() {
             </SidebarMenuButton>
           </SidebarMenuItem>
           <SidebarMenuItem>
-            <SidebarMenuButton asChild isActive={isActive("/accounts")} tooltip="Contas">
+            <SidebarMenuButton asChild isActive={isActive("/accounts")} tooltip="Categorias">
               <Link href="/accounts">
                 <Wallet />
-                <span>Contas</span>
+                <span>Categorias</span>
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
@@ -145,25 +146,26 @@ export default function AppSidebar() {
             </SidebarMenuButton>
           </SidebarMenuItem>
            <SidebarMenuItem>
-            <SidebarMenuButton asChild isActive={isActive("/settings")} tooltip="Ajustes">
-              <Link href="#">
+            <SidebarMenuButton asChild isActive={isActive("/profile")} tooltip="Perfil e Ajustes">
+              <Link href="/profile">
                 <Settings />
-                <span>Ajustes</span>
+                <span>Perfil e Ajustes</span>
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarContent>
       <SidebarFooter className="p-4">
-        <div className="flex items-center gap-3">
+        <Link href="/profile" className="flex items-center gap-3 rounded-md p-2 -m-2 hover:bg-sidebar-accent">
             <Avatar className="h-10 w-10">
-                <AvatarFallback className="bg-neutral-300">N</AvatarFallback>
+                <AvatarImage src="https://placehold.co/80x80.png" alt="Foto do casal" data-ai-hint="couple photo"/>
+                <AvatarFallback className="bg-neutral-300">KN</AvatarFallback>
             </Avatar>
             <div>
                 <p className="font-semibold">Kenned & Nicoli</p>
                 <p className="text-sm text-muted-foreground">Juntos há 2 anos</p>
             </div>
-        </div>
+        </Link>
       </SidebarFooter>
     </Sidebar>
   );
