@@ -86,3 +86,12 @@ body {
     @apply bg-background text-foreground;
   }
 }
+
+@layer components {
+    .btn, .card, a, button {
+        @apply transition-all duration-300;
+    }
+    .btn:hover, .card:hover, a:hover, button:hover {
+        @apply transform-gpu scale-[1.02];
+    }
+}

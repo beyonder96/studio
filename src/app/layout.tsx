@@ -17,6 +17,7 @@ import { Eye, EyeOff } from 'lucide-react';
 import { FinanceContext, FinanceProvider } from '@/contexts/finance-context';
 import { usePathname } from 'next/navigation';
 import { UserNav } from '@/components/user-nav';
+import { Spotlight } from '@/components/ui/spotlight';
 
 // We can't export metadata from a client component.
 // export const metadata: Metadata = {
@@ -111,6 +112,7 @@ export default function RootLayout({
       <body
         className={cn('min-h-screen bg-background font-body antialiased')}
       >
+        <Spotlight />
         <FinanceProvider>
             <SidebarProvider>
             <AppSidebar />
