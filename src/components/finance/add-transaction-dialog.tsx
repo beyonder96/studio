@@ -23,8 +23,10 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Transaction } from './transactions-table';
 import { CurrencyInput } from './currency-input';
+import { useEffect } from 'react';
 
 const transactionSchema = z.object({
+  id: z.string().optional(),
   description: z.string().min(1, 'Descrição é obrigatória'),
   amount: z.coerce.number().min(0.01, 'Valor deve ser maior que zero'),
   date: z.string().min(1, 'Data é obrigatória'),
@@ -38,7 +40,8 @@ type TransactionFormData = z.infer<typeof transactionSchema>;
 type AddTransactionDialogProps = {
   isOpen: boolean;
   onClose: () => void;
-  onAddTransaction: (transaction: Omit<Transaction, 'id' >) => void;
+  onSaveTransaction: (transaction: Omit<Transaction, 'id' > & { id?: string }) => void;
+  transaction: Transaction | null;
 };
 
 const incomeCategories = ['Salário', 'Freelance', 'Investimentos', 'Outros'];
@@ -49,8 +52,11 @@ const accounts = ['Conta Corrente - Itaú', 'Conta Poupança - Bradesco', 'Cart�
 export function AddTransactionDialog({
   isOpen,
   onClose,
-  onAddTransaction,
+  onSaveTransaction,
+  transaction,
 }: AddTransactionDialogProps) {
+  const isEditing = !!transaction;
+
   const {
     register,
     handleSubmit,
@@ -65,23 +71,51 @@ export function AddTransactionDialog({
       type: 'expense',
       date: new Date().toISOString().split('T')[0],
       amount: 0,
+      description: '',
+      category: '',
+      account: '',
     },
   });
+
+  useEffect(() => {
+    if (isOpen && transaction) {
+      // Pre-fill form for editing
+      reset({
+        ...transaction,
+        amount: Math.abs(transaction.amount) // Form expects positive number
+      });
+    } else if (isOpen && !transaction) {
+      // Reset form for adding new
+      reset({
+        type: 'expense',
+        date: new Date().toISOString().split('T')[0],
+        amount: 0,
+        description: '',
+        category: '',
+        account: '',
+      });
+    }
+  }, [transaction, isOpen, reset]);
+
 
   const transactionType = watch('type');
 
   const onSubmit = (data: TransactionFormData) => {
     const amount = data.type === 'expense' ? -Math.abs(data.amount) : Math.abs(data.amount);
-    onAddTransaction({ ...data, amount });
-    reset();
+    onSaveTransaction({ ...data, amount });
     onClose();
   };
+  
+  const handleClose = () => {
+    reset();
+    onClose();
+  }
 
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => { if (!open) { reset(); onClose(); }}}>
+    <Dialog open={isOpen} onOpenChange={(open) => { if (!open) handleClose() }}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Adicionar Transação</DialogTitle>
+          <DialogTitle>{isEditing ? 'Editar Transação' : 'Adicionar Transação'}</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit(onSubmit)}>
           <div className="grid gap-4 py-4">
@@ -127,7 +161,7 @@ export function AddTransactionDialog({
                     name="type"
                     control={control}
                     render={({ field }) => (
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <Select onValueChange={field.onChange} value={field.value}>
                             <SelectTrigger className="col-span-3">
                                 <SelectValue placeholder="Selecione o tipo" />
                             </SelectTrigger>
@@ -198,11 +232,11 @@ export function AddTransactionDialog({
           </div>
           <DialogFooter>
             <DialogClose asChild>
-              <Button type="button" variant="secondary" onClick={() => { reset(); onClose(); }}>
+              <Button type="button" variant="secondary" onClick={handleClose}>
                 Cancelar
               </Button>
             </DialogClose>
-            <Button type="submit" disabled={transactionType === 'transfer'}>Adicionar</Button>
+            <Button type="submit" disabled={transactionType === 'transfer'}>{isEditing ? 'Salvar' : 'Adicionar'}</Button>
           </DialogFooter>
         </form>
       </DialogContent>

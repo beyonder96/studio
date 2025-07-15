@@ -10,6 +10,8 @@ import {
   TableCell,
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Edit, Trash2 } from 'lucide-react';
 
 export type Transaction = {
   id: string;
@@ -18,15 +20,17 @@ export type Transaction = {
   date: string;
   type: 'income' | 'expense' | 'transfer';
   category: string;
+  account?: string;
 };
 
 type TransactionsTableProps = {
   transactions: Transaction[];
+  onEdit: (transaction: Transaction) => void;
+  onDelete: (id: string) => void;
 };
 
-export function TransactionsTable({ transactions }: TransactionsTableProps) {
+export function TransactionsTable({ transactions, onEdit, onDelete }: TransactionsTableProps) {
   const formatDate = (dateString: string) => {
-    // Dates are 'YYYY-MM-DD'. Appending 'T00:00:00Z' makes it explicitly UTC.
     const date = new Date(`${dateString}T00:00:00Z`);
     return new Intl.DateTimeFormat('pt-BR', {
       day: '2-digit',
@@ -44,6 +48,7 @@ export function TransactionsTable({ transactions }: TransactionsTableProps) {
           <TableHead>Categoria</TableHead>
           <TableHead>Data</TableHead>
           <TableHead className="text-right">Valor</TableHead>
+          <TableHead className="w-[100px]">Ações</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
@@ -63,6 +68,16 @@ export function TransactionsTable({ transactions }: TransactionsTableProps) {
                 style: 'currency',
                 currency: 'BRL',
               })}
+            </TableCell>
+            <TableCell>
+              <div className="flex items-center justify-end gap-2">
+                <Button variant="ghost" size="icon" onClick={() => onEdit(transaction)}>
+                  <Edit className="h-4 w-4" />
+                </Button>
+                <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={() => onDelete(transaction.id)}>
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </div>
             </TableCell>
           </TableRow>
         ))}

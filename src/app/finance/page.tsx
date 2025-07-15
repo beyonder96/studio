@@ -23,6 +23,7 @@ const initialTransactions: Transaction[] = [
       date: '2024-07-05',
       type: 'income',
       category: 'Salário',
+      account: 'Conta Corrente - Itaú'
     },
     {
       id: '2',
@@ -31,6 +32,7 @@ const initialTransactions: Transaction[] = [
       date: '2024-07-05',
       type: 'income',
       category: 'Salário',
+      account: 'Conta Corrente - Itaú'
     },
     {
       id: '3',
@@ -39,6 +41,7 @@ const initialTransactions: Transaction[] = [
       date: '2024-07-10',
       type: 'expense',
       category: 'Moradia',
+      account: 'Conta Corrente - Itaú'
     },
     {
       id: '4',
@@ -47,6 +50,7 @@ const initialTransactions: Transaction[] = [
       date: '2024-07-12',
       type: 'expense',
       category: 'Alimentação',
+      account: 'Cartão de Crédito - Nubank'
     },
      {
       id: '5',
@@ -55,20 +59,47 @@ const initialTransactions: Transaction[] = [
       date: '2024-07-15',
       type: 'expense',
       category: 'Alimentação',
+      account: 'Cartão de Crédito - Nubank'
     },
 ];
 
 export default function FinancePage() {
   const [transactions, setTransactions] = useState<Transaction[]>(initialTransactions);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
 
-  const handleAddTransaction = (transaction: Omit<Transaction, 'id'>) => {
-    const newTransaction = {
-      ...transaction,
-      id: (transactions.length + 1).toString(),
-    };
-    setTransactions((prev) => [newTransaction, ...prev]);
+  const handleSaveTransaction = (transaction: Omit<Transaction, 'id'> & { id?: string }) => {
+    if (transaction.id) {
+      // Update existing transaction
+      setTransactions(prev => prev.map(t => t.id === transaction.id ? { ...t, ...transaction } : t));
+    } else {
+      // Add new transaction
+      const newTransaction = {
+        ...transaction,
+        id: (transactions.length + 1).toString(),
+      };
+      setTransactions(prev => [newTransaction, ...prev]);
+    }
   };
+
+  const handleDeleteTransaction = (id: string) => {
+    setTransactions(prev => prev.filter(t => t.id !== id));
+  };
+  
+  const openEditDialog = (transaction: Transaction) => {
+    setEditingTransaction(transaction);
+    setIsDialogOpen(true);
+  };
+
+  const openAddDialog = () => {
+    setEditingTransaction(null);
+    setIsDialogOpen(true);
+  }
+
+  const handleDialogClose = () => {
+    setEditingTransaction(null);
+    setIsDialogOpen(false);
+  }
 
   const totalIncome = transactions
     .filter((t) => t.type === 'income')
@@ -120,19 +151,24 @@ export default function FinancePage() {
           <div>
             <CardTitle>Transações</CardTitle>
           </div>
-          <Button onClick={() => setIsDialogOpen(true)}>
+          <Button onClick={openAddDialog}>
             <PlusCircle className="mr-2 h-4 w-4" />
             Adicionar Transação
           </Button>
         </CardHeader>
         <CardContent>
-          <TransactionsTable transactions={transactions} />
+          <TransactionsTable 
+            transactions={transactions} 
+            onEdit={openEditDialog}
+            onDelete={handleDeleteTransaction}
+          />
         </CardContent>
       </Card>
       <AddTransactionDialog
         isOpen={isDialogOpen}
-        onClose={() => setIsDialogOpen(false)}
-        onAddTransaction={handleAddTransaction}
+        onClose={handleDialogClose}
+        onSaveTransaction={handleSaveTransaction}
+        transaction={editingTransaction}
       />
     </div>
   );
