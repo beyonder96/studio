@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useContext, useState, useEffect, useRef } from 'react';
+import { useState, useRef } from 'react';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import {
@@ -15,17 +15,17 @@ import { useToast } from '@/hooks/use-toast';
 
 const defaultProfileImage = "https://placehold.co/600x800.png";
 
+const getInitialProfileImage = (): string => {
+  if (typeof window === 'undefined') {
+    return defaultProfileImage;
+  }
+  return localStorage.getItem('app-profile-image') || defaultProfileImage;
+};
+
 export default function ProfilePage() {
   const { toast } = useToast();
-  const [profileImage, setProfileImage] = useState<string>(defaultProfileImage);
+  const [profileImage, setProfileImage] = useState<string>(getInitialProfileImage);
   const fileInputRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    const storedImage = localStorage.getItem('app-profile-image');
-    if (storedImage) {
-      setProfileImage(storedImage);
-    }
-  }, []);
 
   const handleImageClick = () => {
     fileInputRef.current?.click();
@@ -55,6 +55,10 @@ export default function ProfilePage() {
       reader.readAsDataURL(file);
     }
   };
+  
+   const handleBackClick = () => {
+    window.history.back();
+  };
 
   return (
     <div className="flex flex-col min-h-screen -mx-4 -mt-4 sm:-mx-6 sm:-mt-6">
@@ -80,7 +84,7 @@ export default function ProfilePage() {
         />
 
         <div className="absolute top-6 left-4 right-4 flex justify-between z-20">
-          <Button variant="ghost" size="icon" className="bg-black/20 hover:bg-black/40 rounded-full" onClick={() => window.history.back()}>
+          <Button variant="ghost" size="icon" className="bg-black/20 hover:bg-black/40 rounded-full" onClick={handleBackClick}>
             <ArrowLeft />
           </Button>
           <DropdownMenu>

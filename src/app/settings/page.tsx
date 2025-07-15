@@ -37,6 +37,17 @@ const pastelColors = [
 
 type Theme = 'light' | 'dark';
 
+const getInitialTheme = (): Theme => {
+  if (typeof window === 'undefined') return 'light';
+  return (localStorage.getItem('app-theme') as Theme) || 'light';
+};
+
+const getInitialColor = (): string => {
+    if (typeof window === 'undefined') return pastelColors[0].value;
+    return localStorage.getItem('app-color') || pastelColors[0].value;
+};
+
+
 export default function SettingsPage() {
   const { 
     accounts,
@@ -44,35 +55,15 @@ export default function SettingsPage() {
     resetAllData
   } = useContext(FinanceContext);
 
-  const [theme, setTheme] = useState<Theme>('light');
-  const [selectedColor, setSelectedColor] = useState(pastelColors[0].value);
+  const [theme, setTheme] = useState<Theme>(getInitialTheme);
+  const [selectedColor, setSelectedColor] = useState<string>(getInitialColor);
 
-  // Load theme and color from localStorage on initial render
   useEffect(() => {
-    const storedTheme = localStorage.getItem('app-theme') as Theme | null;
-    if (storedTheme) {
-      setTheme(storedTheme);
-    } else {
-       document.documentElement.classList.remove('dark');
-    }
-    
-    const storedColor = localStorage.getItem('app-color');
-    if (storedColor) {
-      setSelectedColor(storedColor);
-    }
-  }, []);
-
-  // Apply theme to the document
-  useEffect(() => {
-    if (theme === 'dark') {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-    }
+    document.documentElement.classList.remove('light', 'dark');
+    document.documentElement.classList.add(theme);
     localStorage.setItem('app-theme', theme);
   }, [theme]);
 
-  // Apply color to the document
   useEffect(() => {
     document.documentElement.style.setProperty('--primary', selectedColor);
     document.documentElement.style.setProperty('--accent', selectedColor);
@@ -80,9 +71,6 @@ export default function SettingsPage() {
     localStorage.setItem('app-color', selectedColor);
   }, [selectedColor]);
 
-  const handleColorChange = (colorValue: string) => {
-    setSelectedColor(colorValue);
-  };
 
   return (
     <div className="space-y-8">
@@ -113,7 +101,7 @@ export default function SettingsPage() {
                   variant="outline"
                   size="icon"
                   className={`h-10 w-10 rounded-full border-2 flex items-center justify-center ${selectedColor === color.value ? 'border-primary' : 'border-transparent'}`}
-                  onClick={() => handleColorChange(color.value)}
+                  onClick={() => setSelectedColor(color.value)}
                   style={{ backgroundColor: `hsl(${color.value})` }}
                   aria-label={`Selecionar cor ${color.name}`}
                 >
