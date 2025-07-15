@@ -145,18 +145,10 @@ export default function AppSidebar() {
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
-           <SidebarMenuItem>
-            <SidebarMenuButton asChild isActive={isActive("/profile")} tooltip="Perfil e Ajustes">
-              <Link href="/profile">
-                <Settings />
-                <span>Perfil e Ajustes</span>
-              </Link>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
         </SidebarMenu>
       </SidebarContent>
       <SidebarFooter className="p-4">
-        <Link href="/profile" className="flex items-center gap-3 rounded-md p-2 -m-2 hover:bg-sidebar-accent">
+        <div className="flex items-center gap-3 rounded-md p-2 -m-2">
             <Avatar className="h-10 w-10">
                 <AvatarImage src="https://placehold.co/80x80.png" alt="Foto do casal" data-ai-hint="couple photo"/>
                 <AvatarFallback className="bg-neutral-300">KN</AvatarFallback>
@@ -165,7 +157,7 @@ export default function AppSidebar() {
                 <p className="font-semibold">Kenned & Nicoli</p>
                 <p className="text-sm text-muted-foreground">Juntos há 2 anos</p>
             </div>
-        </Link>
+        </div>
       </SidebarFooter>
     </Sidebar>
   );

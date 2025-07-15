@@ -16,6 +16,7 @@ import { Button } from '@/components/ui/button';
 import { Eye, EyeOff } from 'lucide-react';
 import { FinanceContext, FinanceProvider } from '@/contexts/finance-context';
 import { usePathname } from 'next/navigation';
+import { UserNav } from '@/components/user-nav';
 
 // We can't export metadata from a client component.
 // export const metadata: Metadata = {
@@ -42,11 +43,14 @@ function Header() {
           <p className="text-muted-foreground">Sua visão geral do Vida á Dois.</p>
         </div>
       </div>
-      {isDashboard && (
-        <Button variant="ghost" size="icon" onClick={toggleSensitiveDataVisibility}>
-          {isSensitiveDataVisible ? <Eye className="h-5 w-5" /> : <EyeOff className="h-5 w-5" />}
-        </Button>
-      )}
+      <div className="flex items-center gap-2">
+         {isDashboard && (
+            <Button variant="ghost" size="icon" onClick={toggleSensitiveDataVisibility}>
+            {isSensitiveDataVisible ? <Eye className="h-5 w-5" /> : <EyeOff className="h-5 w-5" />}
+            </Button>
+        )}
+        <UserNav />
+      </div>
     </header>
   );
 }
