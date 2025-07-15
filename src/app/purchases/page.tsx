@@ -80,6 +80,7 @@ export default function PurchasesPage() {
   const [activeTab, setActiveTab] = useState('all');
   const [isCreatingList, setIsCreatingList] = useState(false);
   const [newListName, setNewListName] = useState('');
+  const [searchTerm, setSearchTerm] = useState('');
 
 
   const handleSetPrice = (itemId: string, price: number) => {
@@ -128,6 +129,21 @@ export default function PurchasesPage() {
       setIsPriceDialogOpen(true);
     }
   };
+  
+  const handleDeleteItem = (itemId: string) => {
+    if (!selectedList) return;
+    const newLists = shoppingLists.map(list => {
+        if (list.id === selectedList.id) {
+            return {
+                ...list,
+                items: list.items.filter(item => item.id !== itemId)
+            };
+        }
+        return list;
+    });
+    setShoppingLists(newLists);
+    setSelectedList(newLists.find(l => l.id === selectedList.id) || null);
+  };
 
   const getProgress = (list: ShoppingList) => {
     if (list.items.length === 0) return 0;
@@ -141,14 +157,23 @@ export default function PurchasesPage() {
   
   const filteredItems = useMemo(() => {
     if (!selectedList) return [];
+    
+    let items = selectedList.items;
+
     if (activeTab === 'pending') {
-      return selectedList.items.filter(item => !item.checked);
+      items = items.filter(item => !item.checked);
+    } else if (activeTab === 'completed') {
+      items = items.filter(item => item.checked);
     }
-    if (activeTab === 'completed') {
-      return selectedList.items.filter(item => item.checked);
+
+    if (searchTerm) {
+        items = items.filter(item => 
+            item.name.toLowerCase().includes(searchTerm.toLowerCase())
+        );
     }
-    return selectedList.items;
-  }, [selectedList, activeTab]);
+
+    return items;
+  }, [selectedList, activeTab, searchTerm]);
   
   const totalCost = useMemo(() => {
     if (!selectedList) return 0;
@@ -315,7 +340,12 @@ export default function PurchasesPage() {
                      </p>
                     <div className="relative mb-4">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground"/>
-                        <Input placeholder="Buscar itens..." className="pl-9 bg-background"/>
+                        <Input 
+                            placeholder="Buscar itens..." 
+                            className="pl-9 bg-background"
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                        />
                     </div>
 
                     <Tabs value={activeTab} onValueChange={setActiveTab}>
@@ -349,7 +379,7 @@ export default function PurchasesPage() {
                                         </Button>
                                       </div>
                                     )}
-                                     <Button variant="ghost" size="icon" onClick={() => {}} className="h-7 w-7 text-muted-foreground">
+                                     <Button variant="ghost" size="icon" onClick={() => handleDeleteItem(item.id)} className="h-7 w-7 text-muted-foreground">
                                         <Trash2 className="h-4 w-4"/>
                                     </Button>
                                </div>
