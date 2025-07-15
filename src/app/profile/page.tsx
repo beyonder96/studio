@@ -10,6 +10,7 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
+  CardFooter,
 } from '@/components/ui/card';
 import {
   AlertDialog,
@@ -228,5 +229,3 @@ export default function ProfilePage() {
     </div>
   );
 }
-
-    
