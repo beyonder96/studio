@@ -38,6 +38,8 @@ const pastelColors = [
 
 type Theme = 'light' | 'dark' | 'system';
 
+const defaultProfileImage = "https://placehold.co/600x800.png";
+
 export default function ProfilePage() {
   const { 
     accounts,
@@ -47,7 +49,7 @@ export default function ProfilePage() {
 
   const [theme, setTheme] = useState<Theme>('system');
   const [selectedColor, setSelectedColor] = useState('');
-  const [profileImage, setProfileImage] = useState<string>("https://placehold.co/600x800.png");
+  const [profileImage, setProfileImage] = useState<string>(defaultProfileImage);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
 
@@ -91,7 +93,8 @@ export default function ProfilePage() {
   }, [selectedColor]);
 
   useEffect(() => {
-    if (profileImage && profileImage !== "https://placehold.co/600x800.png") {
+    // Only save to localStorage if the image is not the default placeholder
+    if (profileImage && profileImage !== defaultProfileImage) {
       localStorage.setItem('app-profile-image', profileImage);
     }
   }, [profileImage]);
