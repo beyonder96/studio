@@ -88,10 +88,17 @@ body {
 }
 
 @layer components {
-    .btn, .card, a, button {
+    .btn, a, button {
         @apply transition-all duration-300;
     }
-    .btn:hover, .card:hover, a:hover, button:hover {
+    .btn:hover, a:hover, button:hover {
         @apply transform-gpu scale-[1.02];
+    }
+     .card {
+        @apply transition-all duration-300;
+        @apply bg-card/60 backdrop-blur-xl;
+    }
+    .card:hover {
+         @apply transform-gpu scale-[1.02];
     }
 }
