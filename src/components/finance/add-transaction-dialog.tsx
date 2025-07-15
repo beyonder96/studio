@@ -88,25 +88,27 @@ export function AddTransactionDialog({
   });
 
   useEffect(() => {
-    if (isOpen && transaction) {
-      // Pre-fill form for editing
-      reset({
-        ...transaction,
-        amount: Math.abs(transaction.amount), // Form expects positive number
-        installments: transaction.totalInstallments || 1,
-      });
-    } else if (isOpen && !transaction) {
-      // Reset form for adding new
-      reset({
-        type: 'expense',
-        date: new Date().toISOString().split('T')[0],
-        amount: 0,
-        description: '',
-        category: '',
-        account: '',
-        isRecurring: false,
-        installments: 1,
-      });
+    if (isOpen) {
+      const defaultDate = new Date().toISOString().split('T')[0];
+      if (transaction) {
+         reset({
+            ...transaction,
+            date: transaction.date || defaultDate,
+            amount: Math.abs(transaction.amount), // Form expects positive number
+            installments: transaction.totalInstallments || 1,
+          });
+      } else {
+         reset({
+            type: 'expense',
+            date: defaultDate,
+            amount: 0,
+            description: '',
+            category: '',
+            account: '',
+            isRecurring: false,
+            installments: 1,
+          });
+      }
     }
   }, [transaction, isOpen, reset]);
 

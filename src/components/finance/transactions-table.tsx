@@ -35,17 +35,18 @@ type TransactionsTableProps = {
 };
 
 export function TransactionsTable({ transactions, onEdit, onDelete }: TransactionsTableProps) {
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    const userTimezoneOffset = date.getTimezoneOffset() * 60000;
-    const correctedDate = new Date(date.getTime() + userTimezoneOffset);
-    
-    return new Intl.DateTimeFormat('pt-BR', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-    }).format(correctedDate);
-  };
+    const formatDate = (dateString: string) => {
+        // This function assumes dateString is in 'YYYY-MM-DD' format and treats it as UTC to avoid timezone shifts.
+        const [year, month, day] = dateString.split('-').map(Number);
+        const date = new Date(Date.UTC(year, month - 1, day));
+        
+        return new Intl.DateTimeFormat('pt-BR', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric',
+            timeZone: 'UTC', // Explicitly use UTC
+        }).format(date);
+    };
 
   return (
     <Table>
@@ -100,5 +101,3 @@ export function TransactionsTable({ transactions, onEdit, onDelete }: Transactio
     </Table>
   );
 }
-
-    

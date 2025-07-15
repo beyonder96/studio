@@ -1,7 +1,14 @@
+
+'use client';
+
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Repeat } from "lucide-react";
+import { useContext } from "react";
+import { FinanceContext } from "@/contexts/finance-context";
 
 export function RecurrencesCard() {
+  const { countRecurringTransactions } = useContext(FinanceContext);
+
   return (
     <Card>
       <CardHeader>
@@ -15,7 +22,7 @@ export function RecurrencesCard() {
         </div>
       </CardHeader>
       <CardContent>
-        <span className="block text-3xl font-bold tracking-tight">0</span>
+        <span className="block text-3xl font-bold tracking-tight">{countRecurringTransactions()}</span>
         <p className="text-xs text-muted-foreground">Ativas e parceladas</p>
       </CardContent>
     </Card>

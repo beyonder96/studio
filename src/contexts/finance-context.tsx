@@ -100,6 +100,7 @@ type FinanceContextType = {
   totalIncome: () => number;
   totalExpenses: () => number;
   totalBalance: () => number;
+  countRecurringTransactions: () => number;
 };
 
 export const FinanceContext = createContext<FinanceContextType>({} as FinanceContextType);
@@ -118,7 +119,7 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
       const newTransactions: Transaction[] = [];
 
       for (let i = 1; i <= installments; i++) {
-        const installmentDate = addMonths(new Date(transaction.date), i - 1);
+        const installmentDate = addMonths(new Date(transaction.date + 'T00:00:00'), i - 1);
         newTransactions.push({
           ...transaction,
           id: crypto.randomUUID(),
@@ -165,6 +166,10 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
       return accounts.reduce((sum, acc) => sum + acc.balance, 0);
   }
 
+  const countRecurringTransactions = () => {
+    return transactions.filter(t => t.isRecurring).length;
+  }
+
   const value = {
     transactions,
     addTransaction,
@@ -177,6 +182,7 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
     totalIncome,
     totalExpenses,
     totalBalance,
+    countRecurringTransactions,
   };
 
   return (
@@ -185,5 +191,3 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
     </FinanceContext.Provider>
   );
 };
-
-    

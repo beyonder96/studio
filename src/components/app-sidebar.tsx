@@ -89,7 +89,7 @@ export default function AppSidebar() {
           </SidebarMenuItem>
           <SidebarMenuItem>
             <SidebarMenuButton asChild isActive={isActive("/recurrences")} tooltip="Recorrências">
-              <Link href="#">
+              <Link href="/recurrences">
                 <ArrowRightLeft />
                 <span>Recorrências</span>
               </Link>
