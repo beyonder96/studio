@@ -132,6 +132,7 @@ type FinanceContextType = {
   resetAllData: () => void;
   pantryItems: PantryItem[];
   addItemsToPantry: (items: { name: string, quantity: number }[]) => void;
+  updatePantryItemQuantity: (itemId: string, newQuantity: number) => void;
 };
 
 export const FinanceContext = createContext<FinanceContextType>({} as FinanceContextType);
@@ -240,6 +241,17 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
     });
   };
 
+  const updatePantryItemQuantity = (itemId: string, newQuantity: number) => {
+    setPantryItems(prevPantryItems => {
+      if (newQuantity <= 0) {
+        return prevPantryItems.filter(item => item.id !== itemId);
+      }
+      return prevPantryItems.map(item =>
+        item.id === itemId ? { ...item, quantity: newQuantity } : item
+      );
+    });
+  };
+
   const resetAllData = () => {
     setTransactions([]);
     setAccounts([]);
@@ -269,6 +281,7 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
     resetAllData,
     pantryItems,
     addItemsToPantry,
+    updatePantryItemQuantity,
   };
 
   return (

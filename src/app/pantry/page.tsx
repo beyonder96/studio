@@ -4,7 +4,8 @@
 import { useContext } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { FinanceContext, PantryCategory } from '@/contexts/finance-context';
-import { Apple, Beef, Carrot, ChevronsRight, Fish, Milk, MoreHorizontal } from 'lucide-react';
+import { Apple, Beef, Carrot, ChevronsRight, Fish, Milk, MoreHorizontal, Plus, Minus } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 const categoryIcons: { [key in PantryCategory]: React.ReactNode } = {
   'Laticínios': <Milk className="h-6 w-6 text-muted-foreground" />,
@@ -15,7 +16,7 @@ const categoryIcons: { [key in PantryCategory]: React.ReactNode } = {
 };
 
 export default function PantryPage() {
-  const { pantryItems } = useContext(FinanceContext);
+  const { pantryItems, updatePantryItemQuantity } = useContext(FinanceContext);
 
   const categorizedItems = pantryItems.reduce((acc, item) => {
     const category = item.pantryCategory || 'Outros';
@@ -48,7 +49,15 @@ export default function PantryPage() {
                   {categorizedItems[category].map((item) => (
                     <li key={item.id} className="flex items-center justify-between">
                       <span>{item.name}</span>
-                      <span className="font-mono text-sm font-semibold bg-muted px-2 py-1 rounded-md">{item.quantity}</span>
+                      <div className="flex items-center gap-2">
+                        <Button variant="outline" size="icon" className="h-7 w-7" onClick={() => updatePantryItemQuantity(item.id, item.quantity - 1)}>
+                          <Minus className="h-4 w-4" />
+                        </Button>
+                        <span className="font-mono text-sm font-semibold bg-muted px-3 py-1 rounded-md">{item.quantity}</span>
+                         <Button variant="outline" size="icon" className="h-7 w-7" onClick={() => updatePantryItemQuantity(item.id, item.quantity + 1)}>
+                          <Plus className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </li>
                   ))}
                 </ul>
