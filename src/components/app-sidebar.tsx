@@ -188,6 +188,14 @@ export default function AppSidebar() {
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
+           <SidebarMenuItem>
+            <SidebarMenuButton asChild isActive={isActive("/settings")} tooltip="Ajustes">
+              <Link href="/settings">
+                <Settings />
+                <span>Ajustes</span>
+              </Link>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
         </SidebarMenu>
       </SidebarContent>
       <SidebarFooter>
@@ -195,14 +203,16 @@ export default function AppSidebar() {
             "flex items-center gap-3 rounded-md p-2 transition-colors",
             "group-data-[state=collapsed]:p-0"
          )}>
-            <Avatar className="h-10 w-10">
-                <AvatarImage src={profileImage} alt="Foto do casal" data-ai-hint="couple photo"/>
-                <AvatarFallback className="bg-primary/20">KN</AvatarFallback>
-            </Avatar>
-            <div className="group-data-[state=collapsed]:hidden">
-                <p className="font-semibold truncate">{profileName}</p>
-                 <Link href="/settings" className="text-sm text-muted-foreground hover:text-primary">Ver perfil</Link>
-            </div>
+             <Link href="/profile" className="flex items-center gap-3">
+                <Avatar className="h-10 w-10">
+                    <AvatarImage src={profileImage} alt="Foto do casal" data-ai-hint="couple photo"/>
+                    <AvatarFallback className="bg-primary/20">KN</AvatarFallback>
+                </Avatar>
+                <div className="group-data-[state=collapsed]:hidden">
+                    <p className="font-semibold truncate">{profileName}</p>
+                    <p className="text-sm text-muted-foreground hover:text-primary">Ver perfil</p>
+                </div>
+            </Link>
         </div>
       </SidebarFooter>
     </Sidebar>

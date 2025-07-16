@@ -18,6 +18,9 @@ import { FinanceContext, FinanceProvider } from '@/contexts/finance-context';
 import { usePathname } from 'next/navigation';
 import { UserNav } from '@/components/user-nav';
 import { Spotlight } from '@/components/ui/spotlight';
+import { MobileNav } from '@/components/mobile-nav';
+import { useIsMobile } from '@/hooks/use-mobile';
+
 
 // We can't export metadata from a client component.
 // export const metadata: Metadata = {
@@ -96,6 +99,8 @@ export default function RootLayout({
   const isProfilePage = pathname === '/profile';
   const isCalendarPage = pathname === '/calendar';
   const isDiscoverPage = pathname === '/discover';
+  const isMobile = useIsMobile();
+
 
   return (
     <html lang="en" suppressHydrationWarning>
@@ -121,9 +126,15 @@ export default function RootLayout({
             ) : (
                 <SidebarInset>
                     <Header />
-                    <main className="flex-1 overflow-auto p-4 sm:p-6">{children}</main>
+                    <main className={cn(
+                        "flex-1 overflow-auto p-4 sm:p-6",
+                        isMobile && "pb-24" // Add padding to the bottom on mobile to avoid content being hidden by the mobile nav
+                    )}>
+                        {children}
+                    </main>
                 </SidebarInset>
             )}
+            <MobileNav />
             </SidebarProvider>
         </FinanceProvider>
         <Toaster />
