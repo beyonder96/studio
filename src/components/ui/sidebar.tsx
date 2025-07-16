@@ -176,11 +176,10 @@ const Sidebar = React.forwardRef<
     },
     ref
   ) => {
-    const { isMobile, openMobile, setOpenMobile } = useSidebar()
-    const { state } = useSidebar()
+    const { isMobile, openMobile, setOpenMobile, state } = useSidebar()
 
 
-    if (isMobile) {
+    if (isMobile === true) {
       return (
         <Sheet open={openMobile} onOpenChange={setOpenMobile} {...props}>
           <SheetContent
@@ -200,6 +199,11 @@ const Sidebar = React.forwardRef<
         </Sheet>
       )
     }
+    
+    if (isMobile === undefined) {
+      return null
+    }
+
 
     if (collapsible === "none") {
       return (
@@ -219,7 +223,7 @@ const Sidebar = React.forwardRef<
     return (
       <div
         ref={ref}
-        className={cn("hidden md:block text-foreground", className)}
+        className={cn("text-foreground", className)}
         data-state={state}
         data-collapsible={state === "collapsed" ? collapsible : ""}
         data-variant={variant}
@@ -227,7 +231,7 @@ const Sidebar = React.forwardRef<
       >
         <div
           className={cn(
-            "duration-200 fixed inset-y-0 z-40 hidden h-svh transition-[left,right,width] ease-in-out md:flex",
+            "duration-200 fixed inset-y-0 z-40 flex h-svh transition-[left,right,width] ease-in-out",
             "border-r bg-background/90 backdrop-blur-sm",
             side === "left"
               ? "left-0"
