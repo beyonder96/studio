@@ -213,13 +213,14 @@ export default function PurchasesPage() {
     setListToClear(null);
   }
 
-  const getProgress = (list: ShoppingList) => {
-    if (list.items.length === 0) return 0;
+  const getProgress = (list: ShoppingList | null) => {
+    if (!list || list.items.length === 0) return 0;
     const checkedItems = list.items.filter(item => item.checked).length;
     return Math.round((checkedItems / list.items.length) * 100);
   }
   
-  const getCheckedCount = (list: ShoppingList) => {
+  const getCheckedCount = (list: ShoppingList | null) => {
+      if (!list || !list.items) return 0;
       return list.items.filter(item => item.checked).length;
   }
   
@@ -641,7 +642,7 @@ export default function PurchasesPage() {
                 <AlertDialogHeader>
                     <AlertDialogTitle>Finalizar compra e atualizar despensa?</AlertDialogTitle>
                     <AlertDialogDescription>
-                        Os <span className="font-semibold">{getCheckedCount(listToFinish!)}</span> itens marcados serão movidos para a sua despensa e removidos desta lista.
+                        Os <span className="font-semibold">{listToFinish ? getCheckedCount(listToFinish) : 0}</span> itens marcados serão movidos para a sua despensa e removidos desta lista.
                     </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
