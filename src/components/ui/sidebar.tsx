@@ -57,6 +57,14 @@ function getCookie(name: string): string | undefined {
   if (parts.length === 2) return parts.pop()?.split(';').shift();
 }
 
+const getInitialOpen = (defaultOpen: boolean) => {
+    if (typeof window === 'undefined') {
+        return defaultOpen;
+    }
+    const cookieValue = getCookie(SIDEBAR_COOKIE_NAME);
+    return cookieValue !== undefined ? cookieValue === 'true' : defaultOpen;
+};
+
 
 const SidebarProvider = React.forwardRef<
   HTMLDivElement,
@@ -80,32 +88,29 @@ const SidebarProvider = React.forwardRef<
   ) => {
     const isMobile = useIsMobile()
     const [openMobile, setOpenMobile] = React.useState(false)
-    const [isMounted, setIsMounted] = React.useState(false);
 
+    // Use a state that resolves on the client to avoid hydration mismatch
+    const [resolvedOpen, setResolvedOpen] = React.useState(() => getInitialOpen(defaultOpen));
 
-    // Initialize with defaultOpen, cookie state will be applied in useEffect
-    const [_open, _setOpen] = React.useState(defaultOpen)
-    const open = openProp ?? _open
-    
     React.useEffect(() => {
-        setIsMounted(true);
-        const cookieValue = getCookie(SIDEBAR_COOKIE_NAME);
-        if (cookieValue !== undefined) {
-             _setOpen(cookieValue === 'true');
-        }
-    }, []);
+        setResolvedOpen(getInitialOpen(defaultOpen));
+    }, [defaultOpen]);
 
+
+    const open = openProp ?? resolvedOpen
     const setOpen = React.useCallback(
       (value: boolean | ((value: boolean) => boolean)) => {
         const openState = typeof value === "function" ? value(open) : value
         if (setOpenProp) {
           setOpenProp(openState)
         } else {
-          _setOpen(openState)
+          setResolvedOpen(openState)
         }
 
         // This sets the cookie to keep the sidebar state.
-        document.cookie = `${SIDEBAR_COOKIE_NAME}=${openState}; path=/; max-age=${SIDEBAR_COOKIE_MAX_AGE}`
+        if(typeof document !== 'undefined') {
+            document.cookie = `${SIDEBAR_COOKIE_NAME}=${openState}; path=/; max-age=${SIDEBAR_COOKIE_MAX_AGE}`
+        }
       },
       [setOpenProp, open]
     )
@@ -133,17 +138,11 @@ const SidebarProvider = React.forwardRef<
       return () => window.removeEventListener("keydown", handleKeyDown)
     }, [toggleSidebar])
 
-    // We add a state so that we can do data-state="expanded" or "collapsed".
-    // This makes it easier to style the sidebar with Tailwind classes.
     const state = open ? "expanded" : "collapsed"
     
-    // On the server or before hydration, always render based on defaultOpen
-    // to prevent mismatch. The actual state will be updated by useEffect on client.
-    const finalState = !isMounted ? (defaultOpen ? 'expanded' : 'collapsed') : state;
-
     const contextValue = React.useMemo<SidebarContext>(
       () => ({
-        state: finalState,
+        state,
         open,
         setOpen,
         isMobile,
@@ -151,7 +150,7 @@ const SidebarProvider = React.forwardRef<
         setOpenMobile,
         toggleSidebar,
       }),
-      [finalState, open, setOpen, isMobile, openMobile, setOpenMobile, toggleSidebar]
+      [state, open, setOpen, isMobile, openMobile, setOpenMobile, toggleSidebar]
     )
 
     return (
@@ -169,7 +168,7 @@ const SidebarProvider = React.forwardRef<
               "group/sidebar-wrapper flex min-h-svh w-full bg-background",
               className
             )}
-            data-state={finalState}
+            data-state={state}
             ref={ref}
             {...props}
           >
