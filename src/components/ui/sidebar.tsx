@@ -48,6 +48,16 @@ function useSidebar() {
   return context
 }
 
+function getCookie(name: string): string | undefined {
+  if (typeof document === 'undefined') {
+    return undefined;
+  }
+  const value = `; ${document.cookie}`;
+  const parts = value.split(`; ${name}=`);
+  if (parts.length === 2) return parts.pop()?.split(';').shift();
+}
+
+
 const SidebarProvider = React.forwardRef<
   HTMLDivElement,
   React.ComponentProps<"div"> & {
@@ -70,11 +80,27 @@ const SidebarProvider = React.forwardRef<
   ) => {
     const isMobile = useIsMobile()
     const [openMobile, setOpenMobile] = React.useState(false)
+    const [isMounted, setIsMounted] = React.useState(false);
 
+
+    const getInitialOpen = () => {
+        if (typeof window === 'undefined') {
+            return defaultOpen;
+        }
+        const cookieValue = getCookie(SIDEBAR_COOKIE_NAME);
+        return cookieValue ? cookieValue === 'true' : defaultOpen;
+    };
+    
     // This is the internal state of the sidebar.
     // We use openProp and setOpenProp for control from outside the component.
-    const [_open, _setOpen] = React.useState(defaultOpen)
+    const [_open, _setOpen] = React.useState(getInitialOpen())
     const open = openProp ?? _open
+    
+    React.useEffect(() => {
+        setIsMounted(true);
+        _setOpen(getInitialOpen());
+    }, []);
+
     const setOpen = React.useCallback(
       (value: boolean | ((value: boolean) => boolean)) => {
         const openState = typeof value === "function" ? value(open) : value
@@ -116,10 +142,12 @@ const SidebarProvider = React.forwardRef<
     // We add a state so that we can do data-state="expanded" or "collapsed".
     // This makes it easier to style the sidebar with Tailwind classes.
     const state = open ? "expanded" : "collapsed"
+    
+    const finalState = isMounted ? state : (defaultOpen ? 'expanded' : 'collapsed');
 
     const contextValue = React.useMemo<SidebarContext>(
       () => ({
-        state,
+        state: finalState,
         open,
         setOpen,
         isMobile,
@@ -127,7 +155,7 @@ const SidebarProvider = React.forwardRef<
         setOpenMobile,
         toggleSidebar,
       }),
-      [state, open, setOpen, isMobile, openMobile, setOpenMobile, toggleSidebar]
+      [finalState, open, setOpen, isMobile, openMobile, setOpenMobile, toggleSidebar]
     )
 
     return (
@@ -145,7 +173,7 @@ const SidebarProvider = React.forwardRef<
               "group/sidebar-wrapper flex min-h-svh w-full bg-background",
               className
             )}
-            data-state={state}
+            data-state={finalState}
             ref={ref}
             {...props}
           >
