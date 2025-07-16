@@ -57,14 +57,6 @@ function getCookie(name: string): string | undefined {
   if (parts.length === 2) return parts.pop()?.split(';').shift();
 }
 
-const getInitialOpen = (defaultOpen: boolean) => {
-    if (typeof window === 'undefined') {
-        return defaultOpen;
-    }
-    const cookieValue = getCookie(SIDEBAR_COOKIE_NAME);
-    return cookieValue !== undefined ? cookieValue === 'true' : defaultOpen;
-};
-
 
 const SidebarProvider = React.forwardRef<
   HTMLDivElement,
@@ -89,27 +81,30 @@ const SidebarProvider = React.forwardRef<
     const isMobile = useIsMobile()
     const [openMobile, setOpenMobile] = React.useState(false)
 
-    // Use a state that resolves on the client to avoid hydration mismatch
-    const [resolvedOpen, setResolvedOpen] = React.useState(() => getInitialOpen(defaultOpen));
+    // Use a separate state for the cookie-loaded value to avoid hydration mismatch.
+    const [openState, setOpenState] = React.useState(defaultOpen);
 
     React.useEffect(() => {
-        setResolvedOpen(getInitialOpen(defaultOpen));
-    }, [defaultOpen]);
+        // This effect runs only on the client, after hydration.
+        const cookieValue = getCookie(SIDEBAR_COOKIE_NAME);
+        if (cookieValue !== undefined) {
+            setOpenState(cookieValue === 'true');
+        }
+    }, []);
 
 
-    const open = openProp ?? resolvedOpen
+    const open = openProp ?? openState
     const setOpen = React.useCallback(
       (value: boolean | ((value: boolean) => boolean)) => {
-        const openState = typeof value === "function" ? value(open) : value
+        const newOpenState = typeof value === "function" ? value(open) : value;
         if (setOpenProp) {
-          setOpenProp(openState)
+          setOpenProp(newOpenState);
         } else {
-          setResolvedOpen(openState)
+          setOpenState(newOpenState);
         }
 
-        // This sets the cookie to keep the sidebar state.
         if(typeof document !== 'undefined') {
-            document.cookie = `${SIDEBAR_COOKIE_NAME}=${openState}; path=/; max-age=${SIDEBAR_COOKIE_MAX_AGE}`
+            document.cookie = `${SIDEBAR_COOKIE_NAME}=${newOpenState}; path=/; max-age=${SIDEBAR_COOKIE_MAX_AGE}`
         }
       },
       [setOpenProp, open]
