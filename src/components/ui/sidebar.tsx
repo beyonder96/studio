@@ -142,7 +142,7 @@ const SidebarProvider = React.forwardRef<
               } as React.CSSProperties
             }
             className={cn(
-              "group/sidebar-wrapper flex min-h-svh w-full has-[[data-variant=inset]]:bg-background",
+              "group/sidebar-wrapper flex min-h-svh w-full bg-background",
               className
             )}
             ref={ref}
@@ -219,21 +219,12 @@ const Sidebar = React.forwardRef<
     return (
       <div
         ref={ref}
-        className="group peer hidden md:block text-foreground"
+        className={cn("hidden md:block text-foreground", className)}
         data-state={state}
         data-collapsible={state === "collapsed" ? collapsible : ""}
         data-variant={variant}
         data-side={side}
       >
-        {/* This is what handles the sidebar gap on desktop */}
-        <div
-          className={cn(
-            "duration-200 relative h-svh bg-transparent transition-[width] ease-in-out",
-            "group-data-[collapsible=offcanvas]:w-0",
-            "group-data-[side=right]:rotate-180",
-            "group-data-[collapsible=icon]:w-[var(--sidebar-width-icon)]"
-          )}
-        />
         <div
           className={cn(
             "duration-200 fixed inset-y-0 z-40 hidden h-svh transition-[left,right,width] ease-in-out md:flex",
@@ -243,7 +234,6 @@ const Sidebar = React.forwardRef<
               : "right-0",
             "group-data-[state=expanded]:w-[var(--sidebar-width)]",
             "group-data-[state=collapsed]:w-[var(--sidebar-width-icon)]",
-            className
           )}
           {...props}
         >
@@ -319,12 +309,14 @@ const SidebarInset = React.forwardRef<
   HTMLDivElement,
   React.ComponentProps<"main">
 >(({ className, ...props }, ref) => {
+  const { state } = useSidebar();
   return (
     <main
       ref={ref}
       className={cn(
-        "relative flex min-h-svh flex-1 flex-col bg-background",
-        "peer-data-[variant=inset]:min-h-[calc(100svh-theme(spacing.4))] md:peer-data-[variant=inset]:m-2 md:peer-data-[state=collapsed]:peer-data-[variant=inset]:ml-2 md:peer-data-[variant=inset]:ml-0 md:peer-data-[variant=inset]:rounded-xl md:peer-data-[variant=inset]:shadow",
+        "relative flex min-h-svh flex-1 flex-col bg-background transition-[margin-left] duration-300 ease-in-out",
+        "md:ml-[var(--sidebar-width-icon)]",
+        state === 'expanded' && "md:ml-[var(--sidebar-width)]",
         className
       )}
       {...props}
