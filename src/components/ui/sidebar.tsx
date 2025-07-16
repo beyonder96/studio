@@ -82,10 +82,11 @@ const SidebarProvider = React.forwardRef<
     const [openMobile, setOpenMobile] = React.useState(false)
 
     // Use a separate state for the cookie-loaded value to avoid hydration mismatch.
+    const [isClient, setIsClient] = React.useState(false);
     const [openState, setOpenState] = React.useState(defaultOpen);
 
     React.useEffect(() => {
-        // This effect runs only on the client, after hydration.
+        setIsClient(true);
         const cookieValue = getCookie(SIDEBAR_COOKIE_NAME);
         if (cookieValue !== undefined) {
             setOpenState(cookieValue === 'true');
@@ -163,7 +164,7 @@ const SidebarProvider = React.forwardRef<
               "group/sidebar-wrapper flex min-h-svh w-full bg-background",
               className
             )}
-            data-state={state}
+            data-state={isClient ? state : (defaultOpen ? 'expanded' : 'collapsed')}
             ref={ref}
             {...props}
           >
