@@ -145,6 +145,7 @@ const SidebarProvider = React.forwardRef<
               "group/sidebar-wrapper flex min-h-svh w-full bg-background",
               className
             )}
+            data-state={state}
             ref={ref}
             {...props}
           >
@@ -215,8 +216,8 @@ const Sidebar = React.forwardRef<
             side === "left"
               ? "left-0"
               : "right-0",
-            "group-data-[state=expanded]:w-[var(--sidebar-width)]",
-            "group-data-[state=collapsed]:w-[var(--sidebar-width-icon)]",
+            "group-data-[state=expanded]/sidebar-wrapper:w-[var(--sidebar-width)]",
+            "group-data-[state=collapsed]/sidebar-wrapper:w-[var(--sidebar-width-icon)]",
           )}
           {...props}
         >
@@ -292,14 +293,13 @@ const SidebarInset = React.forwardRef<
   HTMLDivElement,
   React.ComponentProps<"main">
 >(({ className, ...props }, ref) => {
-  const { state } = useSidebar();
   return (
     <main
       ref={ref}
       className={cn(
         "relative flex min-h-svh flex-1 flex-col bg-background transition-[margin-left] duration-300 ease-in-out",
-        "md:ml-[var(--sidebar-width-icon)]",
-        state === 'expanded' && "md:ml-[var(--sidebar-width)]",
+        "group-data-[state=expanded]/sidebar-wrapper:md:ml-[var(--sidebar-width)]",
+        "group-data-[state=collapsed]/sidebar-wrapper:md:ml-[var(--sidebar-width-icon)]",
         className
       )}
       {...props}
