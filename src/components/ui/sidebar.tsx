@@ -83,22 +83,16 @@ const SidebarProvider = React.forwardRef<
     const [isMounted, setIsMounted] = React.useState(false);
 
 
-    const getInitialOpen = () => {
-        if (typeof window === 'undefined') {
-            return defaultOpen;
-        }
-        const cookieValue = getCookie(SIDEBAR_COOKIE_NAME);
-        return cookieValue ? cookieValue === 'true' : defaultOpen;
-    };
-    
-    // This is the internal state of the sidebar.
-    // We use openProp and setOpenProp for control from outside the component.
-    const [_open, _setOpen] = React.useState(getInitialOpen())
+    // Initialize with defaultOpen, cookie state will be applied in useEffect
+    const [_open, _setOpen] = React.useState(defaultOpen)
     const open = openProp ?? _open
     
     React.useEffect(() => {
         setIsMounted(true);
-        _setOpen(getInitialOpen());
+        const cookieValue = getCookie(SIDEBAR_COOKIE_NAME);
+        if (cookieValue !== undefined) {
+             _setOpen(cookieValue === 'true');
+        }
     }, []);
 
     const setOpen = React.useCallback(
@@ -143,7 +137,9 @@ const SidebarProvider = React.forwardRef<
     // This makes it easier to style the sidebar with Tailwind classes.
     const state = open ? "expanded" : "collapsed"
     
-    const finalState = isMounted ? state : (defaultOpen ? 'expanded' : 'collapsed');
+    // On the server or before hydration, always render based on defaultOpen
+    // to prevent mismatch. The actual state will be updated by useEffect on client.
+    const finalState = !isMounted ? (defaultOpen ? 'expanded' : 'collapsed') : state;
 
     const contextValue = React.useMemo<SidebarContext>(
       () => ({
