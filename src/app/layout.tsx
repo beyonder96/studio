@@ -31,6 +31,7 @@ import { useIsMobile } from '@/hooks/use-mobile';
 function Header() {
   const pathname = usePathname();
   const { isSensitiveDataVisible, toggleSensitiveDataVisibility } = useContext(FinanceContext);
+  const isMobile = useIsMobile();
 
   const isDashboard = pathname === '/';
   
@@ -71,7 +72,7 @@ function Header() {
   return (
     <header className="sticky top-0 z-30 flex h-20 items-center justify-between border-b bg-background/80 px-4 backdrop-blur-sm sm:px-6">
       <div className="flex items-center gap-4">
-        <SidebarTrigger className="hidden md:flex" />
+        {!isMobile && <SidebarTrigger />}
         <div>
           <h1 className="text-2xl font-bold">{title}</h1>
           <p className="text-muted-foreground">{description}</p>
@@ -110,7 +111,7 @@ export default function RootLayout({
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link
-          href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+          href="https://fonts.googleapis.com/css2?family=PT+Sans:wght@400;700&display=swap"
           rel="stylesheet"
         />
       </head>
