@@ -29,36 +29,40 @@ export default function Home() {
                 <DashboardHeader />
                 <UserNav />
               </div>
-              <Card className="bg-white/10 dark:bg-black/10 border-none shadow-none">
-                <Calendar
-                  mode="single"
-                  selected={new Date()}
-                  className="p-0 [&_td]:w-full"
-                   classNames={{
-                      head_cell: "text-muted-foreground rounded-md w-full font-normal text-[0.8rem]",
-                      cell: "text-center text-sm p-0 relative focus-within:relative focus-within:z-20",
-                      day: "h-9 w-9 p-0 font-normal aria-selected:opacity-100 rounded-full",
-                      day_selected: "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground",
-                      day_today: "bg-accent text-accent-foreground rounded-full",
-                      day_range_middle: "aria-selected:bg-accent/50 aria-selected:text-accent-foreground",
-                  }}
-                  modifiers={{ 
-                      events: eventDates
-                  }}
-                  modifiersClassNames={{
-                      events: "bg-primary/20 rounded-full"
-                  }}
-                />
-              </Card>
-              <MonthOverview />
-              <GoalsOverview />
+              <div className="flex flex-col gap-6 lg:order-last">
+                <Card className="bg-white/10 dark:bg-black/10 border-none shadow-none">
+                  <Calendar
+                    mode="single"
+                    selected={new Date()}
+                    className="p-0 [&_td]:w-full"
+                    classNames={{
+                        head_cell: "text-muted-foreground rounded-md w-full font-normal text-[0.8rem]",
+                        cell: "text-center text-sm p-0 relative focus-within:relative focus-within:z-20",
+                        day: "h-9 w-9 p-0 font-normal aria-selected:opacity-100 rounded-full",
+                        day_selected: "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground",
+                        day_today: "bg-accent text-accent-foreground rounded-full",
+                        day_range_middle: "aria-selected:bg-accent/50 aria-selected:text-accent-foreground",
+                    }}
+                    modifiers={{ 
+                        events: eventDates
+                    }}
+                    modifiersClassNames={{
+                        events: "bg-primary/20 rounded-full"
+                    }}
+                  />
+                </Card>
+                <MonthOverview />
+                <GoalsOverview />
+              </div>
             </div>
 
             {/* Middle Column */}
             <div className="lg:col-span-1 flex flex-col gap-6">
-               <h2 className="text-2xl font-bold">Painel Financeiro</h2>
+               <div className="order-first lg:order-none">
+                 <TransactionsOverview />
+               </div>
+               <h2 className="text-2xl font-bold hidden lg:block">Painel Financeiro</h2>
                <CopilotCard />
-               <TransactionsOverview />
             </div>
 
             {/* Right Column */}
