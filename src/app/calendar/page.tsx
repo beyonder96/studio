@@ -10,7 +10,7 @@ import type { Transaction } from '@/components/finance/transactions-table';
 import { format, isSameDay, startOfToday } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
-import { Button } from '@/components/ui/button';
+import { Button, buttonVariants } from '@/components/ui/button';
 import { ArrowLeft, Calendar as CalendarIcon, DollarSign, CalendarCheck } from 'lucide-react';
 
 type CalendarEvent = {
