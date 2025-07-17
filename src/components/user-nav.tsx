@@ -53,7 +53,7 @@ export function UserNav() {
           </Avatar>
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent className="w-56" align="end" forceMount>
+      <DropdownMenuContent className="w-56 user-nav-dropdown" align="end" forceMount>
         <DropdownMenuLabel className="font-normal">
           <div className="flex flex-col space-y-1">
             <p className="text-sm font-medium leading-none">{profileName}</p>
@@ -64,12 +64,6 @@ export function UserNav() {
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
          <DropdownMenuGroup>
-            <DropdownMenuItem asChild>
-                <Link href="/">
-                <LayoutDashboard className="mr-2 h-4 w-4" />
-                <span>Painel</span>
-                </Link>
-            </DropdownMenuItem>
             <DropdownMenuItem asChild>
                 <Link href="/finance">
                 <Banknote className="mr-2 h-4 w-4" />
