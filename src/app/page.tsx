@@ -4,7 +4,7 @@
 import { Calendar } from '@/components/ui/calendar';
 import { Card, CardContent } from '@/components/ui/card';
 import { UserNav } from '@/components/user-nav';
-import { Logo } from '@/components/logo';
+import { DashboardHeader } from '@/components/logo';
 import { TransactionsOverview } from '@/components/dashboard/transactions-overview';
 import { GoalsOverview } from '@/components/dashboard/goals-overview';
 import { TasksOverview } from '@/components/dashboard/tasks-overview';
@@ -20,7 +20,7 @@ export default function Home() {
             {/* Left Column */}
             <div className="lg:col-span-1 flex flex-col gap-6">
               <div className="flex items-center justify-between">
-                <Logo />
+                <DashboardHeader />
                 <UserNav />
               </div>
               <Card className="bg-white/10 dark:bg-black/10 border-none shadow-none">
