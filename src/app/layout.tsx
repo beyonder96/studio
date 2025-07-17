@@ -1,92 +1,14 @@
 
 'use client';
 
-import { useContext } from 'react';
-import type { Metadata } from 'next';
 import './globals.css';
 import { cn } from '@/lib/utils';
 import { Toaster } from '@/components/ui/toaster';
-import {
-  SidebarProvider,
-  SidebarInset,
-  SidebarTrigger,
-} from '@/components/ui/sidebar';
-import AppSidebar from '@/components/app-sidebar';
-import { Button } from '@/components/ui/button';
-import { Eye, EyeOff } from 'lucide-react';
-import { FinanceContext, FinanceProvider } from '@/contexts/finance-context';
-import { usePathname } from 'next/navigation';
-import { UserNav } from '@/components/user-nav';
+import { FinanceProvider } from '@/contexts/finance-context';
 import { Spotlight } from '@/components/ui/spotlight';
-import { MobileNav } from '@/components/mobile-nav';
-import { useIsMobile } from '@/hooks/use-mobile';
-
-
-// We can't export metadata from a client component.
-// export const metadata: Metadata = {
-//   title: 'Vida a 2',
-//   description: 'Sua visão geral do Vida a Dois.',
-// };
-
-function Header() {
-  const pathname = usePathname();
-  const { isSensitiveDataVisible, toggleSensitiveDataVisibility } = useContext(FinanceContext);
-
-  const isDashboard = pathname === '/';
-  
-  const isFullScreenPage = ['/profile', '/calendar', '/discover'].includes(pathname);
-  if (isFullScreenPage) {
-    return null;
-  }
-  
-  const getPageTitle = () => {
-    switch (pathname) {
-        case '/':
-            return { title: 'Painel Principal', description: 'Sua visão geral do Vida a Dois.' };
-        case '/finance':
-            return { title: 'Finanças', description: 'Gerencie suas transações.' };
-        case '/accounts':
-            return { title: 'Categorias', description: 'Gerencie suas categorias de receita e despesa.' };
-        case '/recurrences':
-            return { title: 'Recorrências', description: 'Visualize suas transações recorrentes.' };
-        case '/purchases':
-            return { title: 'Compras', description: 'Crie e gerencie suas listas de compras.' };
-        case '/pantry':
-            return { title: 'Despensa', description: 'Veja o que você tem em casa.' };
-        case '/tasks':
-            return { title: 'Tarefas', description: 'Gerencie suas tarefas do dia a dia.' };
-        case '/wishes':
-            return { title: 'Lista de Desejos', description: 'Realizem seus sonhos juntos.' };
-        case '/settings':
-            return { title: 'Ajustes', description: 'Personalize o aplicativo e gerencie seus dados.' };
-        default:
-            return { title: 'Vida a 2', description: '' };
-    }
-  }
-  
-  const { title, description } = getPageTitle();
-
-
-  return (
-    <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b bg-background/80 px-4 backdrop-blur-sm sm:h-20 sm:px-6">
-      <div className="flex items-center gap-4">
-        <SidebarTrigger className="hidden md:flex" />
-        <div>
-          <h1 className="text-xl font-bold sm:text-2xl">{title}</h1>
-          <p className="hidden text-sm text-muted-foreground sm:block">{description}</p>
-        </div>
-      </div>
-      <div className="flex items-center gap-2">
-         {isDashboard && (
-            <Button variant="ghost" size="icon" onClick={toggleSensitiveDataVisibility}>
-            {isSensitiveDataVisible ? <Eye className="h-5 w-5" /> : <EyeOff className="h-5 w-5" />}
-            </Button>
-        )}
-        <UserNav />
-      </div>
-    </header>
-  );
-}
+import { FloatingNav } from '@/components/floating-nav';
+import { usePathname } from 'next/navigation';
+import Header from '@/components/header';
 
 
 export default function RootLayout({
@@ -95,8 +17,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   const pathname = usePathname();
-  const isFullScreenPage = ['/profile', '/calendar', '/discover'].includes(pathname);
-
+  const isFullScreenPage = ['/profile', '/discover'].includes(pathname);
 
   return (
     <html lang="en" suppressHydrationWarning>
@@ -115,19 +36,16 @@ export default function RootLayout({
       >
         <Spotlight />
         <FinanceProvider>
-            <SidebarProvider>
-                <AppSidebar />
-                 <SidebarInset>
-                    <Header />
-                     <div className={cn(
-                        "flex-1 overflow-auto pb-24",
-                        !isFullScreenPage && "p-4 sm:p-6"
-                    )}>
-                        {children}
-                    </div>
-                </SidebarInset>
-                <MobileNav />
-            </SidebarProvider>
+            <div className="flex flex-col min-h-screen">
+                 {!isFullScreenPage && <Header />}
+                 <main className={cn(
+                    "flex-1 w-full max-w-5xl mx-auto",
+                    !isFullScreenPage && "p-4 sm:p-6"
+                 )}>
+                    {children}
+                </main>
+                <FloatingNav />
+            </div>
         </FinanceProvider>
         <Toaster />
       </body>
