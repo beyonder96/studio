@@ -7,6 +7,7 @@ import { Toaster } from '@/components/ui/toaster';
 import { FinanceProvider } from '@/contexts/finance-context';
 import { usePathname } from 'next/navigation';
 import { Spotlight } from '@/components/ui/spotlight';
+import { SideNav } from '@/components/side-nav';
 
 export default function RootLayout({
   children,
@@ -38,6 +39,7 @@ export default function RootLayout({
                  <main className="flex-1 w-full">
                     {children}
                 </main>
+                 <SideNav />
             </div>
         </FinanceProvider>
         <Toaster />
