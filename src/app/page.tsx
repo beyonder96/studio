@@ -11,6 +11,7 @@ import { TasksOverview } from '@/components/dashboard/tasks-overview';
 import { CopilotCard } from '@/components/dashboard/copilot-card';
 import { MonthOverview } from '@/components/dashboard/month-overview';
 import { ShoppingListOverview } from '@/components/dashboard/shopping-list-overview';
+import { PantryOverview } from '@/components/dashboard/pantry-overview';
 import { useContext, useState } from 'react';
 import { FinanceContext, Appointment } from '@/contexts/finance-context';
 import { AddAppointmentDialog } from '@/components/calendar/add-appointment-dialog';
@@ -78,6 +79,7 @@ export default function Home() {
                  <h2 className="text-2xl font-bold">Painel Financeiro</h2>
                  <GoalsOverview />
                  <ShoppingListOverview />
+                 <PantryOverview />
                  <CopilotCard />
               </div>
 
