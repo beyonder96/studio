@@ -134,7 +134,7 @@ const SidebarProvider = React.forwardRef<
       return () => window.removeEventListener("keydown", handleKeyDown)
     }, [toggleSidebar])
 
-    const state = open ? "expanded" : "collapsed"
+    const state = !isClient ? (defaultOpen ? 'expanded' : 'collapsed') : (open ? "expanded" : "collapsed");
     
     const contextValue = React.useMemo<SidebarContext>(
       () => ({
@@ -164,7 +164,7 @@ const SidebarProvider = React.forwardRef<
               "group/sidebar-wrapper flex min-h-svh w-full bg-background",
               className
             )}
-            data-state={isClient ? state : (defaultOpen ? 'expanded' : 'collapsed')}
+            data-state={state}
             ref={ref}
             {...props}
           >
@@ -316,7 +316,7 @@ const SidebarInset = React.forwardRef<
     <main
       ref={ref}
       className={cn(
-        "relative flex min-h-svh flex-1 flex-col bg-background transition-[margin-left] duration-300 ease-in-out",
+        "flex-1 bg-background transition-[margin-left] duration-300 ease-in-out md:min-h-svh",
         "group-data-[state=expanded]/sidebar-wrapper:md:ml-[var(--sidebar-width)]",
         "group-data-[state=collapsed]/sidebar-wrapper:md:ml-[var(--sidebar-width-icon)]",
         className

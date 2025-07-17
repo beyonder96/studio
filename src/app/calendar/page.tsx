@@ -71,13 +71,13 @@ export default function CalendarPage() {
   };
 
   return (
-    <div className="flex h-screen w-full flex-col bg-muted/40 p-0">
+    <div className="flex h-full w-full flex-col bg-muted/40 p-0">
         <div className="absolute top-6 left-6 z-20">
              <Button variant="ghost" size="icon" className="bg-background/50 hover:bg-muted/80 rounded-full backdrop-blur-sm" onClick={handleBackClick}>
                 <ArrowLeft className="h-5 w-5"/>
             </Button>
         </div>
-        <main className="flex flex-1 flex-col gap-4 overflow-auto rounded-lg bg-background p-4 sm:p-6">
+        <div className="flex flex-1 flex-col gap-4 overflow-auto rounded-lg bg-background sm:p-6 p-4">
             <div className="w-full">
                 <Card>
                     <CardContent className="p-2 sm:p-4">
@@ -172,7 +172,7 @@ export default function CalendarPage() {
                     </div>
                 )}
             </div>
-        </main>
+        </div>
     </div>
   );
 }

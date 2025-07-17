@@ -98,7 +98,6 @@ export default function RootLayout({
 }>) {
   const pathname = usePathname();
   const isSpecialPage = pathname === '/profile' || pathname === '/calendar' || pathname === '/discover';
-  const isMobile = useIsMobile();
 
 
   return (
@@ -122,13 +121,12 @@ export default function RootLayout({
                 <AppSidebar />
                 <SidebarInset>
                     <Header />
-                    <main className={cn(
-                        "flex-1 overflow-auto",
-                        !isSpecialPage && "p-4 sm:p-6", // Remove padding for special full-screen pages
-                        isMobile && "pb-24" // Add padding to the bottom on mobile to avoid content being hidden by the mobile nav
+                    <div className={cn(
+                        "flex-1 overflow-auto pb-24", // Add padding to the bottom on mobile to avoid content being hidden by the mobile nav
+                        !isSpecialPage && "p-4 sm:p-6" // Remove padding for special full-screen pages
                     )}>
                         {children}
-                    </main>
+                    </div>
                 </SidebarInset>
                 <MobileNav />
             </SidebarProvider>
