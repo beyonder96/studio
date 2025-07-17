@@ -25,7 +25,6 @@ export function Spotlight() {
     const updateColor = () => {
         if (typeof window !== 'undefined') {
             const primaryColorValue = getComputedStyle(document.documentElement).getPropertyValue('--primary').trim();
-            // Assuming --primary is in the format "H S% L%" e.g., "258 95% 68%"
             if (primaryColorValue) {
                 setSpotlightColor(`hsla(${primaryColorValue}, 0.1)`);
             }
@@ -56,7 +55,7 @@ export function Spotlight() {
 
   return (
     <motion.div
-      className="pointer-events-none fixed inset-0 z-30 transition duration-300"
+      className="pointer-events-none fixed inset-0 z-0 transition duration-300"
       style={{
         background: `radial-gradient(600px at ${smoothMouseX.get()}px ${smoothMouseY.get()}px, ${spotlightColor}, transparent 80%)`,
       }}

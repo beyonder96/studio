@@ -35,13 +35,13 @@ export default function RootLayout({
       >
         <Spotlight />
         <FinanceProvider>
-            <div className="flex flex-col min-h-screen">
-                 <main className="flex-1 w-full">
-                    {children}
-                </main>
-                 <SideNav />
-            </div>
+          <div className="flex flex-col min-h-screen">
+              <main className="flex-1 w-full">
+                  {children}
+              </main>
+          </div>
         </FinanceProvider>
+        <SideNav />
         <Toaster />
       </body>
     </html>
