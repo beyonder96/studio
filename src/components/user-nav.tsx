@@ -63,27 +63,6 @@ export function UserNav() {
           </div>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
-         <DropdownMenuGroup>
-            <DropdownMenuItem asChild>
-                <Link href="/finance">
-                <Banknote className="mr-2 h-4 w-4" />
-                <span>Finanças</span>
-                </Link>
-            </DropdownMenuItem>
-            <DropdownMenuItem asChild>
-                <Link href="/purchases">
-                <ShoppingBasket className="mr-2 h-4 w-4" />
-                <span>Compras</span>
-                </Link>
-            </DropdownMenuItem>
-            <DropdownMenuItem asChild>
-                <Link href="/wishes">
-                <Gift className="mr-2 h-4 w-4" />
-                <span>Desejos</span>
-                </Link>
-            </DropdownMenuItem>
-        </DropdownMenuGroup>
-        <DropdownMenuSeparator />
         <DropdownMenuGroup>
           <DropdownMenuItem asChild>
             <Link href="/profile">
