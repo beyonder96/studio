@@ -6,7 +6,7 @@ import { motion, useMotionValue, useSpring, animate } from 'framer-motion';
 
 export function Spotlight() {
   const [isMounted, setIsMounted] = useState(false);
-  const [spotlightColor, setSpotlightColor] = useState('hsla(346.8, 77.2%, 49.8%, 0.08)');
+  const [spotlightColor, setSpotlightColor] = useState('rgba(128, 0, 128, 0.08)');
 
   const mouseX = useMotionValue(0);
   const mouseY = useMotionValue(0);
@@ -24,9 +24,10 @@ export function Spotlight() {
     
     const updateColor = () => {
         if (typeof window !== 'undefined') {
-            const primaryColor = getComputedStyle(document.documentElement).getPropertyValue('--primary').trim();
-            if (primaryColor) {
-                setSpotlightColor(`hsla(${primaryColor}, 0.08)`);
+            const primaryColorValue = getComputedStyle(document.documentElement).getPropertyValue('--primary').trim();
+            // Assuming --primary is in the format "H S% L%" e.g., "258 95% 68%"
+            if (primaryColorValue) {
+                setSpotlightColor(`hsla(${primaryColorValue}, 0.1)`);
             }
         }
     };
