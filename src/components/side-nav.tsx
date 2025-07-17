@@ -93,7 +93,7 @@ export function SideNav() {
               animate="visible"
               exit="hidden"
               transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-              className="fixed top-0 right-0 h-full w-72 bg-background/80 backdrop-blur-xl border-l border-border shadow-2xl z-50 flex flex-col"
+              className="fixed top-0 right-0 h-full w-64 bg-background/50 backdrop-blur-xl border-l border-border shadow-2xl z-50 flex flex-col"
             >
               <div className="flex items-center justify-between p-4 border-b">
                  <h2 className="text-lg font-semibold">Navegação</h2>
