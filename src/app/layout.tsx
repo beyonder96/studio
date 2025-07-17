@@ -5,11 +5,7 @@ import './globals.css';
 import { cn } from '@/lib/utils';
 import { Toaster } from '@/components/ui/toaster';
 import { FinanceProvider } from '@/contexts/finance-context';
-import { Spotlight } from '@/components/ui/spotlight';
-import { FloatingNav } from '@/components/floating-nav';
 import { usePathname } from 'next/navigation';
-import Header from '@/components/header';
-
 
 export default function RootLayout({
   children,
@@ -17,7 +13,6 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   const pathname = usePathname();
-  const isFullScreenPage = ['/profile', '/discover'].includes(pathname);
 
   return (
     <html lang="en" suppressHydrationWarning>
@@ -32,19 +27,15 @@ export default function RootLayout({
         />
       </head>
       <body
-        className={cn('min-h-screen bg-background font-sans antialiased')}
+        className={cn(
+          'min-h-screen bg-gradient-to-br from-rose-100 via-purple-100 to-cyan-100 dark:from-gray-900 dark:via-purple-900/50 dark:to-gray-900 font-sans antialiased',
+        )}
       >
-        <Spotlight />
         <FinanceProvider>
             <div className="flex flex-col min-h-screen">
-                 {!isFullScreenPage && <Header />}
-                 <main className={cn(
-                    "flex-1 w-full max-w-5xl mx-auto",
-                    !isFullScreenPage && "p-4 sm:p-6"
-                 )}>
+                 <main className="flex-1 w-full">
                     {children}
                 </main>
-                <FloatingNav />
             </div>
         </FinanceProvider>
         <Toaster />

@@ -1,89 +1,64 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
-import { BalanceCard } from '@/components/dashboard/balance-card';
-import { SummaryCard } from '@/components/dashboard/summary-card';
-import { ExpensesChart } from '@/components/dashboard/expenses-chart';
-import { RecurrencesCard } from '@/components/dashboard/recurrences-card';
+import { Calendar } from '@/components/ui/calendar';
+import { Card, CardContent } from '@/components/ui/card';
+import { UserNav } from '@/components/user-nav';
+import { Logo } from '@/components/logo';
 import { TransactionsOverview } from '@/components/dashboard/transactions-overview';
-import { Badge } from '@/components/ui/badge';
-import { Heart } from 'lucide-react';
-import { differenceInYears, addYears, differenceInDays, format } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
-
-const AnniversaryBadge = () => {
-  const [anniversaryText, setAnniversaryText] = useState('');
-
-  useEffect(() => {
-    const handleStorageChange = () => {
-        const savedData = localStorage.getItem('app-profile-data');
-        if (savedData) {
-          const parsedData = JSON.parse(savedData);
-          if (parsedData.sinceDate) {
-            const startDate = new Date(parsedData.sinceDate);
-            const now = new Date();
-            const yearsTogether = differenceInYears(now, startDate);
-            const nextAnniversary = addYears(startDate, yearsTogether + 1);
-            const daysToNextAnniversary = differenceInDays(nextAnniversary, now);
-            
-            let yearsText = `${yearsTogether} ano${yearsTogether !== 1 ? 's' : ''}`;
-            if(yearsTogether === 0){
-                 const monthsTogether = now.getMonth() - startDate.getMonth() + (12 * (now.getFullYear() - startDate.getFullYear()));
-                 if(monthsTogether > 0) yearsText = `${monthsTogether} mes${monthsTogether !== 1 ? 'es' : ''}`
-                 else{
-                    const daysTogether = differenceInDays(now, startDate);
-                    yearsText = `${daysTogether} dia${daysTogether !== 1 ? 's' : ''}`
-                 }
-            }
-
-            setAnniversaryText(
-              `${yearsText}. Próximo aniversário em ${daysToNextAnniversary} dias.`
-            );
-          } else {
-            setAnniversaryText('Configure seu aniversário no perfil!');
-          }
-        } else {
-           setAnniversaryText('Configure seu aniversário no perfil!');
-        }
-    };
-
-    handleStorageChange(); // Initial load
-    window.addEventListener('storage', handleStorageChange);
-    return () => window.removeEventListener('storage', handleStorageChange);
-  }, []);
-
-  if (!anniversaryText) {
-    return null; // Or a skeleton loader
-  }
-
-  return (
-    <Badge variant="secondary" className="w-fit gap-2 rounded-full border-primary/20 bg-primary/5 p-2 pr-3 text-sm font-normal text-primary/80">
-      <Heart className="h-4 w-4 text-primary fill-primary" />
-      <span>{anniversaryText}</span>
-    </Badge>
-  );
-};
-
+import { GoalsOverview } from '@/components/dashboard/goals-overview';
+import { TasksOverview } from '@/components/dashboard/tasks-overview';
+import { CopilotCard } from '@/components/dashboard/copilot-card';
 
 export default function Home() {
   return (
-    <div className="flex flex-col gap-6 pb-24">
-       <AnniversaryBadge />
-      <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
-        <BalanceCard />
-        <SummaryCard type="income" />
-        <SummaryCard type="expenses" />
-        <RecurrencesCard />
-      </div>
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-        <div className="lg:col-span-2">
-          <ExpensesChart />
-        </div>
-        <div className="lg:col-span-1">
-          <TransactionsOverview />
-        </div>
-      </div>
+    <div className="w-full max-w-7xl mx-auto p-4 sm:p-6 md:p-8">
+      <Card className="bg-white/10 dark:bg-black/10 backdrop-blur-3xl border-white/20 dark:border-black/20 rounded-3xl shadow-2xl">
+        <CardContent className="p-4 sm:p-6">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            
+            {/* Left Column */}
+            <div className="lg:col-span-1 flex flex-col gap-6">
+              <div className="flex items-center justify-between">
+                <Logo />
+                <UserNav />
+              </div>
+              <Card className="bg-white/10 dark:bg-black/10 border-none shadow-none">
+                <Calendar
+                  mode="single"
+                  selected={new Date()}
+                  className="p-0 [&_td]:w-full"
+                   classNames={{
+                      head_cell: "text-muted-foreground rounded-md w-full font-normal text-[0.8rem]",
+                      cell: "text-center text-sm p-0 relative focus-within:relative focus-within:z-20",
+                      day: "h-9 w-9 p-0 font-normal aria-selected:opacity-100 rounded-full",
+                      day_selected: "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground",
+                      day_today: "bg-accent text-accent-foreground rounded-full",
+                  }}
+                />
+              </Card>
+              <GoalsOverview />
+              <TasksOverview />
+            </div>
+
+            {/* Middle Column */}
+            <div className="lg:col-span-1 flex flex-col gap-6">
+               <h2 className="text-2xl font-bold">Painel Financeiro</h2>
+               <CopilotCard />
+               <TransactionsOverview />
+            </div>
+
+            {/* Right Column */}
+             <div className="lg:col-span-1 flex flex-col gap-6">
+                <h2 className="text-2xl font-bold">Visão Geral</h2>
+                <div className="h-full w-full bg-muted/40 rounded-2xl flex items-center justify-center">
+                    <p className="text-muted-foreground">Em breve</p>
+                </div>
+            </div>
+
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }

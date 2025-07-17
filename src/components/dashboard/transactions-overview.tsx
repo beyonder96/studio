@@ -46,20 +46,17 @@ export function TransactionsOverview() {
   const recentTransactions = transactions.slice(0, 5);
 
   return (
-    <Card className="h-full card-hover-effect">
+    <Card className="h-full bg-white/10 dark:bg-black/10 border-none shadow-none flex-grow">
       <CardHeader>
         <CardTitle>Transações Recentes</CardTitle>
-        <CardDescription>
-          Suas últimas 5 movimentações.
-        </CardDescription>
       </CardHeader>
       <CardContent>
         <div className="space-y-1">
           {recentTransactions.map((transaction) => (
-            <Link href="/finance" key={transaction.id} className="block rounded-lg -mx-2 px-2 py-2 hover:bg-muted">
+            <div key={transaction.id} className="block rounded-lg -mx-2 px-2 py-3 hover:bg-white/20 dark:hover:bg-black/20">
                 <div className="flex items-center gap-3">
                 <Avatar className="h-9 w-9">
-                    <AvatarFallback className="bg-secondary text-muted-foreground">
+                    <AvatarFallback className="bg-primary/20 text-primary">
                     {getIconForCategory(transaction.category)}
                     </AvatarFallback>
                 </Avatar>
@@ -85,7 +82,7 @@ export function TransactionsOverview() {
                   <Skeleton className="h-6 w-24 rounded-full" />
                 )}
                 </div>
-            </Link>
+            </div>
           ))}
            {recentTransactions.length === 0 && (
                 <div className="text-center text-muted-foreground py-8">

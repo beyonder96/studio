@@ -9,7 +9,7 @@ const goals = [
 
 export function GoalsOverview() {
   return (
-    <Card>
+    <Card className="bg-white/10 dark:bg-black/10 border-none shadow-none">
       <CardHeader>
         <CardTitle>Metas e Desejos</CardTitle>
       </CardHeader>

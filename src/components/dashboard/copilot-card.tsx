@@ -4,11 +4,11 @@ import { Sparkles, ArrowUpRight } from "lucide-react";
 
 export function CopilotCard() {
   return (
-    <Card className="bg-gradient-to-br from-yellow-50 to-amber-100 dark:from-gray-800 dark:to-gray-900 flex flex-col">
+    <Card className="bg-white/10 dark:bg-black/10 border-none shadow-none flex flex-col">
       <CardHeader>
         <div className="flex items-center gap-2">
-          <Sparkles className="h-6 w-6 text-accent" />
-          <CardTitle className="text-base font-semibold text-accent-foreground/90">
+          <Sparkles className="h-6 w-6 text-primary" />
+          <CardTitle className="text-base font-semibold text-primary">
             Copiloto Financeiro
           </CardTitle>
         </div>
@@ -19,7 +19,7 @@ export function CopilotCard() {
         </p>
       </CardContent>
       <CardFooter>
-        <Button variant="outline" className="w-full bg-transparent border-accent text-accent hover:bg-accent/10 hover:text-accent">
+        <Button variant="outline" className="w-full bg-transparent border-primary/50 text-primary hover:bg-primary/10 hover:text-primary">
           Ver Insights <ArrowUpRight className="ml-2 h-4 w-4" />
         </Button>
       </CardFooter>

@@ -11,7 +11,7 @@ const tasks = [
 
 export function TasksOverview() {
   return (
-    <Card>
+    <Card className="bg-white/10 dark:bg-black/10 border-none shadow-none">
       <CardHeader>
         <CardTitle>Tarefas Financeiras</CardTitle>
       </CardHeader>

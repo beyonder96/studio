@@ -13,7 +13,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { CreditCard, HelpCircle, LogOut, Settings, User as UserIcon } from "lucide-react";
+import { CreditCard, HelpCircle, LogOut, Settings, User as UserIcon, LayoutDashboard, Banknote, ShoppingBasket, Gift } from "lucide-react";
 import { useState, useEffect } from "react";
 
 export function UserNav() {
@@ -63,6 +63,33 @@ export function UserNav() {
             </p>
           </div>
         </DropdownMenuLabel>
+        <DropdownMenuSeparator />
+         <DropdownMenuGroup>
+            <DropdownMenuItem asChild>
+                <Link href="/">
+                <LayoutDashboard className="mr-2 h-4 w-4" />
+                <span>Painel</span>
+                </Link>
+            </DropdownMenuItem>
+            <DropdownMenuItem asChild>
+                <Link href="/finance">
+                <Banknote className="mr-2 h-4 w-4" />
+                <span>Finanças</span>
+                </Link>
+            </DropdownMenuItem>
+            <DropdownMenuItem asChild>
+                <Link href="/purchases">
+                <ShoppingBasket className="mr-2 h-4 w-4" />
+                <span>Compras</span>
+                </Link>
+            </DropdownMenuItem>
+            <DropdownMenuItem asChild>
+                <Link href="/wishes">
+                <Gift className="mr-2 h-4 w-4" />
+                <span>Desejos</span>
+                </Link>
+            </DropdownMenuItem>
+        </DropdownMenuGroup>
         <DropdownMenuSeparator />
         <DropdownMenuGroup>
           <DropdownMenuItem asChild>
