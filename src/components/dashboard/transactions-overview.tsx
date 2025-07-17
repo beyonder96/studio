@@ -6,7 +6,6 @@ import {
   CardHeader,
   CardTitle,
   CardContent,
-  CardDescription,
 } from "@/components/ui/card";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
@@ -18,7 +17,6 @@ import {
   Wallet,
   Landmark,
 } from "lucide-react";
-import { Badge } from "../ui/badge";
 import { useContext } from "react";
 import { FinanceContext } from "@/contexts/finance-context";
 import Link from "next/link";
@@ -53,7 +51,7 @@ export function TransactionsOverview() {
       <CardContent>
         <div className="space-y-1">
           {recentTransactions.map((transaction) => (
-            <div key={transaction.id} className="block rounded-lg -mx-2 px-2 py-3 hover:bg-white/20 dark:hover:bg-black/20">
+            <Link key={transaction.id} href={`/finance?edit=${transaction.id}`} className="block rounded-lg -mx-2 px-2 py-3 hover:bg-white/20 dark:hover:bg-black/20" scroll={false}>
                 <div className="flex items-center gap-3">
                 <Avatar className="h-9 w-9">
                     <AvatarFallback className="bg-primary/20 text-primary">
@@ -82,7 +80,7 @@ export function TransactionsOverview() {
                   <Skeleton className="h-6 w-24 rounded-full" />
                 )}
                 </div>
-            </div>
+            </Link>
           ))}
            {recentTransactions.length === 0 && (
                 <div className="text-center text-muted-foreground py-8">

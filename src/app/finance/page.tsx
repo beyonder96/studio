@@ -1,7 +1,8 @@
 
 'use client';
 
-import { useState, useContext } from 'react';
+import { useState, useContext, useEffect } from 'react';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { PlusCircle } from 'lucide-react';
 import { TransactionsTable, Transaction } from '@/components/finance/transactions-table';
@@ -28,6 +29,22 @@ export default function FinancePage() {
 
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
+  
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const transactionToEditId = searchParams.get('edit');
+
+  useEffect(() => {
+    if (transactionToEditId) {
+      const transactionToEdit = transactions.find(t => t.id === transactionToEditId);
+      if (transactionToEdit) {
+        openEditDialog(transactionToEdit);
+        // Clean up the URL
+        router.replace('/finance', { scroll: false });
+      }
+    }
+  }, [transactionToEditId, transactions, router]);
+
 
   const handleSaveTransaction = (transaction: Omit<Transaction, 'id'> & { id?: string }, installments?: number) => {
     if (transaction.id) {
