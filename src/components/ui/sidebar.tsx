@@ -80,13 +80,9 @@ const SidebarProvider = React.forwardRef<
   ) => {
     const isMobile = useIsMobile()
     const [openMobile, setOpenMobile] = React.useState(false)
-
-    // Use a separate state for the cookie-loaded value to avoid hydration mismatch.
-    const [isClient, setIsClient] = React.useState(false);
     const [openState, setOpenState] = React.useState(defaultOpen);
 
     React.useEffect(() => {
-        setIsClient(true);
         const cookieValue = getCookie(SIDEBAR_COOKIE_NAME);
         if (cookieValue !== undefined) {
             setOpenState(cookieValue === 'true');
@@ -134,7 +130,7 @@ const SidebarProvider = React.forwardRef<
       return () => window.removeEventListener("keydown", handleKeyDown)
     }, [toggleSidebar])
 
-    const state = !isClient ? (defaultOpen ? 'expanded' : 'collapsed') : (open ? "expanded" : "collapsed");
+    const state = open ? "expanded" : "collapsed";
     
     const contextValue = React.useMemo<SidebarContext>(
       () => ({
