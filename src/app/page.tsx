@@ -13,6 +13,7 @@ import { MonthOverview } from '@/components/dashboard/month-overview';
 import { useContext, useState } from 'react';
 import { FinanceContext, Appointment } from '@/contexts/finance-context';
 import { AddAppointmentDialog } from '@/components/calendar/add-appointment-dialog';
+import { ptBR } from 'date-fns/locale';
 
 
 export default function Home() {
@@ -51,6 +52,7 @@ export default function Home() {
                     mode="single"
                     onSelect={handleDateSelect}
                     className="p-0 [&_td]:w-full"
+                    locale={ptBR}
                     classNames={{
                         head_cell: "text-muted-foreground rounded-md w-full font-normal text-[0.8rem]",
                         cell: "text-center text-sm p-0 relative focus-within:relative focus-within:z-20",
