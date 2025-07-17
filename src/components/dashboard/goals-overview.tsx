@@ -1,6 +1,7 @@
 
 'use client';
 
+import Link from 'next/link';
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { useContext } from "react";
@@ -24,38 +25,40 @@ export function GoalsOverview() {
   const pendingWishes = wishes.filter(w => !w.purchased).slice(0, 3); // Show up to 3 pending wishes
 
   return (
-    <Card className="bg-white/10 dark:bg-black/10 border-none shadow-none">
-      <CardHeader>
-        <CardTitle>Metas e Desejos</CardTitle>
-      </CardHeader>
-      <CardContent>
-        {pendingWishes.length > 0 ? (
-          <div className="space-y-6">
-            {pendingWishes.map((wish) => {
-              const progress = getStableProgress(wish.name);
-              const currentAmount = (wish.price * progress) / 100;
-              return (
-                <div key={wish.id}>
-                  <div className="flex justify-between mb-1">
-                    <span className="text-sm font-medium">{wish.name}</span>
-                    <span className="text-sm text-muted-foreground">{progress}%</span>
-                  </div>
-                  <Progress value={progress} className="h-2" />
-                  <div className="flex justify-between mt-1">
-                    <span className="text-xs text-muted-foreground">{formatCurrency(currentAmount)}</span>
-                    <span className="text-xs text-muted-foreground">{formatCurrency(wish.price)}</span>
-                  </div>
-                </div>
-              )
-            })}
-          </div>
-        ) : (
-          <div className="text-center text-muted-foreground py-4">
-            <p className="text-sm">Nenhum desejo pendente.</p>
-            <p className="text-xs">Adicione um novo desejo na página de Desejos!</p>
-          </div>
-        )}
-      </CardContent>
-    </Card>
+    <Link href="/wishes" className="block">
+        <Card className="bg-white/10 dark:bg-black/10 border-none shadow-none h-full hover:bg-white/20 dark:hover:bg-black/20 transition-colors">
+        <CardHeader>
+            <CardTitle>Metas e Desejos</CardTitle>
+        </CardHeader>
+        <CardContent>
+            {pendingWishes.length > 0 ? (
+            <div className="space-y-6">
+                {pendingWishes.map((wish) => {
+                const progress = getStableProgress(wish.name);
+                const currentAmount = (wish.price * progress) / 100;
+                return (
+                    <div key={wish.id}>
+                    <div className="flex justify-between mb-1">
+                        <span className="text-sm font-medium">{wish.name}</span>
+                        <span className="text-sm text-muted-foreground">{progress}%</span>
+                    </div>
+                    <Progress value={progress} className="h-2" />
+                    <div className="flex justify-between mt-1">
+                        <span className="text-xs text-muted-foreground">{formatCurrency(currentAmount)}</span>
+                        <span className="text-xs text-muted-foreground">{formatCurrency(wish.price)}</span>
+                    </div>
+                    </div>
+                )
+                })}
+            </div>
+            ) : (
+            <div className="text-center text-muted-foreground py-4">
+                <p className="text-sm">Nenhum desejo pendente.</p>
+                <p className="text-xs">Adicione um novo desejo na página de Desejos!</p>
+            </div>
+            )}
+        </CardContent>
+        </Card>
+    </Link>
   );
 }
