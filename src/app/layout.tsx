@@ -36,7 +36,7 @@ export default function RootLayout({
         <Spotlight />
         <FinanceProvider>
           <div className="flex flex-col min-h-screen">
-              <main className="flex-1 w-full">
+              <main className="flex-1 w-full p-4 sm:p-6 md:p-8">
                   {children}
               </main>
           </div>
