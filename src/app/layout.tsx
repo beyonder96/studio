@@ -34,7 +34,8 @@ function Header() {
 
   const isDashboard = pathname === '/';
   
-  if (pathname === '/profile' || pathname === '/calendar' || pathname === '/discover') {
+  const isFullScreenPage = ['/profile', '/calendar', '/discover'].includes(pathname);
+  if (isFullScreenPage) {
     return null;
   }
   
@@ -58,8 +59,6 @@ function Header() {
             return { title: 'Lista de Desejos', description: 'Realizem seus sonhos juntos.' };
         case '/settings':
             return { title: 'Ajustes', description: 'Personalize o aplicativo e gerencie seus dados.' };
-        case '/discover':
-            return { title: 'Descobrir', description: 'Encontre lugares incríveis para visitar.' };
         default:
             return { title: 'Vida a 2', description: '' };
     }
@@ -69,12 +68,12 @@ function Header() {
 
 
   return (
-    <header className="sticky top-0 z-30 flex h-20 items-center justify-between border-b bg-background/80 px-4 backdrop-blur-sm sm:px-6">
+    <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b bg-background/80 px-4 backdrop-blur-sm sm:h-20 sm:px-6">
       <div className="flex items-center gap-4">
         <SidebarTrigger className="hidden md:flex" />
         <div>
-          <h1 className="text-2xl font-bold">{title}</h1>
-          <p className="text-muted-foreground">{description}</p>
+          <h1 className="text-xl font-bold sm:text-2xl">{title}</h1>
+          <p className="hidden text-sm text-muted-foreground sm:block">{description}</p>
         </div>
       </div>
       <div className="flex items-center gap-2">
@@ -96,7 +95,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   const pathname = usePathname();
-  const isSpecialPage = pathname === '/profile' || pathname === '/calendar' || pathname === '/discover';
+  const isFullScreenPage = ['/profile', '/calendar', '/discover'].includes(pathname);
 
 
   return (
@@ -107,7 +106,7 @@ export default function RootLayout({
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link
-          href="https://fonts.googleapis.com/css2?family=PT+Sans:wght@400;700&display=swap"
+          href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
           rel="stylesheet"
         />
       </head>
@@ -118,11 +117,11 @@ export default function RootLayout({
         <FinanceProvider>
             <SidebarProvider>
                 <AppSidebar />
-                <SidebarInset>
+                 <SidebarInset>
                     <Header />
-                    <div className={cn(
-                        "flex-1 overflow-auto pb-24", // Add padding to the bottom on mobile to avoid content being hidden by the mobile nav
-                        !isSpecialPage && "p-4 sm:p-6" // Remove padding for special full-screen pages
+                     <div className={cn(
+                        "flex-1 overflow-auto pb-24",
+                        !isFullScreenPage && "p-4 sm:p-6"
                     )}>
                         {children}
                     </div>

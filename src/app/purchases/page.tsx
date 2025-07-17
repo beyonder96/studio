@@ -364,12 +364,8 @@ export default function PurchasesPage() {
   }, [shoppingLists, selectedList]);
 
   return (
-    <div className="flex flex-col gap-6">
-        <div>
-            <h1 className="text-3xl font-bold">Listas de Compras</h1>
-            <p className="text-muted-foreground">Organize suas compras com a ajuda da IA</p>
-        </div>
-        
+    <div className="grid grid-cols-1 gap-6 lg:grid-cols-3 lg:gap-8">
+      <div className="lg:col-span-1 flex flex-col gap-6">
         {isCreatingList ? (
              <Card>
                 <CardHeader>
@@ -411,33 +407,33 @@ export default function PurchasesPage() {
                             onClick={() => setSelectedList(list)}
                             className={cn(
                                 'flex items-center justify-between p-3 rounded-lg cursor-pointer transition-colors',
-                                selectedList?.id === list.id ? 'bg-primary text-primary-foreground' : 'bg-muted hover:bg-muted/80'
+                                selectedList?.id === list.id ? 'bg-primary/10' : 'hover:bg-muted'
                             )}
                         >
-                            <div>
+                            <div className="flex-1 overflow-hidden">
                                 {editingListId === list.id ? (
                                     <Input
                                         value={editingListName}
                                         onChange={(e) => setEditingListName(e.target.value)}
                                         onBlur={handleRenameList}
                                         onKeyDown={(e) => e.key === 'Enter' && handleRenameList()}
-                                        className={cn('h-8', selectedList?.id === list.id ? 'bg-primary-foreground/10 text-primary-foreground border-primary-foreground/50' : '')}
+                                        className={cn('h-8', selectedList?.id === list.id ? 'bg-primary/10 text-primary-foreground border-primary-foreground/50' : '')}
                                         autoFocus
                                         onClick={(e) => e.stopPropagation()}
                                     />
                                 ) : (
-                                  <p className="font-semibold">{list.name}</p>
+                                  <p className="font-semibold truncate">{list.name}</p>
                                 )}
-                                <p className={`text-sm ${selectedList?.id === list.id ? 'text-primary-foreground/80' : 'text-muted-foreground'}`}>{list.items.length} itens</p>
+                                <p className={`text-sm ${selectedList?.id === list.id ? 'text-primary/80' : 'text-muted-foreground'}`}>{list.items.length} itens</p>
                             </div>
-                            <div className="flex items-center gap-2">
-                               {list.shared && <Users className="h-5 w-5" />}
+                            <div className="flex items-center gap-1">
+                               {list.shared && <Users className={cn("h-5 w-5", selectedList?.id === list.id ? 'text-primary/90' : 'text-muted-foreground')} />}
                                <DropdownMenu>
                                     <DropdownMenuTrigger asChild>
                                         <Button 
                                             variant="ghost" 
                                             size="icon" 
-                                            className={`hover:bg-black/10 ${selectedList?.id === list.id ? 'text-primary-foreground' : ''}`}
+                                            className={cn('h-8 w-8', selectedList?.id === list.id ? 'text-primary/90 hover:bg-primary/20' : 'text-muted-foreground hover:bg-muted')}
                                             onClick={(e) => e.stopPropagation()}
                                         >
                                             <MoreHorizontal className="h-5 w-5" />
@@ -461,7 +457,6 @@ export default function PurchasesPage() {
             </Card>
         )}
         
-        
         {totalCost > 0 && (
             <Card>
                 <CardHeader className="flex-row items-center justify-between p-4">
@@ -469,7 +464,7 @@ export default function PurchasesPage() {
                         <DollarSign className="h-6 w-6 text-primary" />
                         <div>
                             <CardTitle className="text-base">Total da Compra</CardTitle>
-                            <CardDescription>Valor total dos itens marcados</CardDescription>
+                            <CardDescription>Valor dos itens marcados</CardDescription>
                         </div>
                     </div>
                      <p className="text-2xl font-bold text-primary">
@@ -478,43 +473,43 @@ export default function PurchasesPage() {
                 </CardHeader>
             </Card>
         )}
+      </div>
 
-
+      <div className="lg:col-span-2">
         {selectedList ? (
-            <Card className="bg-muted">
+            <Card>
                 <CardHeader>
-                    <div className="flex items-center justify-between">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
                          <div className="flex items-center gap-4">
                             <h2 className="text-2xl font-bold">{selectedList.name}</h2>
                             {selectedList.shared && <Badge variant="secondary" className="font-normal"><Users className="mr-1.5 h-3 w-3"/>Compartilhada</Badge>}
                         </div>
                         <div className="flex items-center gap-2">
                              <Button variant="outline" size="sm" onClick={() => setListToClear(selectedList)} disabled={getCheckedCount(selectedList) === 0}>
-                                <Eraser className="mr-2 h-4 w-4"/> Limpar Concluídos
+                                <Eraser className="mr-2 h-4 w-4"/> Limpar
                             </Button>
                             <Button size="sm" onClick={() => setIsAddItemDialogOpen(true)}>
                                 <Plus className="mr-2 h-4 w-4"/> Adicionar Item
                             </Button>
                         </div>
                     </div>
-                   
-                </CardHeader>
-                <CardContent>
-                     <p className="text-sm text-muted-foreground mb-4">
+                     <p className="text-sm text-muted-foreground mt-2">
                         {getCheckedCount(selectedList)} de {selectedList.items.length} itens concluídos ({getProgress(selectedList)}%)
                      </p>
+                </CardHeader>
+                <CardContent>
                     <div className="relative mb-4">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground"/>
                         <Input 
                             placeholder="Buscar itens..." 
-                            className="pl-9 bg-background"
+                            className="pl-9"
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                         />
                     </div>
 
                     <Tabs value={activeTab} onValueChange={setActiveTab}>
-                        <TabsList className="grid w-full grid-cols-3 bg-background">
+                        <TabsList className="grid w-full grid-cols-3">
                             <TabsTrigger value="all">Todos</TabsTrigger>
                             <TabsTrigger value="pending">Pendentes</TabsTrigger>
                             <TabsTrigger value="completed">Concluídos</TabsTrigger>
@@ -522,7 +517,7 @@ export default function PurchasesPage() {
                         
                         <div className="mt-4 space-y-3">
                            {filteredItems.map(item => (
-                               <div key={item.id} className="flex items-center space-x-3 p-3 bg-background rounded-lg">
+                               <div key={item.id} className="flex items-center space-x-3 p-3 bg-background rounded-lg border">
                                     <Checkbox 
                                         id={`${selectedList.id}-${item.id}`} 
                                         checked={item.checked} 
@@ -543,15 +538,16 @@ export default function PurchasesPage() {
                                         <Button variant="ghost" size="icon" onClick={() => handleEditItem(item)} className="h-7 w-7 text-muted-foreground">
                                             <Pencil className="h-4 w-4"/>
                                         </Button>
-                                        <Button variant="ghost" size="icon" onClick={() => handleDeleteItem(item.id)} className="h-7 w-7 text-muted-foreground">
+                                        <Button variant="ghost" size="icon" onClick={() => handleDeleteItem(item.id)} className="h-7 w-7 text-destructive/70 hover:text-destructive">
                                             <Trash2 className="h-4 w-4"/>
                                         </Button>
                                     </div>
                                </div>
                            ))}
                            {filteredItems.length === 0 && (
-                             <div className="text-center text-muted-foreground py-8">
-                                <p>Nenhum item nesta categoria.</p>
+                             <div className="text-center text-muted-foreground py-8 border-2 border-dashed rounded-lg mt-4">
+                                <p className="font-medium">Nenhum item encontrado.</p>
+                                <p className="text-sm">Tente limpar sua busca ou mudar de aba.</p>
                              </div>
                            )}
                         </div>
@@ -569,12 +565,14 @@ export default function PurchasesPage() {
                 </CardHeader>
             </Card>
         ) : (
-             <div className="text-center text-muted-foreground py-16 border-2 border-dashed rounded-lg">
+             <div className="text-center text-muted-foreground py-16 border-2 border-dashed rounded-lg h-full flex flex-col items-center justify-center">
                 <ShoppingCart className="mx-auto h-12 w-12 text-muted-foreground" />
                 <h3 className="mt-4 text-lg font-medium">Nenhuma lista selecionada</h3>
-                <p className="mt-1 text-sm">Selecione uma lista acima ou crie uma nova.</p>
+                <p className="mt-1 text-sm">Selecione uma lista na barra lateral ou crie uma nova.</p>
             </div>
         )}
+      </div>
+
         
         {itemToPrice && (
             <SetPriceDialog

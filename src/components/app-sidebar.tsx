@@ -203,12 +203,12 @@ export default function AppSidebar() {
             "flex items-center gap-3 rounded-md p-2 transition-colors",
             "group-data-[state=collapsed]:p-0"
          )}>
-             <Link href="/profile" className="flex items-center gap-3">
+             <Link href="/profile" className="flex items-center gap-3 w-full">
                 <Avatar className="h-10 w-10">
                     <AvatarImage src={profileImage} alt="Foto do casal" data-ai-hint="couple photo"/>
                     <AvatarFallback className="bg-primary/20">KN</AvatarFallback>
                 </Avatar>
-                <div className="group-data-[state=collapsed]:hidden">
+                <div className="group-data-[state=collapsed]:hidden flex-1 overflow-hidden">
                     <p className="font-semibold truncate">{profileName}</p>
                     <p className="text-sm text-muted-foreground hover:text-primary">Ver perfil</p>
                 </div>

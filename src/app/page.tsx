@@ -16,35 +16,41 @@ const AnniversaryBadge = () => {
   const [anniversaryText, setAnniversaryText] = useState('');
 
   useEffect(() => {
-    const savedData = localStorage.getItem('app-profile-data');
-    if (savedData) {
-      const parsedData = JSON.parse(savedData);
-      if (parsedData.sinceDate) {
-        const startDate = new Date(parsedData.sinceDate);
-        const now = new Date();
-        const yearsTogether = differenceInYears(now, startDate);
-        const nextAnniversary = addYears(startDate, yearsTogether + 1);
-        const daysToNextAnniversary = differenceInDays(nextAnniversary, now);
-        
-        let yearsText = `${yearsTogether} ano${yearsTogether !== 1 ? 's' : ''}`;
-        if(yearsTogether === 0){
-             const monthsTogether = now.getMonth() - startDate.getMonth() + (12 * (now.getFullYear() - startDate.getFullYear()));
-             if(monthsTogether > 0) yearsText = `${monthsTogether} mes${monthsTogether !== 1 ? 'es' : ''}`
-             else{
-                const daysTogether = differenceInDays(now, startDate);
-                yearsText = `${daysTogether} dia${daysTogether !== 1 ? 's' : ''}`
-             }
-        }
+    const handleStorageChange = () => {
+        const savedData = localStorage.getItem('app-profile-data');
+        if (savedData) {
+          const parsedData = JSON.parse(savedData);
+          if (parsedData.sinceDate) {
+            const startDate = new Date(parsedData.sinceDate);
+            const now = new Date();
+            const yearsTogether = differenceInYears(now, startDate);
+            const nextAnniversary = addYears(startDate, yearsTogether + 1);
+            const daysToNextAnniversary = differenceInDays(nextAnniversary, now);
+            
+            let yearsText = `${yearsTogether} ano${yearsTogether !== 1 ? 's' : ''}`;
+            if(yearsTogether === 0){
+                 const monthsTogether = now.getMonth() - startDate.getMonth() + (12 * (now.getFullYear() - startDate.getFullYear()));
+                 if(monthsTogether > 0) yearsText = `${monthsTogether} mes${monthsTogether !== 1 ? 'es' : ''}`
+                 else{
+                    const daysTogether = differenceInDays(now, startDate);
+                    yearsText = `${daysTogether} dia${daysTogether !== 1 ? 's' : ''}`
+                 }
+            }
 
-        setAnniversaryText(
-          `${yearsText}. Próximo aniversário em ${daysToNextAnniversary} dias.`
-        );
-      } else {
-        setAnniversaryText('Configure seu aniversário no perfil!');
-      }
-    } else {
-       setAnniversaryText('Configure seu aniversário no perfil!');
-    }
+            setAnniversaryText(
+              `${yearsText}. Próximo aniversário em ${daysToNextAnniversary} dias.`
+            );
+          } else {
+            setAnniversaryText('Configure seu aniversário no perfil!');
+          }
+        } else {
+           setAnniversaryText('Configure seu aniversário no perfil!');
+        }
+    };
+
+    handleStorageChange(); // Initial load
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
 
   if (!anniversaryText) {
@@ -52,8 +58,8 @@ const AnniversaryBadge = () => {
   }
 
   return (
-    <Badge variant="outline" className="w-fit gap-2 rounded-full p-2 text-sm font-normal border-pink-500/50 text-pink-600 dark:text-pink-400">
-      <Heart className="h-4 w-4 text-pink-500 fill-pink-500" />
+    <Badge variant="secondary" className="w-fit gap-2 rounded-full border-primary/20 bg-primary/5 p-2 pr-3 text-sm font-normal text-primary/80">
+      <Heart className="h-4 w-4 text-primary fill-primary" />
       <span>{anniversaryText}</span>
     </Badge>
   );
