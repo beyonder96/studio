@@ -15,6 +15,7 @@ import { isSameMonth, startOfMonth, endOfMonth, isWithinInterval, parseISO, form
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import type { Transaction } from "@/components/finance/transactions-table";
+import Link from "next/link";
 
 
 const categoryIcons: { [key: string]: React.ReactNode } = {
@@ -67,14 +68,15 @@ export function MonthOverview() {
       icon: categoryIcons[a.category] || <CalendarCheck className="h-5 w-5" />,
     })).filter(e => isWithinInterval(e.date, monthInterval));
     
-    return [...transactionEvents, ...appointmentEvents].sort((a, b) => a.date.getTime() - b.date.getTime());
+    return [...transactionEvents, ...appointmentEvents].sort((a, b) => a.date.getTime() - b.date.getTime()).slice(0, 4); // Limit to 4 events
   }, [transactions]);
 
 
   return (
-    <Card className="h-full bg-white/10 dark:bg-black/10 border-none shadow-none flex flex-col">
+    <Link href="/calendar" className="block">
+    <Card className="h-full bg-white/10 dark:bg-black/10 border-none shadow-none flex flex-col hover:bg-white/20 dark:hover:bg-black/20 transition-colors">
       <CardHeader>
-        <CardTitle>Visão do Mês</CardTitle>
+        <CardTitle>Eventos do Mês</CardTitle>
         <CardDescription>Seus próximos compromissos e transações.</CardDescription>
       </CardHeader>
       <CardContent className="flex-grow overflow-y-auto">
@@ -112,5 +114,6 @@ export function MonthOverview() {
         )}
       </CardContent>
     </Card>
+    </Link>
   );
 }

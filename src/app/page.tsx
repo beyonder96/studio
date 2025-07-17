@@ -50,8 +50,8 @@ export default function Home() {
                   }}
                 />
               </Card>
+              <MonthOverview />
               <GoalsOverview />
-              <TasksOverview />
             </div>
 
             {/* Middle Column */}
@@ -63,8 +63,8 @@ export default function Home() {
 
             {/* Right Column */}
              <div className="lg:col-span-1 flex flex-col gap-6">
-                <h2 className="text-2xl font-bold">Eventos do Mês</h2>
-                <MonthOverview />
+                <h2 className="text-2xl font-bold">Atividades</h2>
+                <TasksOverview />
             </div>
 
           </div>
