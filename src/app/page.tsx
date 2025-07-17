@@ -25,11 +25,11 @@ export default function Home() {
             
             {/* Left Column */}
             <div className="lg:col-span-1 flex flex-col gap-6">
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between order-1">
                 <DashboardHeader />
                 <UserNav />
               </div>
-              <div className="flex flex-col gap-6 lg:order-last">
+              <div className="order-2 flex flex-col gap-6">
                 <Card className="bg-white/10 dark:bg-black/10 border-none shadow-none">
                   <Calendar
                     mode="single"
@@ -58,9 +58,7 @@ export default function Home() {
 
             {/* Middle Column */}
             <div className="lg:col-span-1 flex flex-col gap-6">
-               <div className="order-first lg:order-none">
-                 <TransactionsOverview />
-               </div>
+               <TransactionsOverview />
                <h2 className="text-2xl font-bold hidden lg:block">Painel Financeiro</h2>
                <CopilotCard />
             </div>
