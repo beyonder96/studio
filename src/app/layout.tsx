@@ -6,6 +6,7 @@ import { cn } from '@/lib/utils';
 import { Toaster } from '@/components/ui/toaster';
 import { FinanceProvider } from '@/contexts/finance-context';
 import { usePathname } from 'next/navigation';
+import { Spotlight } from '@/components/ui/spotlight';
 
 export default function RootLayout({
   children,
@@ -31,6 +32,7 @@ export default function RootLayout({
           'min-h-screen bg-gradient-to-br from-rose-100 via-purple-100 to-cyan-100 dark:from-gray-900 dark:via-purple-900/50 dark:to-gray-900 font-sans antialiased',
         )}
       >
+        <Spotlight />
         <FinanceProvider>
             <div className="flex flex-col min-h-screen">
                  <main className="flex-1 w-full">
