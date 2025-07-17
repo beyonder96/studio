@@ -9,8 +9,14 @@ import { TransactionsOverview } from '@/components/dashboard/transactions-overvi
 import { GoalsOverview } from '@/components/dashboard/goals-overview';
 import { TasksOverview } from '@/components/dashboard/tasks-overview';
 import { CopilotCard } from '@/components/dashboard/copilot-card';
+import { MonthOverview } from '@/components/dashboard/month-overview';
+import { useContext } from 'react';
+import { FinanceContext } from '@/contexts/finance-context';
 
 export default function Home() {
+  const { transactions } = useContext(FinanceContext);
+  const eventDates = transactions.map(t => new Date(t.date + 'T00:00:00'));
+
   return (
     <div className="w-full max-w-7xl mx-auto p-4 sm:p-6 md:p-8">
       <Card className="bg-white/10 dark:bg-black/10 backdrop-blur-3xl border-white/20 dark:border-black/20 rounded-3xl shadow-2xl">
@@ -34,6 +40,13 @@ export default function Home() {
                       day: "h-9 w-9 p-0 font-normal aria-selected:opacity-100 rounded-full",
                       day_selected: "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground",
                       day_today: "bg-accent text-accent-foreground rounded-full",
+                      day_range_middle: "aria-selected:bg-accent/50 aria-selected:text-accent-foreground",
+                  }}
+                  modifiers={{ 
+                      events: eventDates
+                  }}
+                  modifiersClassNames={{
+                      events: "bg-primary/20 rounded-full"
                   }}
                 />
               </Card>
@@ -50,10 +63,8 @@ export default function Home() {
 
             {/* Right Column */}
              <div className="lg:col-span-1 flex flex-col gap-6">
-                <h2 className="text-2xl font-bold">Visão Geral</h2>
-                <div className="h-full w-full bg-muted/40 rounded-2xl flex items-center justify-center">
-                    <p className="text-muted-foreground">Em breve</p>
-                </div>
+                <h2 className="text-2xl font-bold">Eventos do Mês</h2>
+                <MonthOverview />
             </div>
 
           </div>
