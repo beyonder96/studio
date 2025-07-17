@@ -74,12 +74,12 @@ export function FloatingNav() {
                 <span className="text-[11px] font-medium mt-1">Mais</span>
               </div>
             </SheetTrigger>
-            <SheetContent side="bottom" className="rounded-t-2xl max-h-[80vh] overflow-y-auto">
-              <SheetHeader className="text-left mb-4">
+            <SheetContent side="bottom" className="rounded-t-2xl h-auto">
+              <SheetHeader className="text-left mb-2">
                 <SheetTitle>Todas as Ferramentas</SheetTitle>
               </SheetHeader>
               <Separator />
-              <div className="grid grid-cols-4 gap-2 py-4">
+              <div className="grid grid-cols-4 gap-2 py-2">
                 {moreNavItems.map((item) => (
                     <Link href={item.href} key={item.href}>
                         <div
