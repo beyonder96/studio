@@ -94,6 +94,7 @@ export default function ProfilePage() {
         const result = reader.result as string;
         setProfileImage(result);
         localStorage.setItem('app-profile-image', result);
+        window.dispatchEvent(new Event('storage')); // Notify other components of the change
         toast({
             title: 'Foto de perfil atualizada!',
             description: 'Sua nova foto foi salva com sucesso.',

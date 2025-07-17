@@ -23,20 +23,19 @@ export function UserNav() {
 
 
     useEffect(() => {
-        const savedImage = localStorage.getItem('app-profile-image');
-        if (savedImage) setProfileImage(savedImage);
-        
-        const savedData = localStorage.getItem('app-profile-data');
-        if (savedData) setProfileName(JSON.parse(savedData).names);
+        const updateProfileInfo = () => {
+            const savedImage = localStorage.getItem('app-profile-image');
+            if (savedImage) setProfileImage(savedImage);
+            
+            const savedData = localStorage.getItem('app-profile-data');
+            if (savedData) setProfileName(JSON.parse(savedData).names);
+        };
+
+        updateProfileInfo(); // Initial load
 
         const handleStorageChange = (e: StorageEvent) => {
-            if (e.key === 'app-profile-image') {
-                const updatedImage = localStorage.getItem('app-profile-image');
-                if (updatedImage) setProfileImage(updatedImage);
-            }
-             if (e.key === 'app-profile-data') {
-                const updatedData = localStorage.getItem('app-profile-data');
-                if(updatedData) setProfileName(JSON.parse(updatedData).names);
+            if (e.key === 'app-profile-image' || e.key === 'app-profile-data') {
+                updateProfileInfo();
             }
         };
 
@@ -54,7 +53,7 @@ export function UserNav() {
           </Avatar>
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent className="w-56 border-white/20" align="end" forceMount>
+      <DropdownMenuContent className="w-56" align="end" forceMount>
         <DropdownMenuLabel className="font-normal">
           <div className="flex flex-col space-y-1">
             <p className="text-sm font-medium leading-none">{profileName}</p>
