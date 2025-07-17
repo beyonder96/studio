@@ -355,9 +355,15 @@ export default function PurchasesPage() {
 
 
   useEffect(() => {
+    // If there is no selected list but there are lists available, select the first one.
     if (!selectedList && shoppingLists.length > 0) {
       setSelectedList(shoppingLists[0]);
     }
+    // If the selected list was deleted, select the new first list or null.
+    if (selectedList && !shoppingLists.find(l => l.id === selectedList.id)) {
+      setSelectedList(shoppingLists[0] || null);
+    }
+    // If there are no lists, ensure nothing is selected.
     if (shoppingLists.length === 0) {
       setSelectedList(null);
     }
