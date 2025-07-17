@@ -91,6 +91,12 @@ const initialWishes: Wish[] = [
     { id: 'wish3', name: 'Air Fryer', price: 450, purchased: true, imageUrl: 'https://placehold.co/600x400.png', link: ''  },
 ];
 
+const initialAppointments: Appointment[] = [
+    { id: 'appt1', title: 'Reunião de Design', date: '2024-07-20', time: '10:00', category: 'Trabalho', notes: 'Discutir novo layout do app.' },
+    { id: 'appt2', title: 'Consulta Médica', date: '2024-07-22', time: '14:00', category: 'Saúde', notes: '' },
+    { id: 'appt3', title: 'Almoço com a equipe', date: '2024-07-25', time: '12:30', category: 'Social', notes: '' },
+]
+
 
 type Account = {
     id: string;
@@ -105,6 +111,16 @@ type Card = {
     limit: number;
     dueDay: number;
 }
+
+export type Appointment = {
+  id: string;
+  title: string;
+  date: string; // YYYY-MM-DD
+  time?: string; // HH:mm
+  category: string;
+  notes?: string;
+};
+
 
 export type PantryCategory = 'Laticínios' | 'Carnes' | 'Peixes' | 'Frutas e Vegetais' | 'Outros';
 
@@ -170,6 +186,11 @@ type FinanceContextType = {
   updateWish: (id: string, wish: Partial<Omit<Wish, 'id'>>) => void;
   deleteWish: (id: string) => void;
   toggleWishPurchased: (id: string) => void;
+  appointments: Appointment[];
+  appointmentCategories: string[];
+  addAppointment: (appointment: Omit<Appointment, 'id'>) => void;
+  updateAppointment: (id: string, appointment: Partial<Omit<Appointment, 'id'>>) => void;
+  deleteAppointment: (id: string) => void;
 };
 
 export const FinanceContext = createContext<FinanceContextType>({} as FinanceContextType);
@@ -184,6 +205,8 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
   const [pantryItems, setPantryItems] = useState<PantryItem[]>(initialPantryItems);
   const [tasks, setTasks] = useState<Task[]>(initialTasks);
   const [wishes, setWishes] = useState<Wish[]>(initialWishes);
+  const [appointments, setAppointments] = useState<Appointment[]>(initialAppointments);
+  const [appointmentCategories] = useState<string[]>(['Trabalho', 'Saúde', 'Social', 'Pessoal', 'Outros']);
 
   const toggleSensitiveDataVisibility = () => {
     setIsSensitiveDataVisible(prev => !prev);
@@ -298,6 +321,7 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
     setPantryItems([]);
     setTasks([]);
     setWishes([]);
+    setAppointments([]);
     // We keep the categories for convenience
     setIncomeCategories(initialIncomeCategories);
     setExpenseCategories(initialExpenseCategories);
@@ -345,6 +369,23 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
     );
   };
 
+  // Appointment Management
+  const addAppointment = (appointment: Omit<Appointment, 'id'>) => {
+    const newAppointment: Appointment = { ...appointment, id: crypto.randomUUID() };
+    setAppointments(prev => [...prev, newAppointment].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()));
+  };
+
+  const updateAppointment = (id: string, updatedAppointment: Partial<Omit<Appointment, 'id'>>) => {
+    setAppointments(prev =>
+      prev.map(appt => (appt.id === id ? { ...appt, ...updatedAppointment } as Appointment : appt))
+    );
+  };
+
+  const deleteAppointment = (id: string) => {
+    setAppointments(prev => prev.filter(appt => appt.id !== id));
+  };
+
+
   const value = {
     transactions,
     addTransaction,
@@ -374,6 +415,11 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
     updateWish,
     deleteWish,
     toggleWishPurchased,
+    appointments,
+    appointmentCategories,
+    addAppointment,
+    updateAppointment,
+    deleteAppointment,
   };
 
   return (

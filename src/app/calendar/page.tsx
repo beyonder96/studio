@@ -2,16 +2,17 @@
 'use client';
 
 import { useState, useMemo, useContext } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Calendar } from '@/components/ui/calendar';
 import { Badge } from '@/components/ui/badge';
-import { FinanceContext } from '@/contexts/finance-context';
+import { FinanceContext, Appointment } from '@/contexts/finance-context';
 import type { Transaction } from '@/components/finance/transactions-table';
-import { format, isSameDay, startOfToday } from 'date-fns';
+import { format, isSameDay, startOfToday, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { Button, buttonVariants } from '@/components/ui/button';
-import { ArrowLeft, Calendar as CalendarIcon, DollarSign, CalendarCheck } from 'lucide-react';
+import { ArrowLeft, Calendar as CalendarIcon, DollarSign, CalendarCheck, PlusCircle, Edit, Trash2 } from 'lucide-react';
+import { AddAppointmentDialog } from '@/components/calendar/add-appointment-dialog';
 
 type CalendarEvent = {
   id: string;
@@ -21,17 +22,14 @@ type CalendarEvent = {
   category: string;
   amount?: number;
   date: Date;
+  raw: Transaction | Appointment;
 };
-
-const exampleAppointments: Omit<CalendarEvent, 'id' | 'type' | 'date'>[] = [
-    { title: "Reunião de Design", time: "10:00", category: "Trabalho" },
-    { title: "Consulta Médica", time: "14:00", category: "Saúde" },
-    { title: "Almoço com a equipe", time: "12:30", category: "Social" },
-];
 
 export default function CalendarPage() {
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(startOfToday());
-  const { transactions, formatCurrency } = useContext(FinanceContext);
+  const { transactions, appointments, formatCurrency, addAppointment, updateAppointment, deleteAppointment } = useContext(FinanceContext);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [editingAppointment, setEditingAppointment] = useState<Appointment | null>(null);
 
   const allEventsForMonth = useMemo(() => {
     const transactionEvents: CalendarEvent[] = transactions.map((t: Transaction) => ({
@@ -40,19 +38,22 @@ export default function CalendarPage() {
       type: 'transaction',
       category: t.category,
       amount: t.amount,
-      date: new Date(t.date + 'T00:00:00'),
+      date: parseISO(t.date + 'T00:00:00'),
+      raw: t
     }));
 
-    const appointmentEvents: CalendarEvent[] = exampleAppointments.map((a, i) => ({
-      ...a,
-      id: `appt-${i}`,
+    const appointmentEvents: CalendarEvent[] = appointments.map((a: Appointment) => ({
+      id: `appt-${a.id}`,
+      title: a.title,
       type: 'appointment',
-      date: startOfToday(), // For simplicity, all appointments are on the same day.
+      category: a.category,
+      date: parseISO(a.date + 'T00:00:00'),
+      time: a.time,
+      raw: a
     }));
     
-    // In a real app, you would fetch appointments for the current month view
     return [...transactionEvents, ...appointmentEvents];
-  }, [transactions]);
+  }, [transactions, appointments]);
   
   const eventsForSelectedDay = useMemo(() => {
     if (!selectedDate) return [];
@@ -70,71 +71,105 @@ export default function CalendarPage() {
     window.history.back();
   };
 
+  const openAddDialog = () => {
+    setEditingAppointment(null);
+    setIsDialogOpen(true);
+  };
+  
+  const openEditDialog = (appointment: Appointment) => {
+    setEditingAppointment(appointment);
+    setIsDialogOpen(true);
+  };
+
+  const handleSaveAppointment = (data: Omit<Appointment, 'id'> & { id?: string }) => {
+    if (data.id) {
+      updateAppointment(data.id, data);
+    } else {
+      addAppointment(data);
+    }
+    setIsDialogOpen(false);
+  };
+
   return (
-    <div className="flex h-full w-full flex-col bg-muted/40 p-0">
-        <div className="absolute top-6 left-6 z-20">
-             <Button variant="ghost" size="icon" className="bg-background/50 hover:bg-muted/80 rounded-full backdrop-blur-sm" onClick={handleBackClick}>
-                <ArrowLeft className="h-5 w-5"/>
-            </Button>
+    <div className="flex h-full w-full flex-col">
+       <div className="flex items-center justify-between p-4 sm:p-6 border-b">
+        <div>
+            <h1 className="text-2xl font-bold">Calendário</h1>
+            <p className="text-muted-foreground">Visualize seus compromissos e transações.</p>
         </div>
-        <div className="flex flex-1 flex-col gap-4 overflow-auto rounded-lg bg-background sm:p-6 p-4">
-            <div className="w-full">
-                <Card>
-                    <CardContent className="p-2 sm:p-4">
-                        <Calendar
-                            mode="single"
-                            selected={selectedDate}
-                            onSelect={setSelectedDate}
-                            className="p-0 [&_td]:w-full"
-                            classNames={{
-                                month: 'space-y-4 w-full',
-                                table: 'w-full border-collapse',
-                                head_row: 'flex justify-around',
-                                row: 'flex w-full mt-2 justify-around',
-                                cell: 'text-center text-sm p-0 relative focus-within:relative focus-within:z-20',
-                                day: cn(
-                                    'h-10 w-14 rounded-md',
-                                    buttonVariants({ variant: "ghost" })
-                                ),
-                                day_selected: "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground",
-                            }}
-                            locale={ptBR}
-                            modifiers={{ 
-                                events: allEventsForMonth.map(e => e.date)
-                            }}
-                            modifiersClassNames={{
-                                events: "bg-primary/10 rounded-full"
-                            }}
-                        />
-                    </CardContent>
-                </Card>
-            </div>
-            <div className="flex-1">
-                <h2 className="text-xl font-bold mb-4">
-                    {selectedDate ? (
-                        <>
-                        <span className="text-muted-foreground font-normal">Eventos para </span> 
-                        {format(selectedDate, "d 'de' MMMM", { locale: ptBR })}
-                        </>
-                    ): (
-                        "Selecione uma data"
-                    )}
-                </h2>
+        <Button onClick={openAddDialog}>
+            <PlusCircle className="mr-2 h-4 w-4" />
+            Adicionar Evento
+        </Button>
+      </div>
+
+      <div className="flex flex-1 flex-col md:flex-row gap-4 overflow-auto rounded-lg bg-background p-4 sm:p-6">
+        <div className="w-full md:w-auto md:max-w-sm">
+            <Card>
+                <CardContent className="p-2 sm:p-4">
+                    <Calendar
+                        mode="single"
+                        selected={selectedDate}
+                        onSelect={setSelectedDate}
+                        className="p-0 [&_td]:w-full"
+                        classNames={{
+                            month: 'space-y-4 w-full',
+                            table: 'w-full border-collapse',
+                            head_row: 'flex justify-around',
+                            row: 'flex w-full mt-2 justify-around',
+                            cell: 'text-center text-sm p-0 relative focus-within:relative focus-within:z-20',
+                            day: cn(
+                                'h-10 w-14 rounded-md',
+                                buttonVariants({ variant: "ghost" })
+                            ),
+                            day_selected: "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground",
+                        }}
+                        locale={ptBR}
+                        modifiers={{ 
+                            events: allEventsForMonth.map(e => e.date)
+                        }}
+                        modifiersClassNames={{
+                            events: "bg-primary/10 rounded-full"
+                        }}
+                    />
+                </CardContent>
+            </Card>
+        </div>
+        <div className="flex-1">
+            <Card className="h-full">
+                 <CardHeader>
+                    <CardTitle>
+                        {selectedDate ? (
+                            <>
+                            <span className="text-muted-foreground font-normal">Eventos para </span> 
+                            {format(selectedDate, "d 'de' MMMM", { locale: ptBR })}
+                            </>
+                        ): (
+                            "Selecione uma data"
+                        )}
+                    </CardTitle>
+                    <CardDescription>
+                        {eventsForSelectedDay.length > 0 
+                            ? `Você tem ${eventsForSelectedDay.length} evento(s) hoje.`
+                            : `Nenhum evento agendado.`
+                        }
+                    </CardDescription>
+                 </CardHeader>
                 
-                {selectedDate ? (
-                    eventsForSelectedDay.length > 0 ? (
-                    <ul className="space-y-3">
-                        {eventsForSelectedDay.map(event => (
-                            <li key={event.id}>
-                                <Card className="p-4 transition-all hover:shadow-md">
-                                    <div className="flex items-center gap-4">
+                 <CardContent className="pt-0">
+                    {selectedDate ? (
+                        eventsForSelectedDay.length > 0 ? (
+                        <ul className="space-y-3">
+                            {eventsForSelectedDay.map(event => (
+                                <li key={event.id}>
+                                    <div className="flex items-center gap-4 border p-3 rounded-lg hover:bg-muted/50 transition-colors">
                                         <div className={cn(
-                                            "flex h-12 w-12 items-center justify-center rounded-lg",
+                                            "flex h-10 w-10 items-center justify-center rounded-lg text-lg",
                                             event.type === 'transaction' ? 'bg-blue-100 dark:bg-blue-900/50' : 'bg-purple-100 dark:bg-purple-900/50'
                                         )}>
                                           {event.type === 'transaction' ? 
-                                            <DollarSign className="h-6 w-6 text-blue-500" /> :
-                                            <CalendarCheck className="h-6 w-6 text-purple-500" />
+                                            <DollarSign className="h-5 w-5 text-blue-500" /> :
+                                            <CalendarCheck className="h-5 w-5 text-purple-500" />
                                           }
                                         </div>
                                         <div className="flex-1">
@@ -148,31 +183,49 @@ export default function CalendarPage() {
                                         </div>
                                         {event.type === 'transaction' && event.amount && (
                                             <p className={cn(
-                                                'font-mono text-lg font-bold',
+                                                'font-mono font-bold',
                                                 event.amount > 0 ? 'text-green-500' : 'text-red-500'
                                             )}>
                                                 {formatCurrency(event.amount)}
                                             </p>
                                         )}
+                                        {event.type === 'appointment' && (
+                                            <div className="flex items-center gap-1">
+                                                <Button variant="ghost" size="icon" onClick={() => openEditDialog(event.raw as Appointment)}>
+                                                  <Edit className="h-4 w-4" />
+                                                </Button>
+                                                 <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={() => deleteAppointment(event.raw.id)}>
+                                                  <Trash2 className="h-4 w-4" />
+                                                </Button>
+                                            </div>
+                                        )}
                                     </div>
-                                </Card>
-                            </li>
-                        ))}
-                    </ul>
+                                </li>
+                            ))}
+                        </ul>
+                        ) : (
+                        <div className="text-center text-muted-foreground py-16 flex flex-col items-center justify-center border-2 border-dashed rounded-lg h-full">
+                            <CalendarIcon className="h-12 w-12 mb-4" />
+                            <h3 className="text-lg font-medium">Nenhum evento para este dia.</h3>
+                            <p className="text-sm">Selecione outra data ou adicione um novo evento.</p>
+                        </div>
+                        )
                     ) : (
-                    <div className="text-center text-muted-foreground py-16 flex flex-col items-center justify-center border-2 border-dashed rounded-lg h-full">
-                        <CalendarIcon className="h-12 w-12 mb-4" />
-                        <h3 className="text-lg font-medium">Nenhum evento para este dia.</h3>
-                        <p className="text-sm">Selecione outra data ou adicione um novo evento.</p>
-                    </div>
-                    )
-                ) : (
-                    <div className="text-center text-muted-foreground py-16">
-                        <p>Selecione um dia no calendário para ver os eventos.</p>
-                    </div>
-                )}
-            </div>
+                        <div className="text-center text-muted-foreground py-16">
+                            <p>Selecione um dia no calendário para ver os eventos.</p>
+                        </div>
+                    )}
+                </CardContent>
+            </Card>
         </div>
+      </div>
+      <AddAppointmentDialog
+        isOpen={isDialogOpen}
+        onClose={() => setIsDialogOpen(false)}
+        onSave={handleSaveAppointment}
+        appointment={editingAppointment}
+        selectedDate={selectedDate}
+      />
     </div>
   );
 }
