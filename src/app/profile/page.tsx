@@ -7,14 +7,20 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { ArrowLeft, Camera, Edit, Utensils, Film, Music, MapPin, Save } from 'lucide-react';
+import { ArrowLeft, Camera, Edit, Utensils, Film, Music, MapPin, Save, Calendar as CalendarIcon } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
+import { format, differenceInYears, addYears, differenceInDays } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
+import { cn } from '@/lib/utils';
+
 
 const defaultProfileImage = "https://placehold.co/600x800.png";
 
 type ProfileData = {
   names: string;
-  since: string;
+  sinceDate?: string; // Store date as ISO string
   food: string;
   movie: string;
   music: string;
@@ -23,12 +29,25 @@ type ProfileData = {
 
 const defaultProfileData: ProfileData = {
     names: 'Kenned & Nicoli',
-    since: 'Juntos há 2 anos',
+    sinceDate: new Date().toISOString(),
     food: 'Pizza',
     movie: 'Interestelar',
     music: 'Bohemian Rhapsody',
     place: 'A praia ao entardecer'
 };
+
+const getSinceText = (isoDate?: string): string => {
+    if (!isoDate) return 'Defina a data de início';
+    const startDate = new Date(isoDate);
+    const now = new Date();
+    const years = differenceInYears(now, startDate);
+    if (years > 0) {
+        return `Juntos há ${years} ano${years > 1 ? 's' : ''}`;
+    }
+    const days = differenceInDays(now, startDate);
+    return `Juntos há ${days} dia${days !== 1 ? 's' : ''}`;
+}
+
 
 export default function ProfilePage() {
   const { toast } = useToast();
@@ -49,6 +68,9 @@ export default function ProfilePage() {
       const parsedData = JSON.parse(savedData);
       setProfileData(parsedData);
       setTempData(parsedData);
+    } else {
+        // Set default if nothing is saved
+        localStorage.setItem('app-profile-data', JSON.stringify(defaultProfileData));
     }
   }, []);
 
@@ -97,6 +119,7 @@ export default function ProfilePage() {
   const handleSaveClick = () => {
     setProfileData(tempData);
     localStorage.setItem('app-profile-data', JSON.stringify(tempData));
+    window.dispatchEvent(new Event('storage')); // Notify other components of the change
     setIsEditing(false);
     toast({
       title: 'Perfil atualizado!',
@@ -104,9 +127,29 @@ export default function ProfilePage() {
     });
   };
 
-  const handleInputChange = (field: keyof ProfileData, value: string) => {
+  const handleInputChange = (field: keyof Omit<ProfileData, 'sinceDate'>, value: string) => {
     setTempData(prev => ({...prev, [field]: value}));
   };
+  
+  const handleDateSelect = (date: Date | undefined) => {
+    if (date) {
+      const newSinceDate = date.toISOString();
+      // Update immediately if not in edit mode
+      if (!isEditing) {
+        const updatedData = { ...profileData, sinceDate: newSinceDate };
+        setProfileData(updatedData);
+        localStorage.setItem('app-profile-data', JSON.stringify(updatedData));
+        window.dispatchEvent(new Event('storage'));
+        toast({
+            title: 'Data atualizada!',
+            description: 'A data do relacionamento foi salva.',
+        });
+      } else {
+        // Update temp data if in edit mode
+        setTempData(prev => ({...prev, sinceDate: newSinceDate }));
+      }
+    }
+  }
 
   return (
     <div className="flex flex-col min-h-screen -mx-4 -mt-4 sm:-mx-6 sm:-mt-6 bg-background">
@@ -148,16 +191,24 @@ export default function ProfilePage() {
             ) : (
               <h1 className="text-4xl md:text-5xl font-bold">{profileData.names}</h1>
             )}
-            {isEditing ? (
-              <Input
-                type="text"
-                value={tempData.since}
-                onChange={e => handleInputChange('since', e.target.value)}
-                className="text-lg bg-transparent text-center border-2 border-dashed border-white/50 h-auto p-1 mt-2"
-              />
-            ) : (
-              <p className="text-lg text-white/80 mt-1">{profileData.since}</p>
-            )}
+
+            <Popover>
+              <PopoverTrigger asChild disabled={isEditing}>
+                <Button variant="link" className="text-lg text-white/80 hover:text-white mt-1 h-auto p-1 disabled:opacity-70">
+                   {isEditing ? getSinceText(tempData.sinceDate) : getSinceText(profileData.sinceDate)}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="center">
+                <Calendar
+                  mode="single"
+                  selected={isEditing ? (tempData.sinceDate ? new Date(tempData.sinceDate) : undefined) : (profileData.sinceDate ? new Date(profileData.sinceDate) : undefined)}
+                  onSelect={handleDateSelect}
+                  disabled={(date) => date > new Date() || date < new Date("1900-01-01")}
+                  initialFocus
+                  locale={ptBR}
+                />
+              </PopoverContent>
+            </Popover>
         </div>
       </div>
       
