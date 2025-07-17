@@ -97,9 +97,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   const pathname = usePathname();
-  const isProfilePage = pathname === '/profile';
-  const isCalendarPage = pathname === '/calendar';
-  const isDiscoverPage = pathname === '/discover';
+  const isSpecialPage = pathname === '/profile' || pathname === '/calendar' || pathname === '/discover';
   const isMobile = useIsMobile();
 
 
@@ -121,21 +119,18 @@ export default function RootLayout({
         <Spotlight />
         <FinanceProvider>
             <SidebarProvider>
-            <AppSidebar />
-             {isProfilePage || isCalendarPage || isDiscoverPage ? (
-                <main className="flex-1 bg-background">{children}</main>
-            ) : (
+                <AppSidebar />
                 <SidebarInset>
                     <Header />
                     <main className={cn(
-                        "flex-1 overflow-auto p-4 sm:p-6",
+                        "flex-1 overflow-auto",
+                        !isSpecialPage && "p-4 sm:p-6", // Remove padding for special full-screen pages
                         isMobile && "pb-24" // Add padding to the bottom on mobile to avoid content being hidden by the mobile nav
                     )}>
                         {children}
                     </main>
                 </SidebarInset>
-            )}
-            <MobileNav />
+                <MobileNav />
             </SidebarProvider>
         </FinanceProvider>
         <Toaster />
