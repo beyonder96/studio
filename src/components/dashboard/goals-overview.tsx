@@ -1,34 +1,60 @@
+
+'use client';
+
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
+import { useContext } from "react";
+import { FinanceContext } from "@/contexts/finance-context";
 
-const goals = [
-  { name: "Viagem para a Europa", progress: 75, target: 15000, current: 11250 },
-  { name: "Novo Celular", progress: 40, target: 5000, current: 2000 },
-  { name: "Reserva de Emergência", progress: 90, target: 20000, current: 18000 },
-];
+// A simple hashing function to create a pseudo-random but stable progress for a given wish name
+const getStableProgress = (wishName: string) => {
+    let hash = 0;
+    for (let i = 0; i < wishName.length; i++) {
+        const char = wishName.charCodeAt(i);
+        hash = ((hash << 5) - hash) + char;
+        hash = hash & hash; // Convert to 32bit integer
+    }
+    // Ensure the result is a positive number between 10 and 90
+    return (Math.abs(hash) % 81) + 10;
+};
+
 
 export function GoalsOverview() {
+  const { wishes, formatCurrency } = useContext(FinanceContext);
+  const pendingWishes = wishes.filter(w => !w.purchased).slice(0, 3); // Show up to 3 pending wishes
+
   return (
     <Card className="bg-white/10 dark:bg-black/10 border-none shadow-none">
       <CardHeader>
         <CardTitle>Metas e Desejos</CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="space-y-6">
-          {goals.map((goal) => (
-            <div key={goal.name}>
-              <div className="flex justify-between mb-1">
-                <span className="text-sm font-medium">{goal.name}</span>
-                <span className="text-sm text-muted-foreground">{goal.progress}%</span>
-              </div>
-              <Progress value={goal.progress} className="h-2" />
-              <div className="flex justify-between mt-1">
-                <span className="text-xs text-muted-foreground">R$ {goal.current.toLocaleString('pt-BR')}</span>
-                <span className="text-xs text-muted-foreground">R$ {goal.target.toLocaleString('pt-BR')}</span>
-              </div>
-            </div>
-          ))}
-        </div>
+        {pendingWishes.length > 0 ? (
+          <div className="space-y-6">
+            {pendingWishes.map((wish) => {
+              const progress = getStableProgress(wish.name);
+              const currentAmount = (wish.price * progress) / 100;
+              return (
+                <div key={wish.id}>
+                  <div className="flex justify-between mb-1">
+                    <span className="text-sm font-medium">{wish.name}</span>
+                    <span className="text-sm text-muted-foreground">{progress}%</span>
+                  </div>
+                  <Progress value={progress} className="h-2" />
+                  <div className="flex justify-between mt-1">
+                    <span className="text-xs text-muted-foreground">{formatCurrency(currentAmount)}</span>
+                    <span className="text-xs text-muted-foreground">{formatCurrency(wish.price)}</span>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        ) : (
+          <div className="text-center text-muted-foreground py-4">
+            <p className="text-sm">Nenhum desejo pendente.</p>
+            <p className="text-xs">Adicione um novo desejo na página de Desejos!</p>
+          </div>
+        )}
       </CardContent>
     </Card>
   );
