@@ -10,6 +10,7 @@ import { GoalsOverview } from '@/components/dashboard/goals-overview';
 import { TasksOverview } from '@/components/dashboard/tasks-overview';
 import { CopilotCard } from '@/components/dashboard/copilot-card';
 import { MonthOverview } from '@/components/dashboard/month-overview';
+import { ShoppingListOverview } from '@/components/dashboard/shopping-list-overview';
 import { useContext, useState } from 'react';
 import { FinanceContext, Appointment } from '@/contexts/finance-context';
 import { AddAppointmentDialog } from '@/components/calendar/add-appointment-dialog';
@@ -76,6 +77,7 @@ export default function Home() {
               <div className="lg:col-span-1 flex flex-col gap-6">
                  <h2 className="text-2xl font-bold">Painel Financeiro</h2>
                  <GoalsOverview />
+                 <ShoppingListOverview />
                  <CopilotCard />
               </div>
 

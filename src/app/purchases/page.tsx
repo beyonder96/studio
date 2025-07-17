@@ -49,55 +49,29 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { useToast } from '@/hooks/use-toast';
-import { FinanceContext } from '@/contexts/finance-context';
+import { FinanceContext, ShoppingList, ShoppingListItem } from '@/contexts/finance-context';
 
-
-export type ShoppingListItem = {
-  id: string;
-  name: string;
-  quantity: number;
-  checked: boolean;
-  price?: number;
-};
-
-export type ShoppingList = {
-  id: string;
-  name: string;
-  items: ShoppingListItem[];
-  shared: boolean;
-};
-
-const initialShoppingLists: ShoppingList[] = [
-    {
-        id: 'list1',
-        name: 'Mercado',
-        shared: true,
-        items: [
-            { id: 'item1', name: 'Leite Integral', quantity: 6, checked: false, price: 30.00 },
-            { id: 'item2', name: 'Pão de Forma', quantity: 2, checked: true, price: 15.50 },
-            { id: 'item3', name: 'Dúzia de Ovos', quantity: 2, checked: false },
-            { id: 'item4', name: 'Queijo Mussarela (kg)', quantity: 1, checked: true, price: 45.00 },
-            { id: 'item5', name: 'Peito de Frango (kg)', quantity: 3, checked: false },
-        ]
-    },
-    {
-        id: 'list2',
-        name: 'Farmácia',
-        shared: false,
-        items: [
-             { id: 'item6', name: 'Vitamina C', quantity: 1, checked: false },
-             { id: 'item7', name: 'Pasta de dente', quantity: 2, checked: true, price: 8.90 },
-             { id: 'item8', name: 'Fio dental', quantity: 3, checked: false },
-        ]
-    }
-];
 
 export default function PurchasesPage() {
-  const { toast } = useToast();
-  const { addItemsToPantry } = useContext(FinanceContext);
+  const { 
+    toast,
+    shoppingLists,
+    setSelectedListId,
+    selectedList,
+    handleSetPrice,
+    handleCheckboxChange,
+    handleDeleteItem,
+    handleUpdateItem,
+    handleClearCompletedItems,
+    handleAddItemToList,
+    handleCreateListSave,
+    handleDeleteList,
+    handleStartRenameList,
+    handleRenameList,
+    handleFinishList,
+    addItemsToPantry,
+   } = useContext(FinanceContext);
 
-  const [shoppingLists, setShoppingLists] = useState<ShoppingList[]>(initialShoppingLists);
-  const [selectedList, setSelectedList] = useState<ShoppingList | null>(initialShoppingLists[0] || null);
   const [isPriceDialogOpen, setIsPriceDialogOpen] = useState(false);
   const [isAddItemDialogOpen, setIsAddItemDialogOpen] = useState(false);
   const [isEditItemDialogOpen, setIsEditItemDialogOpen] = useState(false);
@@ -113,103 +87,39 @@ export default function PurchasesPage() {
   const [editingListId, setEditingListId] = useState<string | null>(null);
   const [editingListName, setEditingListName] = useState('');
 
-
-  const handleSetPrice = (itemId: string, price: number) => {
-    if (!selectedList) return;
-
-    const newLists = shoppingLists.map(list => {
-      if (list.id === selectedList.id) {
-        return {
-          ...list,
-          items: list.items.map(item => 
-            item.id === itemId ? { ...item, price: price, checked: true } : item
-          )
-        };
-      }
-      return list;
-    });
-    setShoppingLists(newLists);
-    
-    const updatedList = newLists.find(l => l.id === selectedList.id) || null;
-    setSelectedList(updatedList);
-    
+  const onSetPrice = (itemId: string, price: number) => {
+    handleSetPrice(itemId, price);
     setItemToPrice(null);
     setIsPriceDialogOpen(false);
   };
   
-  const handleCheckboxChange = (item: ShoppingListItem) => {
+  const onCheckboxChange = (item: ShoppingListItem) => {
     if (item.checked) {
-      const newLists = shoppingLists.map(list => {
-          if (list.id === selectedList?.id) {
-              return {
-                  ...list,
-                  items: list.items.map(i => 
-                      i.id === item.id ? { ...i, checked: false, price: undefined } : i
-                  )
-              };
-          }
-          return list;
-      });
-      setShoppingLists(newLists);
-      setSelectedList(newLists.find(l => l.id === selectedList?.id) || null);
+      handleCheckboxChange(item);
     } else {
       setItemToPrice(item);
       setIsPriceDialogOpen(true);
     }
   };
-  
-  const handleDeleteItem = (itemId: string) => {
-    if (!selectedList) return;
-    const newLists = shoppingLists.map(list => {
-        if (list.id === selectedList.id) {
-            return {
-                ...list,
-                items: list.items.filter(item => item.id !== itemId)
-            };
-        }
-        return list;
-    });
-    setShoppingLists(newLists);
-    setSelectedList(newLists.find(l => l.id === selectedList.id) || null);
+
+  const onDeleteItem = (itemId: string) => {
+    handleDeleteItem(itemId);
   };
   
-  const handleEditItem = (item: ShoppingListItem) => {
+  const onEditItem = (item: ShoppingListItem) => {
     setItemToEdit(item);
     setIsEditItemDialogOpen(true);
   };
 
-  const handleUpdateItem = (itemId: string, name: string, quantity: number) => {
-     if (!selectedList) return;
-     const newLists = shoppingLists.map(list => {
-        if (list.id === selectedList.id) {
-            return {
-                ...list,
-                items: list.items.map(i => 
-                    i.id === itemId ? { ...i, name, quantity } : i
-                )
-            };
-        }
-        return list;
-    });
-    setShoppingLists(newLists);
-    setSelectedList(newLists.find(l => l.id === selectedList.id) || null);
+  const onUpdateItem = (itemId: string, name: string, quantity: number) => {
+    handleUpdateItem(itemId, name, quantity);
     setIsEditItemDialogOpen(false);
     setItemToEdit(null);
   };
   
-  const handleClearCompletedItems = () => {
+  const onClearCompletedItems = () => {
     if (!listToClear) return;
-    const newLists = shoppingLists.map(list => {
-      if (list.id === listToClear.id) {
-        return {
-          ...list,
-          items: list.items.filter(item => !item.checked)
-        };
-      }
-      return list;
-    });
-    setShoppingLists(newLists);
-    setSelectedList(newLists.find(l => l.id === listToClear.id) || null);
+    handleClearCompletedItems(listToClear.id);
     setListToClear(null);
   }
 
@@ -251,43 +161,17 @@ export default function PurchasesPage() {
     }, 0);
   }, [shoppingLists, selectedList]);
     
-  const handleAddItemToList = (name: string, quantity: number) => {
-    if (!selectedList) return;
-
-    const newItem: ShoppingListItem = {
-        id: crypto.randomUUID(),
-        name,
-        quantity,
-        checked: false,
-    };
-
-    const newLists = shoppingLists.map(list => {
-        if (list.id === selectedList.id) {
-            return {
-                ...list,
-                items: [...list.items, newItem],
-            };
-        }
-        return list;
-    });
-
-    setShoppingLists(newLists);
-    setSelectedList(newLists.find(l => l.id === selectedList.id) || null);
+  const onAddItem = (name: string, quantity: number) => {
+    handleAddItemToList(name, quantity);
     setIsAddItemDialogOpen(false);
   };
 
-  const handleCreateListSave = () => {
-    if (!newListName.trim()) return;
-    const newList: ShoppingList = {
-        id: crypto.randomUUID(),
-        name: newListName.trim(),
-        shared: false,
-        items: []
-    };
-    setShoppingLists(prev => [newList, ...prev]);
-    setSelectedList(newList);
-    setNewListName('');
-    setIsCreatingList(false);
+  const onCreateListSave = () => {
+    handleCreateListSave(newListName, (newList) => {
+      setNewListName('');
+      setIsCreatingList(false);
+      setSelectedListId(newList.id);
+    });
   };
 
   const handleCreateListCancel = () => {
@@ -295,56 +179,31 @@ export default function PurchasesPage() {
     setIsCreatingList(false);
   };
 
-  const handleDeleteList = () => {
+  const onDeleteList = () => {
     if (!listToDelete) return;
-
-    const newLists = shoppingLists.filter(list => list.id !== listToDelete.id);
-    setShoppingLists(newLists);
-
-    if (selectedList?.id === listToDelete.id) {
-        setSelectedList(newLists[0] || null);
-    }
-
+    handleDeleteList(listToDelete.id);
     setListToDelete(null);
   }
 
-  const handleStartRenameList = (list: ShoppingList) => {
+  const onStartRenameList = (list: ShoppingList) => {
     setEditingListId(list.id);
     setEditingListName(list.name);
   };
 
-  const handleRenameList = () => {
-    if (!editingListId || !editingListName.trim()) {
+  const onRenameList = () => {
+    if (!editingListId) return;
+    handleRenameList(editingListId, editingListName, () => {
       setEditingListId(null);
-      return;
-    };
-    const newLists = shoppingLists.map(list => 
-      list.id === editingListId ? { ...list, name: editingListName.trim() } : list
-    );
-    setShoppingLists(newLists);
-    const updatedList = newLists.find(l => l.id === editingListId) || null;
-    setSelectedList(updatedList);
-    setEditingListId(null);
+    });
   };
   
-  const handleFinishList = () => {
+  const onFinishList = () => {
     if (!listToFinish) return;
 
     const itemsToAdd = listToFinish.items.filter(item => item.checked);
     addItemsToPantry(itemsToAdd);
 
-    // Remove checked items from the list
-    const newLists = shoppingLists.map(list => {
-      if (list.id === listToFinish.id) {
-        return {
-          ...list,
-          items: list.items.filter(item => !item.checked)
-        };
-      }
-      return list;
-    });
-    setShoppingLists(newLists);
-    setSelectedList(newLists.find(l => l.id === listToFinish.id) || null);
+    handleFinishList(listToFinish.id);
     setListToFinish(null);
 
     toast({
@@ -352,22 +211,6 @@ export default function PurchasesPage() {
         description: `${itemsToAdd.length} itens foram adicionados à sua despensa.`
     })
   };
-
-
-  useEffect(() => {
-    // If there is no selected list but there are lists available, select the first one.
-    if (!selectedList && shoppingLists.length > 0) {
-      setSelectedList(shoppingLists[0]);
-    }
-    // If the selected list was deleted, select the new first list or null.
-    if (selectedList && !shoppingLists.find(l => l.id === selectedList.id)) {
-      setSelectedList(shoppingLists[0] || null);
-    }
-    // If there are no lists, ensure nothing is selected.
-    if (shoppingLists.length === 0) {
-      setSelectedList(null);
-    }
-  }, [shoppingLists, selectedList]);
 
   return (
     <div className="grid grid-cols-1 gap-6 lg:grid-cols-3 lg:gap-8">
@@ -382,10 +225,10 @@ export default function PurchasesPage() {
                         placeholder="Dê um nome para a sua lista..."
                         value={newListName}
                         onChange={(e) => setNewListName(e.target.value)}
-                        onKeyDown={(e) => e.key === 'Enter' && handleCreateListSave()}
+                        onKeyDown={(e) => e.key === 'Enter' && onCreateListSave()}
                         autoFocus
                     />
-                    <Button onClick={handleCreateListSave}><Save className="h-4 w-4" /></Button>
+                    <Button onClick={onCreateListSave}><Save className="h-4 w-4" /></Button>
                     <Button variant="ghost" onClick={handleCreateListCancel}><Trash2 className="h-4 w-4" /></Button>
                 </CardContent>
             </Card>
@@ -410,7 +253,7 @@ export default function PurchasesPage() {
                     {shoppingLists.map(list => (
                         <div
                             key={list.id}
-                            onClick={() => setSelectedList(list)}
+                            onClick={() => setSelectedListId(list.id)}
                             className={cn(
                                 'flex items-center justify-between p-3 rounded-lg cursor-pointer transition-colors',
                                 selectedList?.id === list.id ? 'bg-primary/10' : 'hover:bg-muted'
@@ -421,8 +264,8 @@ export default function PurchasesPage() {
                                     <Input
                                         value={editingListName}
                                         onChange={(e) => setEditingListName(e.target.value)}
-                                        onBlur={handleRenameList}
-                                        onKeyDown={(e) => e.key === 'Enter' && handleRenameList()}
+                                        onBlur={onRenameList}
+                                        onKeyDown={(e) => e.key === 'Enter' && onRenameList()}
                                         className={cn('h-8', selectedList?.id === list.id ? 'bg-primary/10 text-primary-foreground border-primary-foreground/50' : '')}
                                         autoFocus
                                         onClick={(e) => e.stopPropagation()}
@@ -446,7 +289,7 @@ export default function PurchasesPage() {
                                         </Button>
                                     </DropdownMenuTrigger>
                                     <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
-                                        <DropdownMenuItem onClick={() => handleStartRenameList(list)}>
+                                        <DropdownMenuItem onClick={() => onStartRenameList(list)}>
                                             <Pencil className="mr-2 h-4 w-4" />
                                             Renomear
                                         </DropdownMenuItem>
@@ -527,7 +370,7 @@ export default function PurchasesPage() {
                                     <Checkbox 
                                         id={`${selectedList.id}-${item.id}`} 
                                         checked={item.checked} 
-                                        onCheckedChange={() => handleCheckboxChange(item)}
+                                        onCheckedChange={() => onCheckboxChange(item)}
                                     />
                                     <Label
                                         htmlFor={`${selectedList.id}-${item.id}`}
@@ -541,10 +384,10 @@ export default function PurchasesPage() {
                                             {item.price.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
                                             </Badge>
                                         )}
-                                        <Button variant="ghost" size="icon" onClick={() => handleEditItem(item)} className="h-7 w-7 text-muted-foreground">
+                                        <Button variant="ghost" size="icon" onClick={() => onEditItem(item)} className="h-7 w-7 text-muted-foreground">
                                             <Pencil className="h-4 w-4"/>
                                         </Button>
-                                        <Button variant="ghost" size="icon" onClick={() => handleDeleteItem(item.id)} className="h-7 w-7 text-destructive/70 hover:text-destructive">
+                                        <Button variant="ghost" size="icon" onClick={() => onDeleteItem(item.id)} className="h-7 w-7 text-destructive/70 hover:text-destructive">
                                             <Trash2 className="h-4 w-4"/>
                                         </Button>
                                     </div>
@@ -584,7 +427,7 @@ export default function PurchasesPage() {
             <SetPriceDialog
                 isOpen={isPriceDialogOpen}
                 onClose={() => { setItemToPrice(null); setIsPriceDialogOpen(false); }}
-                onSetPrice={handleSetPrice}
+                onSetPrice={onSetPrice}
                 item={itemToPrice}
             />
         )}
@@ -593,7 +436,7 @@ export default function PurchasesPage() {
             <EditItemDialog
                 isOpen={isEditItemDialogOpen}
                 onClose={() => { setItemToEdit(null); setIsEditItemDialogOpen(false); }}
-                onUpdateItem={handleUpdateItem}
+                onUpdateItem={onUpdateItem}
                 item={itemToEdit}
             />
         )}
@@ -601,7 +444,7 @@ export default function PurchasesPage() {
         <AddItemDialog
             isOpen={isAddItemDialogOpen}
             onClose={() => setIsAddItemDialogOpen(false)}
-            onAddItem={handleAddItemToList}
+            onAddItem={onAddItem}
         />
         
         <AlertDialog open={!!listToDelete} onOpenChange={(open) => !open && setListToDelete(null)}>
@@ -615,7 +458,7 @@ export default function PurchasesPage() {
                 </AlertDialogHeader>
                 <AlertDialogFooter>
                     <AlertDialogCancel onClick={() => setListToDelete(null)}>Cancelar</AlertDialogCancel>
-                    <AlertDialogAction onClick={handleDeleteList} className="bg-destructive hover:bg-destructive/90">
+                    <AlertDialogAction onClick={onDeleteList} className="bg-destructive hover:bg-destructive/90">
                         Sim, excluir
                     </AlertDialogAction>
                 </AlertDialogFooter>
@@ -634,7 +477,7 @@ export default function PurchasesPage() {
                 </AlertDialogHeader>
                 <AlertDialogFooter>
                     <AlertDialogCancel onClick={() => setListToClear(null)}>Cancelar</AlertDialogCancel>
-                    <AlertDialogAction onClick={handleClearCompletedItems}>
+                    <AlertDialogAction onClick={onClearCompletedItems}>
                         Sim, limpar
                     </AlertDialogAction>
                 </AlertDialogFooter>
@@ -651,7 +494,7 @@ export default function PurchasesPage() {
                 </AlertDialogHeader>
                 <AlertDialogFooter>
                     <AlertDialogCancel onClick={() => setListToFinish(null)}>Cancelar</AlertDialogCancel>
-                    <AlertDialogAction onClick={handleFinishList}>
+                    <AlertDialogAction onClick={onFinishList}>
                         Sim, finalizar
                     </AlertDialogAction>
                 </AlertDialogFooter>

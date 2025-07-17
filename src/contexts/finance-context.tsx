@@ -1,9 +1,10 @@
 
 'use client';
 
-import React, { createContext, useState, ReactNode, useContext } from 'react';
+import React, { createContext, useState, ReactNode, useContext, useEffect } from 'react';
 import type { Transaction } from '@/components/finance/transactions-table';
 import { addMonths, format } from 'date-fns';
+import { useToast } from '@/hooks/use-toast';
 
 // Mock Data
 const initialTransactions: Transaction[] = [
@@ -97,6 +98,31 @@ const initialAppointments: Appointment[] = [
     { id: 'appt3', title: 'Almoço com a equipe', date: '2024-07-25', time: '12:30', category: 'Social', notes: '' },
 ]
 
+const initialShoppingLists: ShoppingList[] = [
+    {
+        id: 'list1',
+        name: 'Mercado',
+        shared: true,
+        items: [
+            { id: 'item1', name: 'Leite Integral', quantity: 6, checked: false, price: 30.00 },
+            { id: 'item2', name: 'Pão de Forma', quantity: 2, checked: true, price: 15.50 },
+            { id: 'item3', name: 'Dúzia de Ovos', quantity: 2, checked: false },
+            { id: 'item4', name: 'Queijo Mussarela (kg)', quantity: 1, checked: true, price: 45.00 },
+            { id: 'item5', name: 'Peito de Frango (kg)', quantity: 3, checked: false },
+        ]
+    },
+    {
+        id: 'list2',
+        name: 'Farmácia',
+        shared: false,
+        items: [
+             { id: 'item6', name: 'Vitamina C', quantity: 1, checked: false },
+             { id: 'item7', name: 'Pasta de dente', quantity: 2, checked: true, price: 8.90 },
+             { id: 'item8', name: 'Fio dental', quantity: 3, checked: false },
+        ]
+    }
+];
+
 
 type Account = {
     id: string;
@@ -146,6 +172,21 @@ export type Wish = {
   purchased: boolean;
 };
 
+export type ShoppingListItem = {
+  id: string;
+  name: string;
+  quantity: number;
+  checked: boolean;
+  price?: number;
+};
+
+export type ShoppingList = {
+  id: string;
+  name: string;
+  items: ShoppingListItem[];
+  shared: boolean;
+};
+
 
 const mapShoppingItemToPantryCategory = (itemName: string): PantryCategory => {
     const lowerCaseName = itemName.toLowerCase();
@@ -191,11 +232,28 @@ type FinanceContextType = {
   addAppointment: (appointment: Omit<Appointment, 'id'>) => void;
   updateAppointment: (id: string, appointment: Partial<Omit<Appointment, 'id'>>) => void;
   deleteAppointment: (id: string) => void;
+  toast: ReturnType<typeof useToast>['toast'];
+  shoppingLists: ShoppingList[];
+  selectedListId: string | null;
+  setSelectedListId: (id: string | null) => void;
+  selectedList: ShoppingList | null;
+  handleSetPrice: (itemId: string, price: number) => void;
+  handleCheckboxChange: (item: ShoppingListItem) => void;
+  handleDeleteItem: (itemId: string) => void;
+  handleUpdateItem: (itemId: string, name: string, quantity: number) => void;
+  handleClearCompletedItems: (listId: string) => void;
+  handleAddItemToList: (name: string, quantity: number) => void;
+  handleCreateListSave: (name: string, callback: (newList: ShoppingList) => void) => void;
+  handleDeleteList: (listId: string) => void;
+  handleStartRenameList: (list: ShoppingList) => void;
+  handleRenameList: (listId: string, newName: string, callback: () => void) => void;
+  handleFinishList: (listId: string) => void;
 };
 
 export const FinanceContext = createContext<FinanceContextType>({} as FinanceContextType);
 
 export const FinanceProvider = ({ children }: { children: ReactNode }) => {
+  const { toast } = useToast();
   const [transactions, setTransactions] = useState<Transaction[]>(initialTransactions);
   const [accounts, setAccounts] = useState<Account[]>(initialAccounts);
   const [cards, setCards] = useState<Card[]>(initialCards);
@@ -207,6 +265,17 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
   const [wishes, setWishes] = useState<Wish[]>(initialWishes);
   const [appointments, setAppointments] = useState<Appointment[]>(initialAppointments);
   const [appointmentCategories] = useState<string[]>(['Trabalho', 'Saúde', 'Social', 'Pessoal', 'Outros']);
+  const [shoppingLists, setShoppingLists] = useState<ShoppingList[]>(initialShoppingLists);
+  const [selectedListId, setSelectedListId] = useState<string | null>(initialShoppingLists[0]?.id || null);
+
+  const selectedList = shoppingLists.find(l => l.id === selectedListId) || null;
+
+   useEffect(() => {
+    if (!selectedListId && shoppingLists.length > 0) {
+      setSelectedListId(shoppingLists[0].id);
+    }
+  }, [shoppingLists, selectedListId]);
+
 
   const toggleSensitiveDataVisibility = () => {
     setIsSensitiveDataVisible(prev => !prev);
@@ -322,6 +391,8 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
     setTasks([]);
     setWishes([]);
     setAppointments([]);
+    setShoppingLists([]);
+    setSelectedListId(null);
     // We keep the categories for convenience
     setIncomeCategories(initialIncomeCategories);
     setExpenseCategories(initialExpenseCategories);
@@ -384,42 +455,109 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
   const deleteAppointment = (id: string) => {
     setAppointments(prev => prev.filter(appt => appt.id !== id));
   };
+  
+  // Shopping List Management
+  const handleSetPrice = (itemId: string, price: number) => {
+    setShoppingLists(prev => prev.map(list => 
+      list.id === selectedListId 
+        ? { ...list, items: list.items.map(item => item.id === itemId ? { ...item, price, checked: true } : item) }
+        : list
+    ));
+  };
+  
+  const handleCheckboxChange = (item: ShoppingListItem) => {
+    setShoppingLists(prev => prev.map(list => 
+      list.id === selectedListId 
+        ? { ...list, items: list.items.map(i => i.id === item.id ? { ...i, checked: !i.checked, price: i.checked ? undefined : i.price } : i) }
+        : list
+    ));
+  };
+
+  const handleDeleteItem = (itemId: string) => {
+    setShoppingLists(prev => prev.map(list => 
+      list.id === selectedListId 
+        ? { ...list, items: list.items.filter(item => item.id !== itemId) }
+        : list
+    ));
+  };
+  
+  const handleUpdateItem = (itemId: string, name: string, quantity: number) => {
+    setShoppingLists(prev => prev.map(list => 
+      list.id === selectedListId 
+        ? { ...list, items: list.items.map(i => i.id === itemId ? { ...i, name, quantity } : i) }
+        : list
+    ));
+  };
+  
+  const handleClearCompletedItems = (listId: string) => {
+    setShoppingLists(prev => prev.map(list => 
+      list.id === listId 
+        ? { ...list, items: list.items.filter(item => !item.checked) }
+        : list
+    ));
+  };
+  
+  const handleAddItemToList = (name: string, quantity: number) => {
+    if (!selectedListId) return;
+    const newItem: ShoppingListItem = { id: crypto.randomUUID(), name, quantity, checked: false };
+    setShoppingLists(prev => prev.map(list => 
+      list.id === selectedListId 
+        ? { ...list, items: [...list.items, newItem] }
+        : list
+    ));
+  };
+
+  const handleCreateListSave = (name: string, callback: (newList: ShoppingList) => void) => {
+    if (!name.trim()) return;
+    const newList: ShoppingList = { id: crypto.randomUUID(), name: name.trim(), shared: false, items: [] };
+    setShoppingLists(prev => [newList, ...prev]);
+    callback(newList);
+  };
+  
+  const handleDeleteList = (listId: string) => {
+    setShoppingLists(prev => {
+      const newLists = prev.filter(list => list.id !== listId);
+      if (selectedListId === listId) {
+        setSelectedListId(newLists[0]?.id || null);
+      }
+      return newLists;
+    });
+  };
+  
+  const handleRenameList = (listId: string, newName: string, callback: () => void) => {
+     if (!newName.trim()) return;
+     setShoppingLists(prev => prev.map(list => 
+       list.id === listId ? { ...list, name: newName.trim() } : list
+     ));
+     callback();
+  };
+  
+  const handleStartRenameList = () => {}; // Managed in page component state
+
+  const handleFinishList = (listId: string) => {
+     setShoppingLists(prev => prev.map(list => 
+      list.id === listId 
+        ? { ...list, items: list.items.filter(item => !item.checked) }
+        : list
+    ));
+  }
 
 
   const value = {
-    transactions,
-    addTransaction,
-    updateTransaction,
-    deleteTransaction,
-    accounts,
-    cards,
-    incomeCategories,
-    expenseCategories,
-    totalIncome,
-    totalExpenses,
-    totalBalance,
-    countRecurringTransactions,
-    isSensitiveDataVisible,
-    toggleSensitiveDataVisibility,
-    formatCurrency,
+    transactions, addTransaction, updateTransaction, deleteTransaction,
+    accounts, cards, incomeCategories, expenseCategories,
+    totalIncome, totalExpenses, totalBalance, countRecurringTransactions,
+    isSensitiveDataVisible, toggleSensitiveDataVisibility, formatCurrency,
     resetAllData,
-    pantryItems,
-    addItemsToPantry,
-    updatePantryItemQuantity,
-    tasks,
-    addTask,
-    toggleTask,
-    deleteTask,
-    wishes,
-    addWish,
-    updateWish,
-    deleteWish,
-    toggleWishPurchased,
-    appointments,
-    appointmentCategories,
-    addAppointment,
-    updateAppointment,
-    deleteAppointment,
+    pantryItems, addItemsToPantry, updatePantryItemQuantity,
+    tasks, addTask, toggleTask, deleteTask,
+    wishes, addWish, updateWish, deleteWish, toggleWishPurchased,
+    appointments, appointmentCategories, addAppointment, updateAppointment, deleteAppointment,
+    toast,
+    shoppingLists, selectedListId, setSelectedListId, selectedList,
+    handleSetPrice, handleCheckboxChange, handleDeleteItem, handleUpdateItem,
+    handleClearCompletedItems, handleAddItemToList, handleCreateListSave,
+    handleDeleteList, handleStartRenameList, handleRenameList, handleFinishList
   };
 
   return (
