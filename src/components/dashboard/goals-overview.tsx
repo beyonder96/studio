@@ -42,7 +42,7 @@ export function GoalsOverview() {
                         <span className="text-sm font-medium">{wish.name}</span>
                         <span className="text-sm text-muted-foreground">{progress}%</span>
                     </div>
-                    <Progress value={progress} className="h-2" />
+                    <Progress value={progress} />
                     <div className="flex justify-between mt-1">
                         <span className="text-xs text-muted-foreground">{formatCurrency(currentAmount)}</span>
                         <span className="text-xs text-muted-foreground">{formatCurrency(wish.price)}</span>

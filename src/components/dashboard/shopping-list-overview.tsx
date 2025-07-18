@@ -41,7 +41,7 @@ export function ShoppingListOverview() {
                                             {checkedCount}/{list.items.length}
                                         </span>
                                     </div>
-                                    <Progress value={progress} className="h-2" />
+                                    <Progress value={progress} />
                                 </div>
                             );
                         })}
