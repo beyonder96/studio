@@ -56,7 +56,9 @@ export default function SettingsPage() {
     pantryCategories,
     addPantryCategory,
     deletePantryCategory,
-    resetAllData
+    resetAllData,
+    incomeCategories,
+    expenseCategories,
   } = useContext(FinanceContext);
 
   const [theme, setTheme] = useState<Theme>(getInitialTheme);
@@ -134,6 +136,52 @@ export default function SettingsPage() {
                         </div>
                     </div>
                     </CardContent>
+                </Card>
+
+                {/* Categories */}
+                <Card className="bg-transparent">
+                    <CardHeader>
+                        <CardTitle>Categorias de Transação</CardTitle>
+                        <CardDescription>Gerencie as categorias de suas receitas e despesas.</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                         <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+                            <div>
+                                <h3 className="font-semibold mb-2">Receitas</h3>
+                                <ul className="space-y-2">
+                                    {incomeCategories.map(cat => (
+                                        <li key={cat} className="flex items-center justify-between p-3 rounded-lg border">
+                                            <p>{cat}</p>
+                                            <div className="flex items-center gap-1">
+                                                <Button variant="ghost" size="icon" disabled><Edit className="h-4 w-4" /></Button>
+                                                <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" disabled><Trash2 className="h-4 w-4" /></Button>
+                                            </div>
+                                        </li>
+                                    ))}
+                                </ul>
+                            </div>
+                             <div>
+                                <h3 className="font-semibold mb-2">Despesas</h3>
+                                <ul className="space-y-2">
+                                    {expenseCategories.map(cat => (
+                                        <li key={cat} className="flex items-center justify-between p-3 rounded-lg border">
+                                            <p>{cat}</p>
+                                            <div className="flex items-center gap-1">
+                                                <Button variant="ghost" size="icon" disabled><Edit className="h-4 w-4" /></Button>
+                                                <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" disabled><Trash2 className="h-4 w-4" /></Button>
+                                            </div>
+                                        </li>
+                                    ))}
+                                </ul>
+                            </div>
+                        </div>
+                    </CardContent>
+                     <CardFooter>
+                        <Button variant="outline" className="w-full" disabled>
+                            <PlusCircle className="mr-2 h-4 w-4" />
+                            Adicionar Categoria de Transação
+                        </Button>
+                    </CardFooter>
                 </Card>
                 
                 {/* Pantry Categories */}

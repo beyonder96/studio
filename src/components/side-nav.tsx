@@ -9,7 +9,6 @@ import {
   Banknote,
   ShoppingBasket,
   Gift,
-  Compass,
   Wallet,
   ArrowRightLeft,
   Carrot,
@@ -19,6 +18,7 @@ import {
   User,
   PanelRightOpen,
   X,
+  Sparkles,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
@@ -34,12 +34,11 @@ const navItems = [
   { href: '/finance', icon: Banknote, label: 'Finanças' },
   { href: '/purchases', icon: ShoppingBasket, label: 'Compras' },
   { href: '/wishes', icon: Gift, label: 'Desejos' },
-  { href: '/discover', icon: Compass, label: 'Descobrir' },
-  { href: '/accounts', icon: Wallet, label: 'Categorias' },
   { href: '/recurrences', icon: ArrowRightLeft, label: 'Recorrências' },
   { href: '/pantry', icon: Carrot, label: 'Despensa' },
   { href: '/tasks', icon: CheckSquare, label: 'Tarefas' },
   { href: '/calendar', icon: Calendar, label: 'Calendário' },
+  { href: '/discover', icon: Sparkles, label: 'Descobrir (Em Breve)', disabled: true },
   { href: '/settings', icon: Settings, label: 'Ajustes' },
   { href: '/profile', icon: User, label: 'Perfil' },
 ];
@@ -104,23 +103,27 @@ export function SideNav() {
 
               <nav className="flex-1 p-4 overflow-y-auto">
                 <ul className="space-y-2">
-                  {navItems.map((item) => (
-                    <li key={item.href}>
-                      <Link href={item.href} onClick={handleLinkClick}>
-                        <div
-                          className={cn(
-                            'flex items-center gap-4 p-3 rounded-lg transition-colors text-foreground',
-                            isActive(item.href)
-                              ? 'bg-primary/20 text-primary font-semibold'
-                              : 'hover:bg-muted'
-                          )}
-                        >
-                          <item.icon className="h-5 w-5" />
-                          <span>{item.label}</span>
-                        </div>
-                      </Link>
-                    </li>
-                  ))}
+                  {navItems.map((item) => {
+                    const Component = item.disabled ? 'div' : Link;
+                    return (
+                        <li key={item.href}>
+                        <Component href={item.href} onClick={!item.disabled ? handleLinkClick : undefined} className={cn(item.disabled && "cursor-not-allowed")}>
+                            <div
+                            className={cn(
+                                'flex items-center gap-4 p-3 rounded-lg transition-colors text-foreground',
+                                isActive(item.href) && !item.disabled
+                                ? 'bg-primary/20 text-primary font-semibold'
+                                : 'hover:bg-muted',
+                                item.disabled && "opacity-50"
+                            )}
+                            >
+                            <item.icon className="h-5 w-5" />
+                            <span>{item.label}</span>
+                            </div>
+                        </Component>
+                        </li>
+                    )
+                  })}
                 </ul>
               </nav>
             </motion.div>
