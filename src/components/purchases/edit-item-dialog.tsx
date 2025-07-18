@@ -14,7 +14,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
-import type { ShoppingListItem } from '@/app/purchases/page';
+import type { ShoppingListItem } from '@/contexts/finance-context';
 
 type EditItemDialogProps = {
   isOpen: boolean;
@@ -25,18 +25,26 @@ type EditItemDialogProps = {
 
 export function EditItemDialog({ isOpen, onClose, onUpdateItem, item }: EditItemDialogProps) {
   const [name, setName] = useState('');
-  const [quantity, setQuantity] = useState(1);
+  const [quantity, setQuantity] = useState('1');
 
   useEffect(() => {
     if (item) {
       setName(item.name);
-      setQuantity(item.quantity);
+      setQuantity(item.quantity.toString());
     }
   }, [item]);
 
   const handleSave = () => {
-    if (item && name && quantity > 0) {
-      onUpdateItem(item.id, name, quantity);
+    const numQuantity = parseInt(quantity, 10);
+    if (item && name && !isNaN(numQuantity) && numQuantity > 0) {
+      onUpdateItem(item.id, name, numQuantity);
+    }
+  };
+
+  const handleQuantityChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    if (value === '' || /^[1-9]\d*$/.test(value)) {
+        setQuantity(value);
     }
   };
 
@@ -68,10 +76,11 @@ export function EditItemDialog({ isOpen, onClose, onUpdateItem, item }: EditItem
             </Label>
             <Input
               id="edit-item-quantity"
-              type="number"
               value={quantity}
-              onChange={(e) => setQuantity(Number(e.target.value))}
+              onChange={handleQuantityChange}
               min="1"
+              type="text"
+              inputMode="numeric"
             />
           </div>
         </div>
@@ -81,7 +90,7 @@ export function EditItemDialog({ isOpen, onClose, onUpdateItem, item }: EditItem
               Cancelar
             </Button>
           </DialogClose>
-          <Button type="button" onClick={handleSave} disabled={!name || quantity <= 0}>
+          <Button type="button" onClick={handleSave} disabled={!name || !quantity || parseInt(quantity, 10) <= 0}>
             Salvar Alterações
           </Button>
         </DialogFooter>

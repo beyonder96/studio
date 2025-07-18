@@ -23,20 +23,38 @@ type AddItemDialogProps = {
 
 export function AddItemDialog({ isOpen, onClose, onAddItem }: AddItemDialogProps) {
   const [name, setName] = useState('');
-  const [quantity, setQuantity] = useState(1);
+  const [quantity, setQuantity] = useState('1');
 
   const handleSave = () => {
-    if (name && quantity > 0) {
-      onAddItem(name, quantity);
+    const numQuantity = parseInt(quantity, 10);
+    if (name && !isNaN(numQuantity) && numQuantity > 0) {
+      onAddItem(name, numQuantity);
       setName('');
-      setQuantity(1);
+      setQuantity('1');
     }
   };
 
   const handleClose = () => {
     setName('');
-    setQuantity(1);
+    setQuantity('1');
     onClose();
+  };
+
+  const handleQuantityChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    // Allow empty string or positive integers
+    if (value === '' || /^[1-9]\d*$/.test(value)) {
+        setQuantity(value);
+    } else if (value === '0') {
+        // Prevent typing "0" as the first digit
+    } else if (quantity === '' && value === '0') {
+        // Prevent starting with 0
+    } else {
+        const num = parseInt(value, 10);
+        if(!isNaN(num) && num > 0) {
+            setQuantity(num.toString());
+        }
+    }
   };
 
   return (
@@ -67,10 +85,11 @@ export function AddItemDialog({ isOpen, onClose, onAddItem }: AddItemDialogProps
             </Label>
             <Input
               id="item-quantity"
-              type="number"
               value={quantity}
-              onChange={(e) => setQuantity(Number(e.target.value))}
+              onChange={handleQuantityChange}
               min="1"
+              type="text"
+              inputMode="numeric"
             />
           </div>
         </div>
@@ -80,7 +99,7 @@ export function AddItemDialog({ isOpen, onClose, onAddItem }: AddItemDialogProps
               Cancelar
             </Button>
           </DialogClose>
-          <Button type="button" onClick={handleSave} disabled={!name || quantity <= 0}>
+          <Button type="button" onClick={handleSave} disabled={!name || !quantity || parseInt(quantity, 10) <= 0}>
             Adicionar Item
           </Button>
         </DialogFooter>
