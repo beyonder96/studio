@@ -15,6 +15,7 @@ import { useContext, useState } from 'react';
 import { FinanceContext, Appointment } from '@/contexts/finance-context';
 import { AddAppointmentDialog } from '@/components/calendar/add-appointment-dialog';
 import { ptBR } from 'date-fns/locale';
+import { format } from 'date-fns';
 
 
 export default function Home() {
@@ -33,6 +34,8 @@ export default function Home() {
     addAppointment(data);
     setIsAppointmentDialogOpen(false);
   };
+
+  const today = new Date();
 
   return (
     <>
@@ -63,11 +66,18 @@ export default function Home() {
                         day_range_middle: "aria-selected:bg-accent/50 aria-selected:text-accent-foreground",
                     }}
                     modifiers={{ 
-                        events: eventDates
+                        events: eventDates,
+                        today: today
                     }}
                     modifiersClassNames={{
-                        events: "bg-primary/20 rounded-full"
+                        events: "bg-primary/20 rounded-full",
+                        today: "bg-accent text-accent-foreground"
                     }}
+                    footer={
+                        <p className="text-xs text-muted-foreground mt-2">
+                           Hoje é {format(today, "PPP", { locale: ptBR })}.
+                        </p>
+                    }
                   />
                 </Card>
                 <MonthOverview />
