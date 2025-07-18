@@ -107,7 +107,7 @@ export default function CalendarPage() {
 
             <div className="flex flex-1 flex-col md:flex-row gap-4 overflow-auto rounded-lg bg-transparent pt-4 sm:pt-6">
                 <div className="w-full md:w-auto md:max-w-sm">
-                    <Card>
+                    <Card className="bg-transparent">
                         <CardContent className="p-2 sm:p-4">
                             <Calendar
                                 mode="single"
@@ -138,7 +138,7 @@ export default function CalendarPage() {
                     </Card>
                 </div>
                 <div className="flex-1">
-                    <Card className="h-full">
+                    <Card className="h-full bg-transparent">
                         <CardHeader>
                             <CardTitle>
                                 {selectedDate ? (

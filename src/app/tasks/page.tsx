@@ -42,7 +42,7 @@ export default function TasksPage() {
                 <p className="text-muted-foreground">Mantenham tudo organizado e em dia.</p>
             </div>
 
-            <Card className="bg-card/50 dark:bg-card/50">
+            <Card className="bg-transparent">
                 <CardHeader>
                 <CardTitle>Adicionar Nova Tarefa</CardTitle>
                 </CardHeader>
@@ -60,7 +60,7 @@ export default function TasksPage() {
                 </CardContent>
             </Card>
 
-            <Card className="bg-card/50 dark:bg-card/50">
+            <Card className="bg-transparent">
                 <CardHeader>
                 <CardTitle>Progresso</CardTitle>
                 <CardDescription>
@@ -75,7 +75,7 @@ export default function TasksPage() {
             <div className="space-y-3">
                 {tasks.length > 0 ? (
                 tasks.map(task => (
-                    <Card key={task.id} className={cn("p-4 transition-colors bg-card/50 dark:bg-card/50", task.completed && "bg-muted/50")}>
+                    <Card key={task.id} className={cn("p-4 transition-colors bg-transparent", task.completed && "bg-muted/50")}>
                     <div className="flex items-center justify-between">
                         <div className="flex items-center gap-4">
                         <Checkbox

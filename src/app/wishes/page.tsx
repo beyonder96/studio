@@ -88,7 +88,7 @@ export default function WishesPage() {
                 {pendingWishes.length > 0 ? (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {pendingWishes.map(wish => (
-                        <Card key={wish.id} className="flex flex-col card-hover-effect">
+                        <Card key={wish.id} className="flex flex-col card-hover-effect bg-transparent">
                             <CardHeader className="relative p-0">
                                 <Image
                                     src={wish.imageUrl || "https://placehold.co/600x400.png"}
@@ -156,7 +156,7 @@ export default function WishesPage() {
                 {purchasedWishes.length > 0 ? (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                         {purchasedWishes.map(wish => (
-                            <Card key={wish.id} className="relative">
+                            <Card key={wish.id} className="relative bg-transparent">
                                 <Image
                                     src={wish.imageUrl || "https://placehold.co/600x400.png"}
                                     alt={wish.name}

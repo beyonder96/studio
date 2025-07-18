@@ -79,7 +79,7 @@ export default function DiscoverPage() {
 
             <div className="p-4 space-y-6 -mt-6">
                 {/* Location Info */}
-                <Card className="shadow-lg">
+                <Card className="shadow-lg bg-transparent">
                 <CardContent className="pt-6">
                     <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
@@ -117,15 +117,15 @@ export default function DiscoverPage() {
                         <Button variant="link" className="text-primary">Ver todas</Button>
                     </div>
                     <div className="grid grid-cols-3 gap-4 text-center">
-                        <Card className="p-4">
+                        <Card className="p-4 bg-transparent">
                             <Bus className="h-8 w-8 mx-auto text-muted-foreground" />
                             <p className="mt-2 text-sm font-medium">6 Cabs</p>
                         </Card>
-                        <Card className="p-4">
+                        <Card className="p-4 bg-transparent">
                             <Bath className="h-8 w-8 mx-auto text-muted-foreground" />
                             <p className="mt-2 text-sm font-medium">8 Banheiros</p>
                         </Card>
-                        <Card className="p-4">
+                        <Card className="p-4 bg-transparent">
                             <Bed className="h-8 w-8 mx-auto text-muted-foreground" />
                             <p className="mt-2 text-sm font-medium">12 Quartos</p>
                         </Card>
@@ -138,7 +138,7 @@ export default function DiscoverPage() {
                         <h2 className="text-xl font-bold">Comprar Ingressos</h2>
                         <Button variant="link" className="text-primary">Todos os ingressos</Button>
                     </div>
-                    <Card>
+                    <Card className="bg-transparent">
                         <CardContent className="p-4 flex items-center justify-between">
                             <div className="flex items-center gap-3">
                                 <Ticket className="h-8 w-8 text-primary" />
@@ -194,7 +194,7 @@ export default function DiscoverPage() {
             {/* Floating Nav */}
             <div className="sticky bottom-4 w-full px-4">
                 <div className="w-full max-w-sm mx-auto">
-                    <Card className="shadow-2xl">
+                    <Card className="shadow-2xl bg-transparent">
                         <CardContent className="p-2">
                             <div className="flex justify-around items-center">
                                 <Button variant="secondary" className="flex-1 bg-primary/10 text-primary">

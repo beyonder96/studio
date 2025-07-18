@@ -218,7 +218,7 @@ export default function PurchasesPage() {
             <div className="grid grid-cols-1 gap-6 lg:grid-cols-3 lg:gap-8">
             <div className="lg:col-span-1 flex flex-col gap-6">
                 {isCreatingList ? (
-                    <Card>
+                    <Card className="bg-transparent">
                         <CardHeader>
                             <CardTitle>Criar Nova Lista</CardTitle>
                         </CardHeader>
@@ -235,7 +235,7 @@ export default function PurchasesPage() {
                         </CardContent>
                     </Card>
                 ) : (
-                    <Card>
+                    <Card className="bg-transparent">
                         <CardHeader className="flex flex-row items-center justify-between">
                             <CardTitle className="flex items-center gap-2 text-lg">
                                 <ShoppingCart className="h-5 w-5"/>
@@ -309,7 +309,7 @@ export default function PurchasesPage() {
                 )}
                 
                 {totalCost > 0 && (
-                    <Card>
+                    <Card className="bg-transparent">
                         <CardHeader className="flex-row items-center justify-between p-4">
                             <div className="flex items-center gap-3">
                                 <DollarSign className="h-6 w-6 text-primary" />
@@ -328,7 +328,7 @@ export default function PurchasesPage() {
 
             <div className="lg:col-span-2">
                 {selectedList ? (
-                    <Card>
+                    <Card className="bg-transparent">
                         <CardHeader>
                             <div className="flex flex-wrap items-center justify-between gap-2">
                                 <div className="flex items-center gap-4">

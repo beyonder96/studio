@@ -77,7 +77,7 @@ export default function SettingsPage() {
         <CardContent className="p-4 sm:p-6">
             <div className="space-y-8">
             {/* Appearance Settings */}
-            <Card>
+            <Card className="bg-transparent">
                 <CardHeader>
                 <CardTitle>Aparência</CardTitle>
                 <CardDescription>Personalize a aparência do aplicativo.</CardDescription>
@@ -116,7 +116,7 @@ export default function SettingsPage() {
             </Card>
 
             {/* Accounts & Cards */}
-            <Card>
+            <Card className="bg-transparent">
                 <CardHeader>
                 <div className="flex items-center justify-between">
                     <div>
@@ -162,7 +162,7 @@ export default function SettingsPage() {
             </Card>
 
             {/* Danger Zone */}
-            <Card className="border-destructive/50">
+            <Card className="border-destructive/50 bg-transparent">
                 <CardHeader>
                 <CardTitle className="text-destructive">Zona de Perigo</CardTitle>
                 <CardDescription>Ações nesta área são permanentes e não podem ser desfeitas.</CardDescription>

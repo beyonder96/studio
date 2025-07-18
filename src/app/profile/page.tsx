@@ -243,7 +243,7 @@ export default function ProfilePage() {
 
             {/* Content Area */}
             <div className="flex-grow p-4 md:p-6 space-y-6">
-                <Card>
+                <Card className="bg-transparent">
                     <CardHeader>
                         <CardTitle>Nossos Favoritos</CardTitle>
                     </CardHeader>

@@ -41,7 +41,7 @@ export default function PantryPage() {
             {hasItems ? (
                 <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
                 {(Object.keys(categorizedItems) as PantryCategory[]).map((category) => (
-                    <Card key={category}>
+                    <Card key={category} className="bg-transparent">
                     <CardHeader className="flex flex-row items-center gap-4">
                         {categoryIcons[category]}
                         <CardTitle>{category}</CardTitle>
