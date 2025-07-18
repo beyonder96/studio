@@ -1,6 +1,7 @@
 
 'use client';
 
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import {
@@ -21,100 +22,79 @@ import {
   Star as StarIcon,
   Camera,
   Phone,
+  MessageSquare,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
+import { useToast } from '@/hooks/use-toast';
+import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel';
+
+const images = [
+  "https://placehold.co/800x600.png",
+  "https://placehold.co/800x600.png",
+  "https://placehold.co/800x600.png",
+];
 
 export default function DiscoverPage() {
   const router = useRouter();
+  const { toast } = useToast();
+  const [isBookmarked, setIsBookmarked] = useState(false);
+  const [activeTab, setActiveTab] = useState('info');
 
   const handleBackClick = () => {
     router.back();
   };
 
-  return (
-    <Card className="bg-white/10 dark:bg-black/10 backdrop-blur-3xl border-white/20 dark:border-black/20 rounded-3xl shadow-2xl">
-        <CardContent className="p-4 sm:p-6">
-            <div className="bg-transparent -m-4 sm:-m-6">
-            <div className="relative h-[40vh] w-full">
-                <Image
-                src="https://placehold.co/600x400.png"
-                alt="Dakshina Chitra Heritage"
-                layout="fill"
-                objectFit="cover"
-                className="brightness-90 rounded-t-3xl"
-                data-ai-hint="heritage building"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-background/50 via-background/30 to-transparent" />
+  const handleBookmarkClick = () => {
+    setIsBookmarked(!isBookmarked);
+    toast({
+      title: isBookmarked ? 'Removido dos favoritos!' : 'Adicionado aos favoritos!',
+      description: 'Dakshina Chitra Heritage foi salvo.',
+    });
+  };
+  
+  const handleDirectionsClick = () => {
+    const address = "State highway 49, Muthukadu, Tamil Nadu 603112";
+    const googleMapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`;
+    window.open(googleMapsUrl, '_blank');
+  };
 
-                {/* Header */}
-                <div className="absolute top-6 left-4 right-4 flex items-center justify-between text-white">
-                <Button variant="ghost" size="icon" className="rounded-full bg-black/20 hover:bg-black/40" onClick={handleBackClick}>
-                    <ArrowLeft />
-                </Button>
-                <div className="flex items-center gap-2">
-                    <h1 className="text-lg font-bold">Dakshina Chitra Heritage</h1>
-                    <ShieldCheck className="h-5 w-5 fill-blue-500 text-white" />
-                </div>
-                <Button variant="ghost" size="icon" className="rounded-full bg-black/20 hover:bg-black/40">
-                    <Bookmark />
-                </Button>
-                </div>
-
-                {/* Play and Navigation */}
-                <div className="absolute inset-0 flex items-center justify-center">
-                <PlayCircle className="h-16 w-16 text-white/80 fill-black/30" />
-                </div>
-                <div className="absolute bottom-4 left-4 right-4 flex justify-between">
-                <Button variant="ghost" size="icon" className="rounded-full bg-black/20 hover:bg-black/40 text-white">
-                    <ChevronLeft />
-                </Button>
-                <Button variant="ghost" size="icon" className="rounded-full bg-black/20 hover:bg-black/40 text-white">
-                    <ChevronRight />
-                </Button>
-                </div>
+  const renderTabContent = () => {
+    switch (activeTab) {
+      case 'reviews':
+        return (
+          <div className="text-center text-muted-foreground py-16">
+            <MessageSquare className="mx-auto h-12 w-12" />
+            <h3 className="mt-4 text-lg font-medium">Nenhuma avaliação ainda.</h3>
+            <p className="text-sm">Seja o primeiro a avaliar este local!</p>
+          </div>
+        );
+      case 'photos':
+        return (
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                {images.map((src, index) => (
+                    <Image
+                        key={index}
+                        src={src}
+                        alt={`Photo ${index + 1}`}
+                        width={200}
+                        height={200}
+                        className="rounded-lg object-cover aspect-square"
+                        data-ai-hint="heritage building"
+                    />
+                ))}
             </div>
-
-            <div className="p-4 space-y-6 -mt-6">
-                {/* Location Info */}
-                <Card className="shadow-lg bg-transparent">
-                <CardContent className="pt-6">
-                    <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                        <MapPin className="h-6 w-6 text-primary" />
-                        <span className="text-2xl font-bold">632m</span>
-                    </div>
-                    <Button>
-                        <MapPin className="mr-2 h-4 w-4" />
-                        Directions
-                        <ChevronDown className="ml-2 h-4 w-4" />
-                    </Button>
-                    </div>
-                    <div className="mt-2 text-muted-foreground">
-                    <p>State highway 49, Muthukadu,</p>
-                    <p>Tamil Nadu 603112</p>
-                    </div>
-                    <div className="mt-4 flex items-center justify-between text-sm">
-                    <p>
-                        <span className="text-orange-500">Closes soon</span>
-                        <span className="text-muted-foreground"> • 7pm • Opens 10am Sun</span>
-                    </p>
-                    <div className="flex items-center gap-1">
-                        <Star className="h-4 w-4 text-yellow-400 fill-yellow-400" />
-                        <span className="font-bold">5.0</span>
-                        <span className="text-muted-foreground">(17.7k)</span>
-                    </div>
-                    </div>
-                </CardContent>
-                </Card>
-                
+        )
+      case 'info':
+      default:
+        return (
+            <>
                 {/* Facilities */}
                 <div>
                     <div className="flex justify-between items-center mb-2">
                         <h2 className="text-xl font-bold">Nossas Instalações</h2>
-                        <Button variant="link" className="text-primary">Ver todas</Button>
                     </div>
                     <div className="grid grid-cols-3 gap-4 text-center">
                         <Card className="p-4 bg-transparent">
@@ -136,7 +116,6 @@ export default function DiscoverPage() {
                 <div>
                     <div className="flex justify-between items-center mb-2">
                         <h2 className="text-xl font-bold">Comprar Ingressos</h2>
-                        <Button variant="link" className="text-primary">Todos os ingressos</Button>
                     </div>
                     <Card className="bg-transparent">
                         <CardContent className="p-4 flex items-center justify-between">
@@ -168,10 +147,7 @@ export default function DiscoverPage() {
 
                 {/* Details */}
                 <div>
-                    <div className="flex justify-between items-center mb-2">
-                        <h2 className="text-xl font-bold">Detalhes</h2>
-                        <Button variant="link" className="text-primary">Ver todos</Button>
-                    </div>
+                     <h2 className="text-xl font-bold mb-4">Detalhes</h2>
                     <div className="space-y-4">
                         <div className="flex items-start gap-4">
                             <MapPin className="h-5 w-5 mt-1 text-muted-foreground"/>
@@ -189,6 +165,91 @@ export default function DiscoverPage() {
                         </div>
                     </div>
                 </div>
+            </>
+        );
+    }
+  };
+
+
+  return (
+    <Card className="bg-white/10 dark:bg-black/10 backdrop-blur-3xl border-white/20 dark:border-black/20 rounded-3xl shadow-2xl">
+        <CardContent className="p-4 sm:p-6">
+            <div className="bg-transparent -m-4 sm:-m-6">
+            <Carousel className="w-full" opts={{ loop: true }}>
+                <CarouselContent>
+                    {images.map((src, index) => (
+                    <CarouselItem key={index}>
+                        <div className="relative h-[40vh] w-full">
+                        <Image
+                            src={src}
+                            alt={`Dakshina Chitra Heritage ${index + 1}`}
+                            layout="fill"
+                            objectFit="cover"
+                            className="brightness-90 rounded-t-3xl"
+                            data-ai-hint="heritage building"
+                        />
+                        </div>
+                    </CarouselItem>
+                    ))}
+                </CarouselContent>
+                 <div className="absolute inset-0 bg-gradient-to-t from-background/50 via-background/30 to-transparent" />
+                 {/* Header */}
+                <div className="absolute top-6 left-4 right-4 flex items-center justify-between text-white">
+                <Button variant="ghost" size="icon" className="rounded-full bg-black/20 hover:bg-black/40" onClick={handleBackClick}>
+                    <ArrowLeft />
+                </Button>
+                <div className="flex items-center gap-2">
+                    <h1 className="text-lg font-bold">Dakshina Chitra Heritage</h1>
+                    <ShieldCheck className="h-5 w-5 fill-blue-500 text-white" />
+                </div>
+                <Button variant="ghost" size="icon" className="rounded-full bg-black/20 hover:bg-black/40" onClick={handleBookmarkClick}>
+                    <Bookmark className={isBookmarked ? 'fill-white' : ''} />
+                </Button>
+                </div>
+                {/* Play and Navigation */}
+                <div className="absolute inset-0 flex items-center justify-center">
+                    <PlayCircle className="h-16 w-16 text-white/80 fill-black/30" />
+                </div>
+                <div className="absolute bottom-4 left-4 right-4 flex justify-between">
+                    <CarouselPrevious className="static translate-y-0 rounded-full bg-black/20 hover:bg-black/40 text-white border-none" />
+                    <CarouselNext className="static translate-y-0 rounded-full bg-black/20 hover:bg-black/40 text-white border-none" />
+                </div>
+            </Carousel>
+           
+
+            <div className="p-4 space-y-6 -mt-6">
+                {/* Location Info */}
+                <Card className="shadow-lg bg-transparent">
+                <CardContent className="pt-6">
+                    <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                        <MapPin className="h-6 w-6 text-primary" />
+                        <span className="text-2xl font-bold">632m</span>
+                    </div>
+                    <Button onClick={handleDirectionsClick}>
+                        <MapPin className="mr-2 h-4 w-4" />
+                        Directions
+                    </Button>
+                    </div>
+                    <div className="mt-2 text-muted-foreground">
+                    <p>State highway 49, Muthukadu,</p>
+                    <p>Tamil Nadu 603112</p>
+                    </div>
+                    <div className="mt-4 flex items-center justify-between text-sm">
+                    <p>
+                        <span className="text-orange-500">Closes soon</span>
+                        <span className="text-muted-foreground"> • 7pm • Opens 10am Sun</span>
+                    </p>
+                    <div className="flex items-center gap-1">
+                        <Star className="h-4 w-4 text-yellow-400 fill-yellow-400" />
+                        <span className="font-bold">5.0</span>
+                        <span className="text-muted-foreground">(17.7k)</span>
+                    </div>
+                    </div>
+                </CardContent>
+                </Card>
+                
+                {renderTabContent()}
             </div>
             
             {/* Floating Nav */}
@@ -197,13 +258,13 @@ export default function DiscoverPage() {
                     <Card className="shadow-2xl bg-transparent">
                         <CardContent className="p-2">
                             <div className="flex justify-around items-center">
-                                <Button variant="secondary" className="flex-1 bg-primary/10 text-primary">
+                                <Button variant={activeTab === 'info' ? 'secondary' : 'ghost'} className="flex-1 bg-primary/10 text-primary" onClick={() => setActiveTab('info')}>
                                     <Building className="mr-2 h-4 w-4"/> Info
                                 </Button>
-                                <Button variant="ghost" className="flex-1">
+                                <Button variant={activeTab === 'reviews' ? 'secondary' : 'ghost'} className="flex-1" onClick={() => setActiveTab('reviews')}>
                                     <StarIcon className="mr-2 h-4 w-4"/> Avaliações
                                 </Button>
-                                <Button variant="ghost" className="flex-1">
+                                <Button variant={activeTab === 'photos' ? 'secondary' : 'ghost'} className="flex-1" onClick={() => setActiveTab('photos')}>
                                     <Camera className="mr-2 h-4 w-4"/> Fotos
                                 </Button>
                             </div>
@@ -216,3 +277,4 @@ export default function DiscoverPage() {
     </Card>
   );
 }
+
