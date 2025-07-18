@@ -130,7 +130,7 @@ export default function FinancePage() {
                         <CardTitle>Transações</CardTitle>
                         <Button onClick={openAddDialog}>
                             <PlusCircle className="mr-2 h-4 w-4" />
-                            Adicionar Transação
+                            Adicionar
                         </Button>
                     </CardHeader>
                     <CardContent className="p-0 sm:p-6">
