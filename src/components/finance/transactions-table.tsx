@@ -82,7 +82,7 @@ export function TransactionsTable({ transactions, onEdit, onDelete }: Transactio
                        </div>
                        <div className="flex flex-col items-end gap-2">
                            <p className={cn(
-                                'font-mono text-lg font-bold',
+                                'font-mono text-base font-semibold',
                                 transaction.type === 'income' ? 'text-green-500' : 'text-red-500'
                             )}>
                                 {transaction.amount.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}

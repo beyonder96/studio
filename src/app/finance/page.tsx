@@ -127,13 +127,11 @@ export default function FinancePage() {
 
                 <Card className="bg-transparent">
                     <CardHeader className="flex flex-row items-center justify-between">
-                    <div>
                         <CardTitle>Transações</CardTitle>
-                    </div>
-                    <Button onClick={openAddDialog}>
-                        <PlusCircle className="mr-2 h-4 w-4" />
-                        Adicionar Transação
-                    </Button>
+                        <Button onClick={openAddDialog}>
+                            <PlusCircle className="mr-2 h-4 w-4" />
+                            Adicionar Transação
+                        </Button>
                     </CardHeader>
                     <CardContent className="p-0 sm:p-6">
                     <TransactionsTable 
