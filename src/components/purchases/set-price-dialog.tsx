@@ -13,7 +13,7 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
-import { ShoppingListItem } from '@/app/purchases/page';
+import { ShoppingListItem } from '@/contexts/finance-context';
 import { CurrencyInput } from '@/components/finance/currency-input';
 
 type SetPriceDialogProps = {
