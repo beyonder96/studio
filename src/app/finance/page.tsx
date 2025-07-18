@@ -80,68 +80,70 @@ export default function FinancePage() {
 
 
   return (
-    <div className="flex flex-col gap-6">
-       <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-         <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Receitas no Mês</CardTitle>
-                <ArrowUpCircle className="h-5 w-5 text-green-500" />
-            </CardHeader>
-            <CardContent>
-                <div className="text-2xl font-bold text-green-500">
-                    {monthlyIncome.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
-                </div>
-            </CardContent>
-         </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Despesas no Mês</CardTitle>
-                <ArrowDownCircle className="h-5 w-5 text-red-500" />
-            </CardHeader>
-            <CardContent>
-                <div className="text-2xl font-bold text-red-500">
-                     {monthlyExpenses.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
-                </div>
-            </CardContent>
-         </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Balanço Mensal</CardTitle>
-            </CardHeader>
-            <CardContent>
-                <div className="text-2xl font-bold">
-                     {(monthlyIncome + monthlyExpenses).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
-                </div>
-            </CardContent>
-         </Card>
-       </div>
+    <Card className="bg-white/10 dark:bg-black/10 backdrop-blur-3xl border-white/20 dark:border-black/20 rounded-3xl shadow-2xl">
+        <CardContent className="p-4 sm:p-6">
+            <div className="flex flex-col gap-6">
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+                <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium">Receitas no Mês</CardTitle>
+                        <ArrowUpCircle className="h-5 w-5 text-green-500" />
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-2xl font-bold text-green-500">
+                            {monthlyIncome.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                        </div>
+                    </CardContent>
+                </Card>
+                <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium">Despesas no Mês</CardTitle>
+                        <ArrowDownCircle className="h-5 w-5 text-red-500" />
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-2xl font-bold text-red-500">
+                            {monthlyExpenses.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                        </div>
+                    </CardContent>
+                </Card>
+                <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium">Balanço Mensal</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-2xl font-bold">
+                            {(monthlyIncome + monthlyExpenses).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                        </div>
+                    </CardContent>
+                </Card>
+            </div>
 
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <div>
-            <CardTitle>Transações</CardTitle>
-          </div>
-          <Button onClick={openAddDialog}>
-            <PlusCircle className="mr-2 h-4 w-4" />
-            Adicionar Transação
-          </Button>
-        </CardHeader>
-        <CardContent>
-          <TransactionsTable 
-            transactions={transactions} 
-            onEdit={openEditDialog}
-            onDelete={handleDeleteTransaction}
-          />
+            <Card>
+                <CardHeader className="flex flex-row items-center justify-between">
+                <div>
+                    <CardTitle>Transações</CardTitle>
+                </div>
+                <Button onClick={openAddDialog}>
+                    <PlusCircle className="mr-2 h-4 w-4" />
+                    Adicionar Transação
+                </Button>
+                </CardHeader>
+                <CardContent>
+                <TransactionsTable 
+                    transactions={transactions} 
+                    onEdit={openEditDialog}
+                    onDelete={handleDeleteTransaction}
+                />
+                </CardContent>
+            </Card>
+            <AddTransactionDialog
+                isOpen={isDialogOpen}
+                onClose={handleDialogClose}
+                onSaveTransaction={handleSaveTransaction}
+                transaction={editingTransaction}
+            />
+            </div>
         </CardContent>
-      </Card>
-      <AddTransactionDialog
-        isOpen={isDialogOpen}
-        onClose={handleDialogClose}
-        onSaveTransaction={handleSaveTransaction}
-        transaction={editingTransaction}
-      />
-    </div>
+    </Card>
   );
 }
-
-    

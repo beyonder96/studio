@@ -30,48 +30,52 @@ export default function PantryPage() {
   const hasItems = pantryItems.length > 0;
 
   return (
-    <div className="flex flex-col gap-6">
-       <div>
-            <h1 className="text-3xl font-bold">Despensa</h1>
-            <p className="text-muted-foreground">O que você tem guardado em casa.</p>
-        </div>
+    <Card className="bg-white/10 dark:bg-black/10 backdrop-blur-3xl border-white/20 dark:border-black/20 rounded-3xl shadow-2xl">
+        <CardContent className="p-4 sm:p-6">
+            <div className="flex flex-col gap-6">
+            <div>
+                    <h1 className="text-3xl font-bold">Despensa</h1>
+                    <p className="text-muted-foreground">O que você tem guardado em casa.</p>
+                </div>
 
-      {hasItems ? (
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {(Object.keys(categorizedItems) as PantryCategory[]).map((category) => (
-            <Card key={category}>
-              <CardHeader className="flex flex-row items-center gap-4">
-                {categoryIcons[category]}
-                <CardTitle>{category}</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ul className="space-y-3">
-                  {categorizedItems[category].map((item) => (
-                    <li key={item.id} className="flex items-center justify-between">
-                      <span>{item.name}</span>
-                      <div className="flex items-center gap-2">
-                        <Button variant="outline" size="icon" className="h-7 w-7" onClick={() => updatePantryItemQuantity(item.id, item.quantity - 1)}>
-                          <Minus className="h-4 w-4" />
-                        </Button>
-                        <span className="font-mono text-sm font-semibold bg-muted px-3 py-1 rounded-md">{item.quantity}</span>
-                         <Button variant="outline" size="icon" className="h-7 w-7" onClick={() => updatePantryItemQuantity(item.id, item.quantity + 1)}>
-                          <Plus className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </li>
-                  ))}
-                </ul>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      ) : (
-        <div className="text-center text-muted-foreground py-16 border-2 border-dashed rounded-lg">
-            <ChevronsRight className="mx-auto h-12 w-12 text-muted-foreground" />
-            <h3 className="mt-4 text-lg font-medium">Sua despensa está vazia</h3>
-            <p className="mt-1 text-sm">Finalize uma lista de compras para adicionar itens aqui automaticamente.</p>
-        </div>
-      )}
-    </div>
+            {hasItems ? (
+                <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+                {(Object.keys(categorizedItems) as PantryCategory[]).map((category) => (
+                    <Card key={category}>
+                    <CardHeader className="flex flex-row items-center gap-4">
+                        {categoryIcons[category]}
+                        <CardTitle>{category}</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <ul className="space-y-3">
+                        {categorizedItems[category].map((item) => (
+                            <li key={item.id} className="flex items-center justify-between">
+                            <span>{item.name}</span>
+                            <div className="flex items-center gap-2">
+                                <Button variant="outline" size="icon" className="h-7 w-7" onClick={() => updatePantryItemQuantity(item.id, item.quantity - 1)}>
+                                <Minus className="h-4 w-4" />
+                                </Button>
+                                <span className="font-mono text-sm font-semibold bg-muted px-3 py-1 rounded-md">{item.quantity}</span>
+                                <Button variant="outline" size="icon" className="h-7 w-7" onClick={() => updatePantryItemQuantity(item.id, item.quantity + 1)}>
+                                <Plus className="h-4 w-4" />
+                                </Button>
+                            </div>
+                            </li>
+                        ))}
+                        </ul>
+                    </CardContent>
+                    </Card>
+                ))}
+                </div>
+            ) : (
+                <div className="text-center text-muted-foreground py-16 border-2 border-dashed rounded-lg">
+                    <ChevronsRight className="mx-auto h-12 w-12 text-muted-foreground" />
+                    <h3 className="mt-4 text-lg font-medium">Sua despensa está vazia</h3>
+                    <p className="mt-1 text-sm">Finalize uma lista de compras para adicionar itens aqui automaticamente.</p>
+                </div>
+            )}
+            </div>
+        </CardContent>
+    </Card>
   );
 }
