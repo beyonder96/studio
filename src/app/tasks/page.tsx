@@ -11,6 +11,7 @@ import { Progress } from '@/components/ui/progress';
 import { Plus, Trash2 } from 'lucide-react';
 import { FinanceContext } from '@/contexts/finance-context';
 import { cn } from '@/lib/utils';
+import { AnimatePresence, motion } from 'framer-motion';
 
 export default function TasksPage() {
   const { tasks, addTask, toggleTask, deleteTask } = useContext(FinanceContext);
@@ -73,32 +74,41 @@ export default function TasksPage() {
             </Card>
             
             <div className="space-y-3">
+                <AnimatePresence>
                 {tasks.length > 0 ? (
                 tasks.map(task => (
-                    <Card key={task.id} className={cn("p-4 transition-colors bg-transparent", task.completed && "bg-muted/50")}>
-                    <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-4">
-                        <Checkbox
-                            id={`task-${task.id}`}
-                            checked={task.completed}
-                            onCheckedChange={() => toggleTask(task.id)}
-                            className="h-5 w-5"
-                        />
-                        <Label
-                            htmlFor={`task-${task.id}`}
-                            className={cn(
-                            "text-base",
-                            task.completed && "text-muted-foreground line-through"
-                            )}
-                        >
-                            {task.text}
-                        </Label>
+                    <motion.div
+                        key={task.id}
+                        initial={{ opacity: 0, y: -10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, x: -20, transition: { duration: 0.2 } }}
+                        layout
+                    >
+                        <Card className={cn("p-4 transition-colors bg-transparent", task.completed && "bg-muted/50")}>
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-4">
+                            <Checkbox
+                                id={`task-${task.id}`}
+                                checked={task.completed}
+                                onCheckedChange={() => toggleTask(task.id)}
+                                className="h-5 w-5"
+                            />
+                            <Label
+                                htmlFor={`task-${task.id}`}
+                                className={cn(
+                                "text-base",
+                                task.completed && "text-muted-foreground line-through"
+                                )}
+                            >
+                                {task.text}
+                            </Label>
+                            </div>
+                            <Button variant="ghost" size="icon" onClick={() => deleteTask(task.id)} className="text-destructive hover:text-destructive">
+                            <Trash2 className="h-4 w-4" />
+                            </Button>
                         </div>
-                        <Button variant="ghost" size="icon" onClick={() => deleteTask(task.id)} className="text-destructive hover:text-destructive">
-                        <Trash2 className="h-4 w-4" />
-                        </Button>
-                    </div>
-                    </Card>
+                        </Card>
+                    </motion.div>
                 ))
                 ) : (
                 <div className="text-center text-muted-foreground py-16 border-2 border-dashed rounded-lg">
@@ -106,6 +116,7 @@ export default function TasksPage() {
                     <p className="mt-1 text-sm">Adicione uma nova tarefa para começar.</p>
                 </div>
                 )}
+                </AnimatePresence>
             </div>
             </div>
         </CardContent>

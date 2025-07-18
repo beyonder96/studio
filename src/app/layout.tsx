@@ -8,6 +8,7 @@ import { FinanceProvider } from '@/contexts/finance-context';
 import { usePathname } from 'next/navigation';
 import { Spotlight } from '@/components/ui/spotlight';
 import { SideNav } from '@/components/side-nav';
+import { AnimatePresence, motion } from 'framer-motion';
 
 export default function RootLayout({
   children,
@@ -37,7 +38,17 @@ export default function RootLayout({
         <FinanceProvider>
           <div className="flex flex-col min-h-screen">
               <main className="flex-1 w-full p-4 sm:p-6 md:p-8">
-                  {children}
+                <AnimatePresence mode="wait">
+                  <motion.div
+                    key={pathname}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -20 }}
+                    transition={{ duration: 0.3 }}
+                  >
+                    {children}
+                  </motion.div>
+                </AnimatePresence>
               </main>
           </div>
         </FinanceProvider>

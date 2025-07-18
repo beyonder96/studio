@@ -155,7 +155,7 @@ export default function ProfilePage() {
   return (
     <Card className="bg-white/10 dark:bg-black/10 backdrop-blur-3xl border-white/20 dark:border-black/20 rounded-3xl shadow-2xl">
         <CardContent className="p-0 sm:p-0">
-            <div className="flex flex-col min-h-screen -mx-4 -mt-4 sm:-mx-6 sm:-mt-6 bg-transparent">
+            <div className="flex flex-col -mx-4 -mt-4 sm:-mx-6 sm:-mt-6 bg-transparent">
             {/* Profile Header */}
             <div className="relative w-full h-[45vh] text-white">
                 <Image
