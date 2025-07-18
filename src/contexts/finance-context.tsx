@@ -72,7 +72,7 @@ const initialCards = [
 ];
 
 const initialIncomeCategories = ['Salário', 'Freelance', 'Investimentos', 'Outros'];
-const initialExpenseCategories = ['Alimentação', 'Moradia', 'Transporte', 'Lazer', 'Saúde', 'Educação', 'Compras', 'Outros'];
+const initialExpenseCategories = ['Alimentação', 'Moradia', 'Transporte', 'Lazer', 'Saúde', 'Educação', 'Compras', 'Transferência', 'Outros'];
 
 const initialPantryItems: PantryItem[] = [
     { id: 'p1', name: 'Leite Integral', quantity: 2, pantryCategory: 'Laticínios' },
@@ -289,7 +289,48 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
   };
 
 
-  const addTransaction = (transaction: Omit<Transaction, 'id'>, installments: number = 1) => {
+  const addTransaction = (transaction: Omit<Transaction, 'id'> & { fromAccount?: string; toAccount?: string }, installments: number = 1) => {
+    
+    // Handle Transfer
+    if (transaction.type === 'transfer') {
+        const { amount, fromAccount, toAccount, date } = transaction;
+        if (!fromAccount || !toAccount || !amount) return;
+
+        const transferAmount = Math.abs(amount);
+
+        // Create two transactions for a transfer
+        const expenseTransaction: Transaction = {
+            id: crypto.randomUUID(),
+            description: `Transferência para ${toAccount}`,
+            amount: -transferAmount,
+            date,
+            type: 'expense',
+            category: 'Transferência',
+            account: fromAccount,
+        };
+
+        const incomeTransaction: Transaction = {
+            id: crypto.randomUUID(),
+            description: `Transferência de ${fromAccount}`,
+            amount: transferAmount,
+            date,
+            type: 'income',
+            category: 'Transferência',
+            account: toAccount,
+        };
+        
+        // Update account balances
+        setAccounts(prev => prev.map(acc => {
+            if (acc.name === fromAccount) return { ...acc, balance: acc.balance - transferAmount };
+            if (acc.name === toAccount) return { ...acc, balance: acc.balance + transferAmount };
+            return acc;
+        }));
+
+        setTransactions(prev => [expenseTransaction, incomeTransaction, ...prev].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
+        return;
+    }
+
+
      if (installments > 1) {
       const installmentAmount = transaction.amount / installments;
       const installmentGroupId = crypto.randomUUID();
