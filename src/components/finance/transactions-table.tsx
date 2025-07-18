@@ -60,7 +60,7 @@ export function TransactionsTable({ transactions, onEdit, onDelete }: Transactio
         {/* Mobile View */}
         <div className="space-y-3 sm:hidden">
             {transactions.map((transaction) => (
-                <Card key={transaction.id} className="bg-background/50">
+                <Card key={transaction.id} className="bg-transparent">
                     <CardContent className="p-4 flex items-center justify-between gap-4">
                        <div className="flex-1 space-y-2">
                             <div className="flex items-center gap-2">
