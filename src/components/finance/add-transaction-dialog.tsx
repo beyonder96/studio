@@ -177,16 +177,16 @@ export function AddTransactionDialog({
         </DialogHeader>
         <form onSubmit={handleSubmit(onSubmit)}>
           <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="description" className="text-right">
+            <div className="grid grid-cols-1 md:grid-cols-4 items-center gap-4">
+              <Label htmlFor="description" className="md:text-right">
                 Descrição
               </Label>
-              <input id="description" {...register('description')} className="col-span-3 flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-base ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm" />
-               {errors.description && <p className="col-span-4 text-red-500 text-xs text-right">{errors.description.message}</p>}
+              <Input id="description" {...register('description')} className="md:col-span-3" />
+               {errors.description && <p className="md:col-span-4 text-red-500 text-xs md:text-right">{errors.description.message}</p>}
             </div>
 
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="amount" className="text-right">
+            <div className="grid grid-cols-1 md:grid-cols-4 items-center gap-4">
+              <Label htmlFor="amount" className="md:text-right">
                 Valor
               </Label>
                <Controller
@@ -194,25 +194,25 @@ export function AddTransactionDialog({
                 control={control}
                 render={({ field }) => (
                   <CurrencyInput
-                    className="col-span-3"
+                    className="md:col-span-3"
                     value={field.value}
                     onValueChange={(value) => setValue('amount', value || 0)}
                   />
                 )}
               />
-               {errors.amount && <p className="col-span-4 text-red-500 text-xs text-right">{errors.amount.message}</p>}
+               {errors.amount && <p className="md:col-span-4 text-red-500 text-xs md:text-right">{errors.amount.message}</p>}
             </div>
             
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="date" className="text-right">
+            <div className="grid grid-cols-1 md:grid-cols-4 items-center gap-4">
+              <Label htmlFor="date" className="md:text-right">
                 Data
               </Label>
-              <input id="date" type="date" {...register('date')} className="col-span-3 flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-base ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm" />
-               {errors.date && <p className="col-span-4 text-red-500 text-xs text-right">{errors.date.message}</p>}
+              <Input id="date" type="date" {...register('date')} className="md:col-span-3" />
+               {errors.date && <p className="md:col-span-4 text-red-500 text-xs md:text-right">{errors.date.message}</p>}
             </div>
 
-            <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="type" className="text-right">
+            <div className="grid grid-cols-1 md:grid-cols-4 items-center gap-4">
+                <Label htmlFor="type" className="md:text-right">
                     Tipo
                 </Label>
                 <Controller
@@ -220,7 +220,7 @@ export function AddTransactionDialog({
                     control={control}
                     render={({ field }) => (
                         <Select onValueChange={field.onChange} value={field.value} disabled={isEditing}>
-                            <SelectTrigger className="col-span-3">
+                            <SelectTrigger className="md:col-span-3">
                                 <SelectValue placeholder="Selecione o tipo" />
                             </SelectTrigger>
                             <SelectContent>
@@ -235,8 +235,8 @@ export function AddTransactionDialog({
             
             {(transactionType === 'income' || transactionType === 'expense') && (
               <>
-                <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="category" className="text-right">
+                <div className="grid grid-cols-1 md:grid-cols-4 items-center gap-4">
+                    <Label htmlFor="category" className="md:text-right">
                         Categoria
                     </Label>
                     <Controller
@@ -244,7 +244,7 @@ export function AddTransactionDialog({
                         control={control}
                         render={({ field }) => (
                             <Select onValueChange={field.onChange} value={field.value}>
-                                <SelectTrigger className="col-span-3">
+                                <SelectTrigger className="md:col-span-3">
                                     <SelectValue placeholder="Selecione uma categoria" />
                                 </SelectTrigger>
                                 <SelectContent>
@@ -255,13 +255,13 @@ export function AddTransactionDialog({
                             </Select>
                         )}
                     />
-                    {errors.category && <p className="col-span-4 text-red-500 text-xs text-right">{errors.category.message}</p>}
+                    {errors.category && <p className="md:col-span-4 text-red-500 text-xs md:text-right">{errors.category.message}</p>}
                 </div>
-                <div className="grid grid-cols-4 items-center gap-4 relative">
-                    <Label htmlFor="account" className="text-right">
+                <div className="grid grid-cols-1 md:grid-cols-4 items-center gap-4 relative">
+                    <Label htmlFor="account" className="md:text-right">
                         Conta/Cartão
                     </Label>
-                    <div className="col-span-3">
+                    <div className="md:col-span-3">
                          <Controller
                             name="account"
                             control={control}
@@ -293,11 +293,11 @@ export function AddTransactionDialog({
                 </div>
                 
                  {isCreditCard && transactionType === 'expense' && !isEditing && (
-                   <div className="grid grid-cols-4 items-center gap-4">
-                        <Label htmlFor="installments" className="text-right">
+                   <div className="grid grid-cols-1 md:grid-cols-4 items-center gap-4">
+                        <Label htmlFor="installments" className="md:text-right">
                            Parcelas
                         </Label>
-                        <div className="col-span-3">
+                        <div className="md:col-span-3">
                            <Input id="installments" type="number" {...register('installments')} min="1" />
                            {installmentValue !== null && (
                                 <p className="text-xs text-muted-foreground mt-1 text-right">
@@ -309,26 +309,28 @@ export function AddTransactionDialog({
                  )}
 
 
-                <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="isRecurring" className="text-right">
+                <div className="grid grid-cols-1 md:grid-cols-4 items-center gap-4">
+                    <Label htmlFor="isRecurring" className="md:text-right">
                         Recorrente
                     </Label>
-                    <Controller
-                        name="isRecurring"
-                        control={control}
-                        render={({ field }) => (
-                           <Switch
-                                id="isRecurring"
-                                checked={field.value}
-                                onCheckedChange={field.onChange}
-                                disabled={isEditing || (installments || 1) > 1}
-                            />
-                        )}
-                    />
+                     <div className="md:col-span-3 flex items-center">
+                        <Controller
+                            name="isRecurring"
+                            control={control}
+                            render={({ field }) => (
+                            <Switch
+                                    id="isRecurring"
+                                    checked={field.value}
+                                    onCheckedChange={field.onChange}
+                                    disabled={isEditing || (installments || 1) > 1}
+                                />
+                            )}
+                        />
+                    </div>
                 </div>
                 {isRecurring && !isEditing && (
-                    <div className="grid grid-cols-4 items-center gap-4">
-                        <Label htmlFor="frequency" className="text-right">
+                    <div className="grid grid-cols-1 md:grid-cols-4 items-center gap-4">
+                        <Label htmlFor="frequency" className="md:text-right">
                             Frequência
                         </Label>
                          <Controller
@@ -336,7 +338,7 @@ export function AddTransactionDialog({
                             control={control}
                             render={({ field }) => (
                                 <Select onValueChange={field.onChange} value={field.value}>
-                                    <SelectTrigger className="col-span-3">
+                                    <SelectTrigger className="md:col-span-3">
                                         <SelectValue placeholder="Selecione a frequência" />
                                     </SelectTrigger>
                                     <SelectContent>
@@ -354,7 +356,7 @@ export function AddTransactionDialog({
             )}
 
             {transactionType === 'transfer' && (
-                <p className="text-center text-sm text-muted-foreground col-span-4 py-4">
+                <p className="text-center text-sm text-muted-foreground col-span-1 md:col-span-4 py-4">
                     Funcionalidade de transferência em breve!
                 </p>
             )}
