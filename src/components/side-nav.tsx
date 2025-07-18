@@ -70,7 +70,7 @@ export function SideNav() {
       <div className="fixed top-1/2 right-0 -translate-y-1/2 z-50">
         <button
           onClick={() => setIsOpen(!isOpen)}
-          className="bg-background/80 backdrop-blur-lg border-l border-t border-b border-border p-2 rounded-l-2xl shadow-lg transition-transform hover:scale-105"
+          className="bg-background border-l border-t border-b border-border p-2 rounded-l-2xl shadow-lg transition-transform hover:scale-105"
           aria-label="Abrir navegação"
         >
           <PanelRightOpen className="h-6 w-6 text-muted-foreground" />
@@ -93,7 +93,7 @@ export function SideNav() {
               animate="visible"
               exit="hidden"
               transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-              className="fixed top-0 right-0 h-full w-64 bg-white/10 dark:bg-black/10 backdrop-blur-xl border-l border-border shadow-2xl z-50 flex flex-col"
+              className="fixed top-0 right-0 h-full w-64 bg-background border-l border-border shadow-2xl z-50 flex flex-col"
             >
               <div className="flex items-center justify-between p-4 border-b">
                  <h2 className="text-lg font-semibold">Navegação</h2>
@@ -112,7 +112,7 @@ export function SideNav() {
                             'flex items-center gap-4 p-3 rounded-lg transition-colors text-foreground',
                             isActive(item.href)
                               ? 'bg-primary/20 text-primary font-semibold'
-                              : 'hover:bg-foreground/10'
+                              : 'hover:bg-muted'
                           )}
                         >
                           <item.icon className="h-5 w-5" />
