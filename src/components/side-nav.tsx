@@ -109,10 +109,10 @@ export function SideNav() {
                       <Link href={item.href} onClick={handleLinkClick}>
                         <div
                           className={cn(
-                            'flex items-center gap-4 p-3 rounded-lg transition-colors',
+                            'flex items-center gap-4 p-3 rounded-lg transition-colors text-foreground',
                             isActive(item.href)
-                              ? 'bg-primary/10 text-primary font-semibold'
-                              : 'text-foreground hover:bg-muted'
+                              ? 'bg-primary/20 text-primary-foreground font-semibold'
+                              : 'hover:bg-black/10'
                           )}
                         >
                           <item.icon className="h-5 w-5" />
