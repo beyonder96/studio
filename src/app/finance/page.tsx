@@ -84,7 +84,7 @@ export default function FinancePage() {
         <CardContent className="p-4 sm:p-6">
             <div className="flex flex-col gap-6">
             <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-                <Card>
+                <Card className="bg-card/50 dark:bg-card/50">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium">Receitas no Mês</CardTitle>
                         <ArrowUpCircle className="h-5 w-5 text-green-500" />
@@ -95,7 +95,7 @@ export default function FinancePage() {
                         </div>
                     </CardContent>
                 </Card>
-                <Card>
+                <Card className="bg-card/50 dark:bg-card/50">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium">Despesas no Mês</CardTitle>
                         <ArrowDownCircle className="h-5 w-5 text-red-500" />
@@ -106,7 +106,7 @@ export default function FinancePage() {
                         </div>
                     </CardContent>
                 </Card>
-                <Card>
+                <Card className="bg-card/50 dark:bg-card/50">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium">Balanço Mensal</CardTitle>
                     </CardHeader>
@@ -118,7 +118,7 @@ export default function FinancePage() {
                 </Card>
             </div>
 
-            <Card>
+            <Card className="bg-card/50 dark:bg-card/50">
                 <CardHeader className="flex flex-row items-center justify-between">
                 <div>
                     <CardTitle>Transações</CardTitle>

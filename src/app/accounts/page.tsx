@@ -24,7 +24,7 @@ export default function AccountsPage() {
     <Card className="bg-white/10 dark:bg-black/10 backdrop-blur-3xl border-white/20 dark:border-black/20 rounded-3xl shadow-2xl">
         <CardContent className="p-4 sm:p-6">
             <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-                <Card>
+                <Card className="bg-card/50 dark:bg-card/50">
                     <CardHeader>
                         <div className="flex items-center justify-between">
                             <CardTitle>Categorias de Receita</CardTitle>
@@ -49,7 +49,7 @@ export default function AccountsPage() {
                         </ul>
                     </CardContent>
                 </Card>
-                <Card>
+                <Card className="bg-card/50 dark:bg-card/50">
                     <CardHeader>
                         <div className="flex items-center justify-between">
                             <CardTitle>Categorias de Despesa</CardTitle>

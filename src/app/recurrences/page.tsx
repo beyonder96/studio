@@ -32,7 +32,7 @@ export default function RecurrencesPage() {
   return (
     <Card className="bg-white/10 dark:bg-black/10 backdrop-blur-3xl border-white/20 dark:border-black/20 rounded-3xl shadow-2xl">
         <CardContent className="p-4 sm:p-6">
-            <Card>
+            <Card className="bg-card/50 dark:bg-card/50">
             <CardHeader>
                 <CardTitle>Transações Recorrentes</CardTitle>
                 <CardDescription>
