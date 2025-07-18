@@ -71,7 +71,7 @@ export default function Home() {
                     }}
                     modifiers={{ 
                         events: eventDates,
-                        today: today || new Date(), // Use today from state
+                        today: today ?? undefined,
                     }}
                     modifiersClassNames={{
                         events: "bg-primary/20 rounded-full",
