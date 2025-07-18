@@ -68,7 +68,7 @@ export default function TasksPage() {
                 </CardDescription>
                 </CardHeader>
                 <CardContent>
-                <Progress value={progressPercentage} className="h-3" />
+                <Progress value={progressPercentage} />
                 </CardContent>
             </Card>
             
