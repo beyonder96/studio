@@ -74,6 +74,19 @@ const initialCards = [
 const initialIncomeCategories = ['Salário', 'Freelance', 'Investimentos', 'Outros'];
 const initialExpenseCategories = ['Alimentação', 'Moradia', 'Transporte', 'Lazer', 'Saúde', 'Educação', 'Compras', 'Transferência', 'Outros'];
 
+const initialPantryCategories: PantryCategory[] = [
+    'Laticínios',
+    'Carnes',
+    'Peixes',
+    'Frutas e Vegetais',
+    'Grãos e Cereais',
+    'Enlatados e Conservas',
+    'Bebidas',
+    'Higiene e Limpeza',
+    'Outros',
+];
+
+
 const initialPantryItems: PantryItem[] = [
     { id: 'p1', name: 'Leite Integral', quantity: 2, pantryCategory: 'Laticínios' },
     { id: 'p2', name: 'Ovos', quantity: 12, pantryCategory: 'Outros' },
@@ -148,7 +161,7 @@ export type Appointment = {
 };
 
 
-export type PantryCategory = 'Laticínios' | 'Carnes' | 'Peixes' | 'Frutas e Vegetais' | 'Outros';
+export type PantryCategory = string;
 
 export type PantryItem = {
     id: string;
@@ -217,7 +230,11 @@ type FinanceContextType = {
   resetAllData: () => void;
   pantryItems: PantryItem[];
   addItemsToPantry: (items: { name: string, quantity: number }[]) => void;
+  addItemToPantry: (name: string, quantity: number, category: string) => void;
   updatePantryItemQuantity: (itemId: string, newQuantity: number) => void;
+  pantryCategories: PantryCategory[];
+  addPantryCategory: (name: string) => void;
+  deletePantryCategory: (name: string) => void;
   tasks: Task[];
   addTask: (text: string) => void;
   toggleTask: (id: string) => void;
@@ -261,6 +278,7 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
   const [expenseCategories, setExpenseCategories] = useState<string[]>(initialExpenseCategories);
   const [isSensitiveDataVisible, setIsSensitiveDataVisible] = useState(true);
   const [pantryItems, setPantryItems] = useState<PantryItem[]>(initialPantryItems);
+  const [pantryCategories, setPantryCategories] = useState<PantryCategory[]>(initialPantryCategories);
   const [tasks, setTasks] = useState<Task[]>(initialTasks);
   const [wishes, setWishes] = useState<Wish[]>(initialWishes);
   const [appointments, setAppointments] = useState<Appointment[]>(initialAppointments);
@@ -413,6 +431,16 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
     });
   };
 
+  const addItemToPantry = (name: string, quantity: number, category: string) => {
+      const newItem: PantryItem = {
+          id: crypto.randomUUID(),
+          name,
+          quantity,
+          pantryCategory: category,
+      };
+      setPantryItems(prev => [newItem, ...prev]);
+  };
+
   const updatePantryItemQuantity = (itemId: string, newQuantity: number) => {
     setPantryItems(prevPantryItems => {
       if (newQuantity <= 0) {
@@ -423,6 +451,28 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
       );
     });
   };
+  
+  const addPantryCategory = (name: string) => {
+    if (!pantryCategories.find(cat => cat.toLowerCase() === name.toLowerCase())) {
+        setPantryCategories(prev => [...prev, name]);
+    } else {
+        toast({
+            variant: 'destructive',
+            title: 'Categoria já existe',
+            description: `A categoria "${name}" já está na lista.`
+        })
+    }
+  }
+
+  const deletePantryCategory = (name: string) => {
+      // Move items from deleted category to 'Outros'
+      setPantryItems(prev => prev.map(item => 
+          item.pantryCategory === name ? { ...item, pantryCategory: 'Outros' } : item
+      ));
+      // Remove the category
+      setPantryCategories(prev => prev.filter(cat => cat !== name));
+  }
+
 
   const resetAllData = () => {
     setTransactions([]);
@@ -437,6 +487,7 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
     // We keep the categories for convenience
     setIncomeCategories(initialIncomeCategories);
     setExpenseCategories(initialExpenseCategories);
+    setPantryCategories(initialPantryCategories);
   };
   
   // Task Management
@@ -590,7 +641,8 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
     totalIncome, totalExpenses, totalBalance, countRecurringTransactions,
     isSensitiveDataVisible, toggleSensitiveDataVisibility, formatCurrency,
     resetAllData,
-    pantryItems, addItemsToPantry, updatePantryItemQuantity,
+    pantryItems, addItemsToPantry, addItemToPantry, updatePantryItemQuantity,
+    pantryCategories, addPantryCategory, deletePantryCategory,
     tasks, addTask, toggleTask, deleteTask,
     wishes, addWish, updateWish, deleteWish, toggleWishPurchased,
     appointments, appointmentCategories, addAppointment, updateAppointment, deleteAppointment,
