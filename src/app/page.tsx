@@ -11,7 +11,7 @@ import { TasksOverview } from '@/components/dashboard/tasks-overview';
 import { CopilotCard } from '@/components/dashboard/copilot-card';
 import { MonthOverview } from '@/components/dashboard/month-overview';
 import { ShoppingListOverview } from '@/components/dashboard/shopping-list-overview';
-import { useContext, useState } from 'react';
+import { useContext, useState, useEffect } from 'react';
 import { FinanceContext, Appointment } from '@/contexts/finance-context';
 import { AddAppointmentDialog } from '@/components/calendar/add-appointment-dialog';
 import { ptBR } from 'date-fns/locale';
@@ -24,6 +24,12 @@ export default function Home() {
 
   const [isAppointmentDialogOpen, setIsAppointmentDialogOpen] = useState(false);
   const [selectedDateForAppointment, setSelectedDateForAppointment] = useState<Date | undefined>();
+  const [today, setToday] = useState<Date | null>(null);
+
+  useEffect(() => {
+    // Set the date only on the client-side to avoid hydration mismatch
+    setToday(new Date());
+  }, []);
 
   const handleDateSelect = (date: Date | undefined) => {
     setSelectedDateForAppointment(date);
@@ -34,8 +40,6 @@ export default function Home() {
     addAppointment(data);
     setIsAppointmentDialogOpen(false);
   };
-
-  const today = new Date();
 
   return (
     <>
@@ -67,7 +71,7 @@ export default function Home() {
                     }}
                     modifiers={{ 
                         events: eventDates,
-                        today: today
+                        today: today || new Date(), // Use today from state
                     }}
                     modifiersClassNames={{
                         events: "bg-primary/20 rounded-full",
@@ -75,7 +79,7 @@ export default function Home() {
                     }}
                     footer={
                         <p className="text-xs text-muted-foreground mt-2">
-                           Hoje é {format(today, "PPP", { locale: ptBR })}.
+                           {today ? `Hoje é ${format(today, "PPP", { locale: ptBR })}.` : 'Carregando...'}
                         </p>
                     }
                   />
