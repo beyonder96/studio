@@ -17,7 +17,7 @@ import {
   Wallet,
   Landmark,
 } from "lucide-react";
-import { useContext } from "react";
+import { useContext, useEffect, useState } from "react";
 import { FinanceContext } from "@/contexts/finance-context";
 import Link from "next/link";
 import { Skeleton } from "../ui/skeleton";
@@ -41,7 +41,28 @@ const getIconForCategory = (category: string) => {
 
 export function TransactionsOverview() {
   const { transactions, formatCurrency, isSensitiveDataVisible } = useContext(FinanceContext);
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+
   const recentTransactions = transactions.slice(0, 5);
+  
+  const renderSkeletons = () => (
+    <div className="space-y-1">
+      {[...Array(3)].map((_, i) => (
+        <div key={i} className="flex items-center gap-3 py-3">
+          <Skeleton className="h-9 w-9 rounded-full" />
+          <div className="flex-1 space-y-1">
+            <Skeleton className="h-4 w-3/4 rounded-full" />
+            <Skeleton className="h-3 w-1/2 rounded-full" />
+          </div>
+          <Skeleton className="h-6 w-24 rounded-full" />
+        </div>
+      ))}
+    </div>
+  );
 
   return (
     <Card className="h-full bg-white/10 dark:bg-black/10 border-none shadow-none flex-grow">
@@ -49,45 +70,46 @@ export function TransactionsOverview() {
         <CardTitle>Transações Recentes</CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="space-y-1">
-          {recentTransactions.map((transaction) => (
-            <Link key={transaction.id} href={`/finance?edit=${transaction.id}`} className="block rounded-lg -mx-2 px-2 py-3 hover:bg-white/20 dark:hover:bg-black/20" scroll={false}>
-                <div className="flex items-center gap-3">
-                <Avatar className="h-9 w-9">
-                    <AvatarFallback className="bg-primary/20 text-primary">
-                    {getIconForCategory(transaction.category)}
-                    </AvatarFallback>
-                </Avatar>
-                <div className="flex-1">
-                    <p className="font-medium">
-                        {transaction.description}
-                        {transaction.totalInstallments && ` (${transaction.currentInstallment}/${transaction.totalInstallments})`}
+        {!isClient ? renderSkeletons() : (
+            <div className="space-y-1">
+            {recentTransactions.length > 0 ? recentTransactions.map((transaction) => (
+                <Link key={transaction.id} href={`/finance?edit=${transaction.id}`} className="block rounded-lg -mx-2 px-2 py-3 hover:bg-white/20 dark:hover:bg-black/20" scroll={false}>
+                    <div className="flex items-center gap-3">
+                    <Avatar className="h-9 w-9">
+                        <AvatarFallback className="bg-primary/20 text-primary">
+                        {getIconForCategory(transaction.category)}
+                        </AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1">
+                        <p className="font-medium">
+                            {transaction.description}
+                            {transaction.totalInstallments && ` (${transaction.currentInstallment}/${transaction.totalInstallments})`}
+                        </p>
+                        <p className="text-sm text-muted-foreground">
+                        {transaction.category}
+                        </p>
+                    </div>
+                    {isSensitiveDataVisible ? (
+                    <p
+                        className={cn(
+                            'font-mono text-sm font-medium',
+                            transaction.type === 'income' ? 'text-green-500' : 'text-red-500'
+                        )}
+                    >
+                        {transaction.amount > 0 ? '+' : ''}{formatCurrency(transaction.amount)}
                     </p>
-                    <p className="text-sm text-muted-foreground">
-                    {transaction.category}
-                    </p>
-                </div>
-                {isSensitiveDataVisible ? (
-                  <p
-                    className={cn(
-                        'font-mono text-sm font-medium',
-                        transaction.type === 'income' ? 'text-green-500' : 'text-red-500'
+                    ) : (
+                    <Skeleton className="h-6 w-24 rounded-full" />
                     )}
-                  >
-                      {transaction.amount > 0 ? '+' : ''}{formatCurrency(transaction.amount)}
-                  </p>
-                ) : (
-                  <Skeleton className="h-6 w-24 rounded-full" />
+                    </div>
+                </Link>
+            )) : (
+                    <div className="text-center text-muted-foreground py-8">
+                        Nenhuma transação recente.
+                    </div>
                 )}
-                </div>
-            </Link>
-          ))}
-           {recentTransactions.length === 0 && (
-                <div className="text-center text-muted-foreground py-8">
-                    Nenhuma transação recente.
-                </div>
-            )}
-        </div>
+            </div>
+        )}
       </CardContent>
     </Card>
   );
