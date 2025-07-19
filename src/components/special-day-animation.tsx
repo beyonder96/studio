@@ -6,6 +6,10 @@ import { motion, AnimatePresence } from 'framer-motion';
 import Confetti from 'react-confetti';
 import { Heart } from 'lucide-react';
 import { isSameDay, parseISO, getMonth, getDate } from 'date-fns';
+import { useAuth } from '@/contexts/auth-context';
+import { getDatabase, ref, onValue } from 'firebase/database';
+import { app as firebaseApp } from '@/lib/firebase';
+
 
 type SpecialDateType = 'anniversary' | 'birthday' | null;
 
@@ -36,6 +40,7 @@ const HeartComponent = ({ id, left }: { id: number; left: number }) => {
 };
 
 export function SpecialDayAnimation() {
+  const { user } = useAuth();
   const [specialDateType, setSpecialDateType] = useState<SpecialDateType>(null);
   const [windowSize, setWindowSize] = useState({ width: 0, height: 0 });
   const [showAnimation, setShowAnimation] = useState(false);
@@ -51,49 +56,58 @@ export function SpecialDayAnimation() {
   }, []);
 
   useEffect(() => {
-    const today = new Date();
-    const savedData = localStorage.getItem('app-profile-data');
-    if (!savedData) return;
+    if (!user) return;
 
-    const { sinceDate, birthday1, birthday2 } = JSON.parse(savedData);
+    const db = getDatabase(firebaseApp);
+    const profileRef = ref(db, `users/${user.uid}/profile`);
 
-    let type: SpecialDateType = null;
-    const todayMonth = getMonth(today);
-    const todayDay = getDate(today);
+    const unsubscribe = onValue(profileRef, (snapshot) => {
+        const profileData = snapshot.val();
+        if (!profileData) return;
 
-    if (sinceDate) {
-      const anniversaryDate = parseISO(sinceDate);
-      if (getMonth(anniversaryDate) === todayMonth && getDate(anniversaryDate) === todayDay) {
-        type = 'anniversary';
-      }
-    }
+        const today = new Date();
+        const { sinceDate, birthday1, birthday2 } = profileData;
 
-    if (!type && birthday1) {
-      const b1 = parseISO(birthday1);
-      if (getMonth(b1) === todayMonth && getDate(b1) === todayDay) {
-        type = 'birthday';
-      }
-    }
+        let type: SpecialDateType = null;
+        const todayMonth = getMonth(today);
+        const todayDay = getDate(today);
 
-    if (!type && birthday2) {
-      const b2 = parseISO(birthday2);
-      if (getMonth(b2) === todayMonth && getDate(b2) === todayDay) {
-        type = 'birthday';
-      }
-    }
+        if (sinceDate) {
+          const anniversaryDate = parseISO(sinceDate);
+          if (getMonth(anniversaryDate) === todayMonth && getDate(anniversaryDate) === todayDay) {
+            type = 'anniversary';
+          }
+        }
 
-    if (type) {
-      const lastCheck = localStorage.getItem('special-day-check');
-      const todayStr = today.toISOString().split('T')[0];
+        if (!type && birthday1) {
+          const b1 = parseISO(birthday1);
+          if (getMonth(b1) === todayMonth && getDate(b1) === todayDay) {
+            type = 'birthday';
+          }
+        }
 
-      if (lastCheck !== todayStr) {
-        setSpecialDateType(type);
-        setShowAnimation(true);
-        localStorage.setItem('special-day-check', todayStr);
-        setTimeout(() => setShowAnimation(false), 8000); // Hide after 8 seconds
-      }
-    }
-  }, []);
+        if (!type && birthday2) {
+          const b2 = parseISO(birthday2);
+          if (getMonth(b2) === todayMonth && getDate(b2) === todayDay) {
+            type = 'birthday';
+          }
+        }
+
+        if (type) {
+          const lastCheck = localStorage.getItem('special-day-check');
+          const todayStr = today.toISOString().split('T')[0];
+
+          if (lastCheck !== todayStr) {
+            setSpecialDateType(type);
+            setShowAnimation(true);
+            localStorage.setItem('special-day-check', todayStr);
+            setTimeout(() => setShowAnimation(false), 8000);
+          }
+        }
+    });
+
+    return () => unsubscribe();
+  }, [user]);
 
   const renderAnimation = () => {
     if (!showAnimation) return null;

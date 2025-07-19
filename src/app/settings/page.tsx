@@ -46,7 +46,7 @@ const getInitialTheme = (): Theme => {
 
 const getInitialColor = (): string => {
     if (typeof window === 'undefined') return pastelColors[0].value;
-    return localStorage.getItem('app-color') || pastelColors[0].value;
+    return localStorage.getItem('app-color') || pastelColors[2].value;
 };
 
 
@@ -79,17 +79,16 @@ export default function SettingsPage() {
   }, [tempTheme]);
 
   useEffect(() => {
-    document.documentElement.style.setProperty('--primary', tempColor);
-    document.documentElement.style.setProperty('--accent', tempColor);
-    document.documentElement.style.setProperty('--ring', tempColor);
+    document.documentElement.style.setProperty('--primary', `hsl(${tempColor})`);
+    const [h, s, l] = tempColor.split(' ').map(v => parseInt(v.replace('%', '')));
+    document.documentElement.style.setProperty('--accent', `hsl(${h} ${s}% ${l + (l < 50 ? 15 : -15)}% / 0.2)`);
+    document.documentElement.style.setProperty('--ring', `hsl(${tempColor})`);
   }, [tempColor]);
   
   const handleSaveAppearance = () => {
-    // Save to localStorage
     localStorage.setItem('app-theme', tempTheme);
     localStorage.setItem('app-color', tempColor);
     
-    // Update the "saved" state
     setSavedTheme(tempTheme);
     setSavedColor(tempColor);
     
@@ -268,8 +267,8 @@ export default function SettingsPage() {
                             <p className="text-sm text-muted-foreground">Saldo: {account.balance.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</p>
                             </div>
                             <div className="flex items-center gap-2">
-                            <Button variant="ghost" size="icon"><Edit className="h-4 w-4" /></Button>
-                            <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive"><Trash2 className="h-4 w-4" /></Button>
+                            <Button variant="ghost" size="icon" disabled><Edit className="h-4 w-4" /></Button>
+                            <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" disabled><Trash2 className="h-4 w-4" /></Button>
                             </div>
                         </li>
                         ))}
@@ -280,15 +279,15 @@ export default function SettingsPage() {
                             <p className="text-sm text-muted-foreground">Limite: {card.limit.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} | Vencimento: dia {card.dueDay}</p>
                             </div>
                             <div className="flex items-center gap-2">
-                            <Button variant="ghost" size="icon"><Edit className="h-4 w-4" /></Button>
-                            <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive"><Trash2 className="h-4 w-4" /></Button>
+                            <Button variant="ghost" size="icon" disabled><Edit className="h-4 w-4" /></Button>
+                            <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" disabled><Trash2 className="h-4 w-4" /></Button>
                             </div>
                         </li>
                         ))}
                     </ul>
                     </CardContent>
                     <CardFooter>
-                    <Button variant="outline" className="w-full">
+                    <Button variant="outline" className="w-full" disabled>
                         <PlusCircle className="mr-2 h-4 w-4" />
                         Adicionar Conta ou Cartão
                     </Button>

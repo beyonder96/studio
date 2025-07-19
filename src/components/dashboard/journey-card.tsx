@@ -6,6 +6,9 @@ import Link from 'next/link';
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { HeartHandshake } from 'lucide-react';
 import { differenceInYears, addYears, differenceInDays } from 'date-fns';
+import { useAuth } from '@/contexts/auth-context';
+import { getDatabase, ref, onValue } from 'firebase/database';
+import { app as firebaseApp } from '@/lib/firebase';
 
 const getSinceText = (isoDate?: string): { years: number, days: number } => {
     if (!isoDate) return { years: 0, days: 0 };
@@ -23,22 +26,22 @@ const getSinceText = (isoDate?: string): { years: number, days: number } => {
 }
 
 export function JourneyCard() {
+  const { user } = useAuth();
   const [sinceDate, setSinceDate] = useState<string | undefined>(undefined);
 
   useEffect(() => {
-    const updateSinceDate = () => {
-      const savedData = localStorage.getItem('app-profile-data');
-      if (savedData) {
-        setSinceDate(JSON.parse(savedData).sinceDate);
-      }
-    };
-
-    updateSinceDate();
-
-    // Listen for changes in localStorage from other tabs/windows
-    window.addEventListener('storage', updateSinceDate);
-    return () => window.removeEventListener('storage', updateSinceDate);
-  }, []);
+    if (user) {
+        const db = getDatabase(firebaseApp);
+        const sinceDateRef = ref(db, `users/${user.uid}/profile/sinceDate`);
+        const unsubscribe = onValue(sinceDateRef, (snapshot) => {
+            const date = snapshot.val();
+            if (date) {
+                setSinceDate(date);
+            }
+        });
+        return () => unsubscribe();
+    }
+  }, [user]);
 
   const { years, days } = getSinceText(sinceDate);
 

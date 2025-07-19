@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useContext } from 'react';
 import Image from 'next/image';
 import imageCompression from 'browser-image-compression';
 import { Button } from '@/components/ui/button';
@@ -16,22 +16,25 @@ import { format, differenceInYears, addYears, differenceInDays, isValid, parseIS
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { Textarea } from '@/components/ui/textarea';
-
+import { useAuth } from '@/contexts/auth-context';
+import { getDatabase, ref, onValue, update } from 'firebase/database';
+import { app as firebaseApp } from '@/lib/firebase';
 
 const defaultProfileImage = "https://placehold.co/600x800.png";
 
 type ProfileData = {
-  names: string;
+  names?: string;
   sinceDate?: string;
   birthday1?: string;
   birthday2?: string;
-  food: string;
-  movie: string;
-  music: string;
-  place: string;
-  email: string;
-  partnerEmail: string;
-  details: string;
+  food?: string;
+  movie?: string;
+  music?: string;
+  place?: string;
+  email?: string;
+  partnerEmail?: string;
+  details?: string;
+  profileImage?: string;
 };
 
 const defaultProfileData: ProfileData = {
@@ -45,7 +48,8 @@ const defaultProfileData: ProfileData = {
     place: 'A praia ao entardecer',
     email: '',
     partnerEmail: '',
-    details: 'Amamos viajar, descobrir novos restaurantes e assistir a séries juntos nos fins de semana. Sonhamos em conhecer o mundo, começando pela Itália!'
+    details: 'Amamos viajar, descobrir novos restaurantes e assistir a séries juntos nos fins de semana. Sonhamos em conhecer o mundo, começando pela Itália!',
+    profileImage: defaultProfileImage,
 };
 
 const getSinceText = (isoDate?: string): string => {
@@ -69,7 +73,7 @@ const getSinceText = (isoDate?: string): string => {
 
 export default function ProfilePage() {
   const { toast } = useToast();
-  const [profileImage, setProfileImage] = useState<string>(defaultProfileImage);
+  const { user } = useAuth();
   const [profileData, setProfileData] = useState<ProfileData>(defaultProfileData);
   const [tempData, setTempData] = useState<ProfileData>(defaultProfileData);
   const [isEditing, setIsEditing] = useState(false);
@@ -77,26 +81,30 @@ export default function ProfilePage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    // Load image from localStorage
-    const savedImage = localStorage.getItem('app-profile-image');
-    if (savedImage) {
-      setProfileImage(savedImage);
+    if (user) {
+      const db = getDatabase(firebaseApp);
+      const profileRef = ref(db, `users/${user.uid}/profile`);
+      
+      const unsubscribe = onValue(profileRef, (snapshot) => {
+        const data = snapshot.val();
+        if (data) {
+          const fetchedData = {
+              ...defaultProfileData,
+              ...data,
+              email: data.email || user.email,
+          };
+          setProfileData(fetchedData);
+          setTempData(fetchedData);
+        } else {
+            // If no profile, create one with defaults
+            const initialData = { ...defaultProfileData, email: user.email };
+            update(profileRef, initialData);
+        }
+      });
+
+      return () => unsubscribe();
     }
-  
-    // Load profile data from localStorage
-    const savedData = localStorage.getItem('app-profile-data');
-    if (savedData) {
-      // Merge saved data with defaults to ensure all fields are present
-      const parsedData = { ...defaultProfileData, ...JSON.parse(savedData) };
-      setProfileData(parsedData);
-      setTempData(parsedData);
-    } else {
-      // Set default if nothing is saved
-      localStorage.setItem('app-profile-data', JSON.stringify(defaultProfileData));
-      setProfileData(defaultProfileData);
-      setTempData(defaultProfileData);
-    }
-  }, []);
+  }, [user]);
 
   const handleImageClick = () => {
     if (isUploading) return;
@@ -105,11 +113,11 @@ export default function ProfilePage() {
 
   const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (file) {
+    if (file && user) {
       setIsUploading(true);
 
       const options = {
-        maxSizeMB: 1, // Compress to a smaller size for localStorage
+        maxSizeMB: 1,
         maxWidthOrHeight: 1920,
         useWebWorker: true,
       };
@@ -119,24 +127,23 @@ export default function ProfilePage() {
         const reader = new FileReader();
         reader.onloadend = () => {
           const result = reader.result as string;
-          try {
-              localStorage.setItem('app-profile-image', result);
-              setProfileImage(result);
-              window.dispatchEvent(new Event('storage')); // Notify other components of the change
-              toast({
-                  title: 'Foto de perfil atualizada!',
-                  description: 'Sua nova foto foi salva com sucesso.',
-              });
-          } catch (e) {
+          const db = getDatabase(firebaseApp);
+          const profileRef = ref(db, `users/${user.uid}/profile`);
+          update(profileRef, { profileImage: result }).then(() => {
+             toast({
+                title: 'Foto de perfil atualizada!',
+                description: 'Sua nova foto foi salva com sucesso.',
+             });
+          }).catch((e) => {
               console.error(e);
               toast({
                   variant: 'destructive',
                   title: 'Erro ao salvar a foto',
-                  description: 'A imagem é muito grande para ser salva. Tente uma imagem menor.',
+                  description: 'Não foi possível salvar a imagem. Tente novamente.',
               });
-          } finally {
-            setIsUploading(false);
-          }
+          }).finally(() => {
+             setIsUploading(false);
+          });
         };
         reader.readAsDataURL(compressedFile);
       } catch (error) {
@@ -161,21 +168,34 @@ export default function ProfilePage() {
   };
 
   const handleCancelClick = () => {
+    setTempData(profileData);
     setIsEditing(false);
   };
 
   const handleSaveClick = () => {
-    setProfileData(tempData);
-    localStorage.setItem('app-profile-data', JSON.stringify(tempData));
-    window.dispatchEvent(new Event('storage')); // Notify other components of the change
-    setIsEditing(false);
-    toast({
-      title: 'Perfil atualizado!',
-      description: 'Suas informações foram salvas com sucesso.',
+    if (!user) return;
+    const db = getDatabase(firebaseApp);
+    const profileRef = ref(db, `users/${user.uid}/profile`);
+    
+    // Create a new object for update to avoid sending undefined values
+    const dataToSave: Partial<ProfileData> = {};
+    (Object.keys(tempData) as Array<keyof ProfileData>).forEach(key => {
+        if (tempData[key] !== undefined) {
+             // @ts-ignore
+            dataToSave[key] = tempData[key];
+        }
+    });
+
+    update(profileRef, dataToSave).then(() => {
+        setIsEditing(false);
+        toast({
+          title: 'Perfil atualizado!',
+          description: 'Suas informações foram salvas com sucesso.',
+        });
     });
   };
 
-  const handleInputChange = (field: keyof Omit<ProfileData, 'sinceDate' | 'details' | 'birthday1' | 'birthday2'>, value: string) => {
+  const handleInputChange = (field: keyof Omit<ProfileData, 'sinceDate' | 'details' | 'birthday1' | 'birthday2' | 'profileImage'>, value: string) => {
     setTempData(prev => ({...prev, [field]: value}));
   };
   
@@ -184,24 +204,24 @@ export default function ProfilePage() {
   };
   
   const handleDateSelect = (date: Date | undefined, field: 'sinceDate' | 'birthday1' | 'birthday2') => {
-    if (date) {
+    if (date && user) {
       const newDate = date.toISOString();
-      if (!isEditing) {
-        const updatedData = { ...profileData, [field]: newDate };
-        setProfileData(updatedData);
-        localStorage.setItem('app-profile-data', JSON.stringify(updatedData));
-        window.dispatchEvent(new Event('storage'));
-        toast({
+      const db = getDatabase(firebaseApp);
+      const profileRef = ref(db, `users/${user.uid}/profile`);
+      update(profileRef, { [field]: newDate });
+      
+      if (isEditing) {
+        setTempData(prev => ({...prev, [field]: newDate }));
+      } else {
+         toast({
             title: 'Data atualizada!',
             description: 'A data foi salva com sucesso.',
         });
-      } else {
-        setTempData(prev => ({...prev, [field]: newDate }));
       }
     }
   }
 
-  const DateSelector = ({ date, onSelect, label, isEditing }: { date?: string; onSelect: (d?: Date) => void; label: string; isEditing: boolean }) => {
+  const DateSelector = ({ date, onSelect, label }: { date?: string; onSelect: (d?: Date) => void; label: string; }) => {
     const selectedDate = date && isValid(parseISO(date)) ? parseISO(date) : undefined;
     return (
         <Popover>
@@ -233,7 +253,7 @@ export default function ProfilePage() {
             {/* Profile Header */}
             <div className="relative w-full h-[45vh] text-white">
                 <Image
-                src={profileImage}
+                src={profileData.profileImage || defaultProfileImage}
                 alt="Foto do casal"
                 fill
                 className="object-cover brightness-90"
@@ -353,13 +373,11 @@ export default function ProfilePage() {
                                     date={tempData.birthday1}
                                     onSelect={(d) => handleDateSelect(d, 'birthday1')}
                                     label="Aniversário de..."
-                                    isEditing={isEditing}
                                 />
                                 <DateSelector
                                     date={tempData.birthday2}
                                     onSelect={(d) => handleDateSelect(d, 'birthday2')}
                                     label="Aniversário de..."
-                                    isEditing={isEditing}
                                 />
                             </>
                         ) : (

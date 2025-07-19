@@ -12,7 +12,8 @@ import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
 import { Loader2 } from 'lucide-react';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
-import { auth } from '@/lib/firebase';
+import { getDatabase, ref, set } from 'firebase/database';
+import { auth, app as firebaseApp } from '@/lib/firebase';
 import { useAuth } from '@/contexts/auth-context';
 
 export default function SignupPage() {
@@ -44,12 +45,19 @@ export default function SignupPage() {
     setIsLoading(true);
     
     try {
-        await createUserWithEmailAndPassword(auth, email, password);
-        
-        // In a real app, you would save the 'names' to a user profile in Firestore
-        // For now, we can save it to localStorage to be picked up by the profile page
-        const profileData = { names, email, partnerEmail: '' };
-        localStorage.setItem('app-profile-data', JSON.stringify(profileData));
+        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+        const newUser = userCredential.user;
+
+        // Save profile data to Realtime Database
+        const db = getDatabase(firebaseApp);
+        const profileRef = ref(db, `users/${newUser.uid}/profile`);
+        const profileData = { 
+            names, 
+            email: newUser.email,
+            partnerEmail: '',
+            profileImage: 'https://placehold.co/600x800.png',
+        };
+        await set(profileRef, profileData);
 
         toast({
             title: 'Cadastro realizado com sucesso!',

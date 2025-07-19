@@ -17,8 +17,9 @@ import {
 import { CreditCard, HelpCircle, LogOut, Settings, User as UserIcon } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/auth-context";
-import { auth } from "@/lib/firebase";
+import { auth, app as firebaseApp } from "@/lib/firebase";
 import { signOut } from "firebase/auth";
+import { getDatabase, ref, onValue } from "firebase/database";
 
 export function UserNav() {
     const router = useRouter();
@@ -27,29 +28,20 @@ export function UserNav() {
     const [profileName, setProfileName] = useState("Carregando...");
 
     useEffect(() => {
-        const updateProfileInfo = () => {
-            const savedImage = localStorage.getItem('app-profile-image');
-            if (savedImage) setProfileImage(savedImage);
+        if (user) {
+            const db = getDatabase(firebaseApp);
+            const profileRef = ref(db, `users/${user.uid}/profile`);
             
-            const savedData = localStorage.getItem('app-profile-data');
-            if (savedData) {
-                const data = JSON.parse(savedData);
-                setProfileName(data.names || "Casal");
-            } else if (user?.displayName) {
-                setProfileName(user.displayName);
-            }
-        };
+            const unsubscribe = onValue(profileRef, (snapshot) => {
+                const data = snapshot.val();
+                if (data) {
+                    setProfileName(data.names || "Casal");
+                    setProfileImage(data.profileImage || "https://placehold.co/80x80.png");
+                }
+            });
 
-        updateProfileInfo();
-
-        const handleStorageChange = (e: StorageEvent) => {
-            if (e.key === 'app-profile-image' || e.key === 'app-profile-data') {
-                updateProfileInfo();
-            }
-        };
-
-        window.addEventListener('storage', handleStorageChange);
-        return () => window.removeEventListener('storage', handleStorageChange);
+            return () => unsubscribe();
+        }
     }, [user]);
     
     const handleLogout = async () => {

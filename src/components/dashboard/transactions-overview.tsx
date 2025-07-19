@@ -22,6 +22,7 @@ import { FinanceContext } from "@/contexts/finance-context";
 import Link from "next/link";
 import { Skeleton } from "../ui/skeleton";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/contexts/auth-context";
 
 
 const categoryIcons: { [key: string]: React.ReactNode } = {
@@ -41,13 +42,17 @@ const getIconForCategory = (category: string) => {
 
 export function TransactionsOverview() {
   const { transactions, formatCurrency, isSensitiveDataVisible } = useContext(FinanceContext);
+  const { loading: authLoading } = useAuth();
   const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
     setIsClient(true);
   }, []);
-
-  const recentTransactions = transactions.slice(0, 5);
+  
+  // Sort transactions by date descending and take the first 5
+  const recentTransactions = [...transactions]
+    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+    .slice(0, 5);
   
   const renderSkeletons = () => (
     <div className="space-y-1">
@@ -70,7 +75,7 @@ export function TransactionsOverview() {
         <CardTitle>Transações Recentes</CardTitle>
       </CardHeader>
       <CardContent>
-        {!isClient ? renderSkeletons() : (
+        {!isClient || authLoading ? renderSkeletons() : (
             <div className="space-y-1">
             {recentTransactions.length > 0 ? recentTransactions.map((transaction) => (
                 <Link key={transaction.id} href={`/finance?edit=${transaction.id}`} className="block rounded-lg -mx-2 px-2 py-3 hover:bg-white/20 dark:hover:bg-black/20" scroll={false}>
