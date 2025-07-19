@@ -18,6 +18,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // auth will be undefined on the server, so we need to check for its existence.
+    if (!auth) {
+      setLoading(false);
+      return;
+    }
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       setUser(user);
       setLoading(false);

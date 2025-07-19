@@ -25,6 +25,14 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   
   const handleLogin = async () => {
+    if (!auth) {
+      toast({
+        variant: 'destructive',
+        title: 'Erro de Configuração',
+        description: 'A autenticação não está disponível. Verifique as configurações do Firebase.',
+      });
+      return;
+    }
     setIsLoading(true);
     try {
         await signInWithEmailAndPassword(auth, email, password);

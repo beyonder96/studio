@@ -35,6 +35,15 @@ export default function SignupPage() {
         return;
     }
 
+    if (!auth) {
+      toast({
+        variant: 'destructive',
+        title: 'Erro de Configuração',
+        description: 'A autenticação não está disponível. Verifique as configurações do Firebase.',
+      });
+      return;
+    }
+
     setIsLoading(true);
     
     try {
