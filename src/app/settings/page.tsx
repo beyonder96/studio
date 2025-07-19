@@ -22,7 +22,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
-import { PlusCircle, Edit, Trash2, Moon, Sun, AlertTriangle, Check, Save } from 'lucide-react';
+import { PlusCircle, Moon, Sun, AlertTriangle, Check, Save, Trash2, Edit } from 'lucide-react';
 import { FinanceContext } from '@/contexts/finance-context';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
