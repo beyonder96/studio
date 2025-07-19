@@ -4,13 +4,18 @@
 import Link from 'next/link';
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { useContext } from "react";
+import { useContext, useState, useEffect } from "react";
 import { FinanceContext } from "@/contexts/finance-context";
 import { ShoppingBasket } from 'lucide-react';
 
 export function ShoppingListOverview() {
   const { shoppingLists } = useContext(FinanceContext);
   const listsToDisplay = shoppingLists.slice(0, 3); // Show up to 3 lists
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   const getProgress = (list: { items: { checked: boolean }[] }) => {
     if (!list || list.items.length === 0) return 0;
@@ -28,7 +33,11 @@ export function ShoppingListOverview() {
                 </CardTitle>
             </CardHeader>
             <CardContent>
-                {listsToDisplay.length > 0 ? (
+                {!isClient ? (
+                    <div className="text-center text-muted-foreground py-4">
+                        <p className="text-sm">Carregando listas...</p>
+                    </div>
+                ) : listsToDisplay.length > 0 ? (
                     <div className="space-y-4">
                         {listsToDisplay.map((list) => {
                             const progress = getProgress(list);
