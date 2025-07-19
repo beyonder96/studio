@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { createContext, useState, ReactNode, useEffect } from 'react';
+import React, { createContext, useState, ReactNode, useEffect, useMemo, useCallback } from 'react';
 import type { Transaction } from '@/components/finance/transactions-table';
 import { addMonths, format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
@@ -9,26 +9,32 @@ import { useToast } from '@/hooks/use-toast';
 // --- LocalStorage Helper Functions ---
 
 const useStickyState = <T,>(defaultValue: T, key: string): [T, React.Dispatch<React.SetStateAction<T>>] => {
-  const [value, setValue] = useState<T>(() => {
-    if (typeof window === 'undefined') {
-      return defaultValue;
-    }
-    try {
-      const stickyValue = window.localStorage.getItem(key);
-      return stickyValue !== null ? JSON.parse(stickyValue) : defaultValue;
-    } catch (error) {
-      console.warn(`Error reading localStorage key “${key}”:`, error);
-      return defaultValue;
-    }
-  });
+  const [value, setValue] = useState<T>(defaultValue);
+  const [isInitialized, setIsInitialized] = useState(false);
 
   useEffect(() => {
-    try {
-      window.localStorage.setItem(key, JSON.stringify(value));
-    } catch (error) {
-      console.warn(`Error setting localStorage key “${key}”:`, error);
+    if (typeof window !== 'undefined') {
+      try {
+        const stickyValue = window.localStorage.getItem(key);
+        if (stickyValue !== null) {
+          setValue(JSON.parse(stickyValue));
+        }
+      } catch (error) {
+        console.warn(`Error reading localStorage key “${key}”:`, error);
+      }
+      setIsInitialized(true);
     }
-  }, [key, value]);
+  }, [key]);
+
+  useEffect(() => {
+    if (isInitialized && typeof window !== 'undefined') {
+      try {
+        window.localStorage.setItem(key, JSON.stringify(value));
+      } catch (error) {
+        console.warn(`Error setting localStorage key “${key}”:`, error);
+      }
+    }
+  }, [key, value, isInitialized]);
 
   return [value, setValue];
 };
@@ -513,21 +519,19 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
     setTransactions(initialTransactions);
     setAccounts(initialAccounts);
     setCards(initialCards);
+    setIncomeCategories(initialIncomeCategories);
+    setExpenseCategories(initialExpenseCategories);
     setPantryItems(initialPantryItems);
+    setPantryCategories(initialPantryCategories);
     setTasks(initialTasks);
     setWishes(initialWishes);
     setAppointments(initialAppointments);
     setShoppingLists(initialShoppingLists);
     setSelectedListId(initialShoppingLists[0]?.id || null);
     
-    // We keep the categories for convenience
-    setIncomeCategories(initialIncomeCategories);
-    setExpenseCategories(initialExpenseCategories);
-    setPantryCategories(initialPantryCategories);
-    
     toast({
         title: "Dados Resetados!",
-        description: "O aplicativo foi restaurado para o estado inicial."
+        description: "O aplicativo foi restaurado para o estado de demonstração."
     })
   };
   
@@ -702,5 +706,3 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
     </FinanceContext.Provider>
   );
 };
-
-    
