@@ -22,10 +22,11 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
-import { PlusCircle, Edit, Trash2, Moon, Sun, AlertTriangle, Check } from 'lucide-react';
+import { PlusCircle, Edit, Trash2, Moon, Sun, AlertTriangle, Check, Save } from 'lucide-react';
 import { FinanceContext } from '@/contexts/finance-context';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
+import { useToast } from '@/hooks/use-toast';
 
 const pastelColors = [
   { name: 'Amarelo', value: '45 95% 55%' },
@@ -60,24 +61,46 @@ export default function SettingsPage() {
     incomeCategories,
     expenseCategories,
   } = useContext(FinanceContext);
+  const { toast } = useToast();
 
-  const [theme, setTheme] = useState<Theme>(getInitialTheme);
-  const [selectedColor, setSelectedColor] = useState<string>(getInitialColor);
+  const [savedTheme, setSavedTheme] = useState<Theme>(getInitialTheme);
+  const [savedColor, setSavedColor] = useState<string>(getInitialColor);
+  
+  const [tempTheme, setTempTheme] = useState<Theme>(savedTheme);
+  const [tempColor, setTempColor] = useState<string>(savedColor);
+  
   const [newCategoryName, setNewCategoryName] = useState('');
   const [categoryToDelete, setCategoryToDelete] = useState<string | null>(null);
 
+  // Apply visual changes immediately based on temporary selections
   useEffect(() => {
     document.documentElement.classList.remove('light', 'dark');
-    document.documentElement.classList.add(theme);
-    localStorage.setItem('app-theme', theme);
-  }, [theme]);
+    document.documentElement.classList.add(tempTheme);
+  }, [tempTheme]);
 
   useEffect(() => {
-    document.documentElement.style.setProperty('--primary', selectedColor);
-    document.documentElement.style.setProperty('--accent', selectedColor);
-    document.documentElement.style.setProperty('--ring', selectedColor);
-    localStorage.setItem('app-color', selectedColor);
-  }, [selectedColor]);
+    document.documentElement.style.setProperty('--primary', tempColor);
+    document.documentElement.style.setProperty('--accent', tempColor);
+    document.documentElement.style.setProperty('--ring', tempColor);
+  }, [tempColor]);
+  
+  const handleSaveAppearance = () => {
+    // Save to localStorage
+    localStorage.setItem('app-theme', tempTheme);
+    localStorage.setItem('app-color', tempColor);
+    
+    // Update the "saved" state
+    setSavedTheme(tempTheme);
+    setSavedColor(tempColor);
+    
+    toast({
+        title: 'Aparência Salva!',
+        description: 'Seu novo tema e cor de destaque foram salvos.',
+    });
+  };
+
+  const isAppearanceDirty = tempTheme !== savedTheme || tempColor !== savedColor;
+
 
   const handleAddCategory = () => {
     if(newCategoryName.trim()) {
@@ -109,10 +132,10 @@ export default function SettingsPage() {
                     <div>
                         <Label className="block mb-2 font-medium">Tema</Label>
                         <div className="flex gap-2">
-                        <Button variant={theme === 'light' ? 'default' : 'outline'} onClick={() => setTheme('light')}>
+                        <Button variant={tempTheme === 'light' ? 'default' : 'outline'} onClick={() => setTempTheme('light')}>
                             <Sun className="mr-2 h-4 w-4" /> Claro
                         </Button>
-                        <Button variant={theme === 'dark' ? 'default' : 'outline'} onClick={() => setTheme('dark')}>
+                        <Button variant={tempTheme === 'dark' ? 'default' : 'outline'} onClick={() => setTempTheme('dark')}>
                             <Moon className="mr-2 h-4 w-4" /> Escuro
                         </Button>
                         </div>
@@ -125,17 +148,25 @@ export default function SettingsPage() {
                             key={color.name}
                             variant="outline"
                             size="icon"
-                            className={`h-10 w-10 rounded-full border-2 flex items-center justify-center ${selectedColor === color.value ? 'border-primary' : 'border-transparent'}`}
-                            onClick={() => setSelectedColor(color.value)}
+                            className={`h-10 w-10 rounded-full border-2 flex items-center justify-center ${tempColor === color.value ? 'border-ring' : 'border-transparent'}`}
+                            onClick={() => setTempColor(color.value)}
                             style={{ backgroundColor: `hsl(${color.value})` }}
                             aria-label={`Selecionar cor ${color.name}`}
                             >
-                            {selectedColor === color.value && <Check className="h-5 w-5 text-primary-foreground" />}
+                            {tempColor === color.value && <Check className="h-5 w-5 text-primary-foreground" />}
                             </Button>
                         ))}
                         </div>
                     </div>
                     </CardContent>
+                     {isAppearanceDirty && (
+                        <CardFooter>
+                            <Button onClick={handleSaveAppearance}>
+                                <Save className="mr-2 h-4 w-4" />
+                                Salvar Alterações de Aparência
+                            </Button>
+                        </CardFooter>
+                    )}
                 </Card>
 
                 {/* Categories */}
