@@ -9,6 +9,7 @@ import { usePathname } from 'next/navigation';
 import { Spotlight } from '@/components/ui/spotlight';
 import { SideNav } from '@/components/side-nav';
 import { AnimatePresence, motion } from 'framer-motion';
+import { SpecialDayAnimation } from '@/components/special-day-animation';
 
 export default function RootLayout({
   children,
@@ -34,6 +35,7 @@ export default function RootLayout({
           'min-h-screen bg-gradient-to-br from-rose-100 via-purple-100 to-cyan-100 dark:from-gray-900 dark:via-purple-900/50 dark:to-gray-900 font-sans antialiased',
         )}
       >
+        <SpecialDayAnimation />
         <Spotlight />
         <FinanceProvider>
           <div className="flex flex-col min-h-screen">

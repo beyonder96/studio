@@ -8,11 +8,11 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { ArrowLeft, Camera, Edit, Utensils, Film, Music, MapPin, Save, Calendar as CalendarIcon, Loader2, Disc, Mail, Users, Info } from 'lucide-react';
+import { ArrowLeft, Camera, Edit, Utensils, Film, Music, MapPin, Save, Calendar as CalendarIcon, Loader2, Disc, Mail, Users, Info, Gift as GiftIcon } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
-import { format, differenceInYears, addYears, differenceInDays } from 'date-fns';
+import { format, differenceInYears, addYears, differenceInDays, isValid, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { Textarea } from '@/components/ui/textarea';
@@ -22,7 +22,9 @@ const defaultProfileImage = "https://placehold.co/600x800.png";
 
 type ProfileData = {
   names: string;
-  sinceDate?: string; // Store date as ISO string
+  sinceDate?: string;
+  birthday1?: string;
+  birthday2?: string;
   food: string;
   movie: string;
   music: string;
@@ -35,6 +37,8 @@ type ProfileData = {
 const defaultProfileData: ProfileData = {
     names: 'Kenned & Nicoli',
     sinceDate: new Date().toISOString(),
+    birthday1: undefined,
+    birthday2: undefined,
     food: 'Pizza',
     movie: 'Interestelar',
     music: 'Bohemian Rhapsody',
@@ -45,8 +49,8 @@ const defaultProfileData: ProfileData = {
 };
 
 const getSinceText = (isoDate?: string): string => {
-    if (!isoDate) return 'Defina a data de início';
-    const startDate = new Date(isoDate);
+    if (!isoDate || !isValid(parseISO(isoDate))) return 'Defina a data de início';
+    const startDate = parseISO(isoDate);
     const now = new Date();
     
     const totalDays = differenceInDays(now, startDate);
@@ -171,7 +175,7 @@ export default function ProfilePage() {
     });
   };
 
-  const handleInputChange = (field: keyof Omit<ProfileData, 'sinceDate' | 'details'>, value: string) => {
+  const handleInputChange = (field: keyof Omit<ProfileData, 'sinceDate' | 'details' | 'birthday1' | 'birthday2'>, value: string) => {
     setTempData(prev => ({...prev, [field]: value}));
   };
   
@@ -179,25 +183,48 @@ export default function ProfilePage() {
     setTempData(prev => ({ ...prev, [field]: value }));
   };
   
-  const handleDateSelect = (date: Date | undefined) => {
+  const handleDateSelect = (date: Date | undefined, field: 'sinceDate' | 'birthday1' | 'birthday2') => {
     if (date) {
-      const newSinceDate = date.toISOString();
-      // Update immediately if not in edit mode
+      const newDate = date.toISOString();
       if (!isEditing) {
-        const updatedData = { ...profileData, sinceDate: newSinceDate };
+        const updatedData = { ...profileData, [field]: newDate };
         setProfileData(updatedData);
         localStorage.setItem('app-profile-data', JSON.stringify(updatedData));
         window.dispatchEvent(new Event('storage'));
         toast({
             title: 'Data atualizada!',
-            description: 'A data do relacionamento foi salva.',
+            description: 'A data foi salva com sucesso.',
         });
       } else {
-        // Update temp data if in edit mode
-        setTempData(prev => ({...prev, sinceDate: newSinceDate }));
+        setTempData(prev => ({...prev, [field]: newDate }));
       }
     }
   }
+
+  const DateSelector = ({ date, onSelect, label, isEditing }: { date?: string; onSelect: (d?: Date) => void; label: string; isEditing: boolean }) => {
+    const selectedDate = date && isValid(parseISO(date)) ? parseISO(date) : undefined;
+    return (
+        <Popover>
+            <PopoverTrigger asChild>
+                <Button variant="outline" className={cn("w-full justify-start text-left font-normal", !date && "text-muted-foreground")}>
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {date ? format(date, "PPP", { locale: ptBR }) : <span>{label}</span>}
+                </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+                <Calendar
+                    mode="single"
+                    selected={selectedDate}
+                    onSelect={onSelect}
+                    disabled={(date) => date > new Date() || date < new Date("1900-01-01")}
+                    initialFocus
+                    locale={ptBR}
+                />
+            </PopoverContent>
+        </Popover>
+    );
+};
+
 
   return (
     <Card className="bg-white/10 dark:bg-black/10 backdrop-blur-3xl border-white/20 dark:border-black/20 rounded-3xl shadow-2xl overflow-hidden">
@@ -252,7 +279,7 @@ export default function ProfilePage() {
                         <Calendar
                         mode="single"
                         selected={isEditing ? (tempData.sinceDate ? new Date(tempData.sinceDate) : undefined) : (profileData.sinceDate ? new Date(profileData.sinceDate) : undefined)}
-                        onSelect={handleDateSelect}
+                        onSelect={(d) => handleDateSelect(d, 'sinceDate')}
                         disabled={(date) => date > new Date() || date < new Date("1900-01-01")}
                         initialFocus
                         locale={ptBR}
@@ -312,6 +339,44 @@ export default function ProfilePage() {
                         </CardContent>
                     </Card>
                 )}
+
+                 <Card className="bg-transparent">
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                           <GiftIcon className="h-5 w-5" />
+                           Datas Importantes
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                       {isEditing ? (
+                            <>
+                                <DateSelector
+                                    date={tempData.birthday1}
+                                    onSelect={(d) => handleDateSelect(d, 'birthday1')}
+                                    label="Aniversário de..."
+                                    isEditing={isEditing}
+                                />
+                                <DateSelector
+                                    date={tempData.birthday2}
+                                    onSelect={(d) => handleDateSelect(d, 'birthday2')}
+                                    label="Aniversário de..."
+                                    isEditing={isEditing}
+                                />
+                            </>
+                        ) : (
+                             <>
+                                {profileData.birthday1 ? (
+                                    <p className="text-muted-foreground">Aniversário 1: {format(parseISO(profileData.birthday1), "PPP", { locale: ptBR })}</p>
+                                ) : (
+                                    <p className="text-muted-foreground">Defina as datas de aniversário no modo de edição.</p>
+                                )}
+                                {profileData.birthday2 && (
+                                     <p className="text-muted-foreground">Aniversário 2: {format(parseISO(profileData.birthday2), "PPP", { locale: ptBR })}</p>
+                                )}
+                             </>
+                        )}
+                    </CardContent>
+                </Card>
 
                 <Card className="bg-transparent">
                     <CardHeader>
