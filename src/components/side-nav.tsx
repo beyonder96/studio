@@ -34,7 +34,6 @@ const navItems = [
   { href: '/finance', icon: Banknote, label: 'Finanças' },
   { href: '/purchases', icon: ShoppingBasket, label: 'Compras' },
   { href: '/wishes', icon: Gift, label: 'Desejos' },
-  { href: '/recurrences', icon: ArrowRightLeft, label: 'Recorrências' },
   { href: '/pantry', icon: Carrot, label: 'Despensa' },
   { href: '/tasks', icon: CheckSquare, label: 'Tarefas' },
   { href: '/calendar', icon: Calendar, label: 'Calendário' },
@@ -133,3 +132,5 @@ export function SideNav() {
     </TooltipProvider>
   );
 }
+
+    
