@@ -39,8 +39,8 @@ const defaultProfileData: ProfileData = {
     movie: 'Interestelar',
     music: 'Bohemian Rhapsody',
     place: 'A praia ao entardecer',
-    email: 'seuemail@exemplo.com',
-    partnerEmail: 'parceiro@exemplo.com',
+    email: '',
+    partnerEmail: '',
     details: 'Amamos viajar, descobrir novos restaurantes e assistir a séries juntos nos fins de semana. Sonhamos em conhecer o mundo, começando pela Itália!'
 };
 
@@ -73,19 +73,24 @@ export default function ProfilePage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    // Load image and data from localStorage only on the client-side
+    // Load image from localStorage
     const savedImage = localStorage.getItem('app-profile-image');
     if (savedImage) {
       setProfileImage(savedImage);
     }
+  
+    // Load profile data from localStorage
     const savedData = localStorage.getItem('app-profile-data');
     if (savedData) {
-      const parsedData = JSON.parse(savedData);
+      // Merge saved data with defaults to ensure all fields are present
+      const parsedData = { ...defaultProfileData, ...JSON.parse(savedData) };
       setProfileData(parsedData);
       setTempData(parsedData);
     } else {
-        // Set default if nothing is saved
-        localStorage.setItem('app-profile-data', JSON.stringify(defaultProfileData));
+      // Set default if nothing is saved
+      localStorage.setItem('app-profile-data', JSON.stringify(defaultProfileData));
+      setProfileData(defaultProfileData);
+      setTempData(defaultProfileData);
     }
   }, []);
 
