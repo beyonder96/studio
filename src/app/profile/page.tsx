@@ -96,7 +96,6 @@ export default function ProfilePage() {
           setProfileData(fetchedData);
           setTempData(fetchedData);
         } else {
-            // If no profile, create one with defaults
             const initialData = { ...defaultProfileData, email: user.email };
             update(profileRef, initialData);
         }
@@ -177,7 +176,6 @@ export default function ProfilePage() {
     const db = getDatabase(firebaseApp);
     const profileRef = ref(db, `users/${user.uid}/profile`);
     
-    // Create a new object for update to avoid sending undefined values
     const dataToSave: Partial<ProfileData> = {};
     (Object.keys(tempData) as Array<keyof ProfileData>).forEach(key => {
         if (tempData[key] !== undefined) {
@@ -228,7 +226,7 @@ export default function ProfilePage() {
             <PopoverTrigger asChild>
                 <Button variant="outline" className={cn("w-full justify-start text-left font-normal", !date && "text-muted-foreground")}>
                     <CalendarIcon className="mr-2 h-4 w-4" />
-                    {date ? format(date, "PPP", { locale: ptBR }) : <span>{label}</span>}
+                    {date ? format(parseISO(date), "PPP", { locale: ptBR }) : <span>{label}</span>}
                 </Button>
             </PopoverTrigger>
             <PopoverContent className="w-auto p-0" align="start">
@@ -382,12 +380,12 @@ export default function ProfilePage() {
                             </>
                         ) : (
                              <>
-                                {profileData.birthday1 ? (
+                                {profileData.birthday1 && isValid(parseISO(profileData.birthday1)) ? (
                                     <p className="text-muted-foreground">Aniversário 1: {format(parseISO(profileData.birthday1), "PPP", { locale: ptBR })}</p>
                                 ) : (
                                     <p className="text-muted-foreground">Defina as datas de aniversário no modo de edição.</p>
                                 )}
-                                {profileData.birthday2 && (
+                                {profileData.birthday2 && isValid(parseISO(profileData.birthday2)) && (
                                      <p className="text-muted-foreground">Aniversário 2: {format(parseISO(profileData.birthday2), "PPP", { locale: ptBR })}</p>
                                 )}
                              </>

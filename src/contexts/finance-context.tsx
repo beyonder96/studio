@@ -122,65 +122,60 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
   const [selectedListId, setSelectedListId] = useState<string | null>(null);
 
   const selectedList = shoppingLists.find(l => l.id === selectedListId) || null;
-
-  const getRef = (path: string) => {
-      const database = getDatabase(firebaseApp);
-      return ref(database, `users/${user.uid}/${path}`);
+  
+  const getDbRef = (path: string) => {
+    if (!user) throw new Error("User not authenticated to get DB ref.");
+    const db = getDatabase(firebaseApp);
+    return ref(db, `users/${user.uid}/${path}`);
   }
-
-  const getListRef = (listId: string) => {
-      const database = getDatabase(firebaseApp);
-      return ref(database, `users/${user.uid}/shoppingLists/${listId}`);
-  }
-
-
+  
   useEffect(() => {
-    if (user && firebaseApp) {
-      const database = getDatabase(firebaseApp);
-      const userRef = ref(database, `users/${user.uid}`);
-      const unsubscribe = onValue(userRef, (snapshot) => {
-        const data = snapshot.val();
-        if (data) {
-          setTransactions(data.transactions ? Object.values(data.transactions) : []);
-          setAccounts(data.accounts ? Object.values(data.accounts) : []);
-          setCards(data.cards ? Object.values(data.cards) : []);
-          setIncomeCategories(data.incomeCategories || initialIncomeCategories);
-          setExpenseCategories(data.expenseCategories || initialExpenseCategories);
-          setPantryItems(data.pantryItems ? Object.values(data.pantryItems) : []);
-          setPantryCategories(data.pantryCategories || initialPantryCategories);
-          setTasks(data.tasks ? Object.values(data.tasks) : []);
-          setWishes(data.wishes ? Object.values(data.wishes) : []);
-          setAppointments(data.appointments ? Object.values(data.appointments) : []);
-          const dbShoppingLists = data.shoppingLists ? Object.values(data.shoppingLists) : [];
-          setShoppingLists(dbShoppingLists as ShoppingList[]);
-          if (!selectedListId && dbShoppingLists.length > 0) {
-              setSelectedListId((dbShoppingLists[0] as ShoppingList).id || null);
-          }
-        } else {
-          // New user, set up default data
-          const initialData = {
-              transactions: Object.fromEntries(initialTransactions.map(t => [t.id, t])),
-              accounts: Object.fromEntries(initialAccounts.map(a => [a.id, a])),
-              cards: Object.fromEntries(initialCards.map(c => [c.id, c])),
-              incomeCategories: initialIncomeCategories,
-              expenseCategories: initialExpenseCategories,
-              pantryCategories: initialPantryCategories,
-              pantryItems: {},
-              tasks: Object.fromEntries(initialTasks.map(t => [t.id, t])),
-              wishes: Object.fromEntries(initialWishes.map(w => [w.id, w])),
-              appointments: {},
-              shoppingLists: Object.fromEntries(initialShoppingLists.map(l => [l.id, l])),
-          };
-          set(userRef, initialData);
-        }
-      });
-      return () => unsubscribe();
+    if (user) {
+        const db = getDatabase(firebaseApp);
+        const userRef = ref(db, `users/${user.uid}`);
+        
+        const unsubscribe = onValue(userRef, (snapshot) => {
+            const data = snapshot.val();
+            if (data) {
+                const transformData = (d: any) => d ? Object.values(d) : [];
+                setTransactions(transformData(data.transactions));
+                setAccounts(transformData(data.accounts));
+                setCards(transformData(data.cards));
+                setIncomeCategories(data.incomeCategories || initialIncomeCategories);
+                setExpenseCategories(data.expenseCategories || initialExpenseCategories);
+                setPantryItems(transformData(data.pantryItems));
+                setPantryCategories(data.pantryCategories || initialPantryCategories);
+                setTasks(transformData(data.tasks));
+                setWishes(transformData(data.wishes));
+                setAppointments(transformData(data.appointments));
+                const dbShoppingLists = transformData(data.shoppingLists);
+                setShoppingLists(dbShoppingLists as ShoppingList[]);
+                if (!selectedListId && dbShoppingLists.length > 0) {
+                    setSelectedListId((dbShoppingLists[0] as ShoppingList).id || null);
+                }
+            } else {
+                 const initialData = {
+                    transactions: Object.fromEntries(initialTransactions.map(t => [t.id, t])),
+                    accounts: Object.fromEntries(initialAccounts.map(a => [a.id, a])),
+                    cards: Object.fromEntries(initialCards.map(c => [c.id, c])),
+                    incomeCategories: initialIncomeCategories,
+                    expenseCategories: initialExpenseCategories,
+                    pantryCategories: initialPantryCategories,
+                    pantryItems: {},
+                    tasks: Object.fromEntries(initialTasks.map(t => [t.id, t])),
+                    wishes: Object.fromEntries(initialWishes.map(w => [w.id, w])),
+                    appointments: {},
+                    shoppingLists: Object.fromEntries(initialShoppingLists.map(l => [l.id, l])),
+                };
+                set(userRef, initialData);
+            }
+        });
+        return () => unsubscribe();
     } else {
         // Reset state when user logs out
         setTransactions([]);
         setAccounts([]);
         setCards([]);
-        // Keep default categories
         setIncomeCategories(initialIncomeCategories);
         setExpenseCategories(initialExpenseCategories);
         setPantryCategories(initialPantryCategories);
@@ -191,7 +186,7 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
         setShoppingLists([]);
         setSelectedListId(null);
     }
-  }, [user, selectedListId]);
+}, [user, selectedListId]);
 
   useEffect(() => {
     if (shoppingLists.length > 0 && !shoppingLists.find(l => l.id === selectedListId)) {
@@ -209,8 +204,6 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
   
   const addTransaction = (transaction: Omit<Transaction, 'id'> & { fromAccount?: string; toAccount?: string }, installments: number = 1) => {
     if (!user) return;
-    // Handle Transfer logic here as it affects multiple data points
-    // For simplicity in this refactor, we are focusing on single transactions.
     if (transaction.type === 'transfer') {
         toast({ title: "Funcionalidade não implementada", description: "Transferências serão implementadas em breve."});
         return;
@@ -232,36 +225,36 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
           totalInstallments: installments,
           isRecurring: false,
         };
-        set(getRef(`transactions/${newTransaction.id}`), newTransaction);
+        set(getDbRef(`transactions/${newTransaction.id}`), newTransaction);
       }
     } else {
-      const newId = push(getRef('transactions')).key || crypto.randomUUID();
+      const newId = push(getDbRef('transactions')).key || crypto.randomUUID();
       const newTransaction = { ...transaction, id: newId };
-      set(getRef(`transactions/${newId}`), newTransaction);
+      set(getDbRef(`transactions/${newId}`), newTransaction);
     }
   };
 
   const updateTransaction = (id: string, updatedTransaction: Partial<Omit<Transaction, 'id'>>) => {
     if (!user) return;
-    update(getRef(`transactions/${id}`), updatedTransaction);
+    update(getDbRef(`transactions/${id}`), updatedTransaction);
   };
 
   const deleteTransaction = (id: string) => {
     if (!user) return;
-    remove(getRef(`transactions/${id}`));
+    remove(getDbRef(`transactions/${id}`));
   };
 
   const totalIncome = useCallback(() => {
     const today = new Date();
     return transactions
-      .filter((t) => t.type === 'income' && isSameMonth(new Date(t.date), today))
+      .filter((t) => t.type === 'income' && isSameMonth(parseISO(t.date), today))
       .reduce((sum, t) => sum + t.amount, 0);
   }, [transactions]);
 
   const totalExpenses = useCallback(() => {
     const today = new Date();
     return transactions
-      .filter((t) => t.type === 'expense' && isSameMonth(new Date(t.date), today))
+      .filter((t) => t.type === 'expense' && isSameMonth(parseISO(t.date), today))
       .reduce((sum, t) => sum + t.amount, 0);
   }, [transactions]);
 
@@ -291,7 +284,7 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
               newPantryItems[existingItemIndex] = updatedItem;
           } else {
               const newItem: PantryItem = {
-                  id: push(getRef('pantryItems')).key!,
+                  id: push(getDbRef('pantryItems')).key!,
                   name: itemToAdd.name,
                   quantity: itemToAdd.quantity,
                   pantryCategory: mapShoppingItemToPantryCategory(itemToAdd.name),
@@ -300,22 +293,23 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
               newPantryItems.push(newItem);
           }
       });
-      update(getRef(''), updates);
+      const db = getDatabase(firebaseApp);
+      update(ref(db, `users/${user.uid}`), updates);
   };
   
   const addItemToPantry = (name: string, quantity: number, category: string) => {
       if (!user) return;
-      const newId = push(getRef('pantryItems')).key!;
+      const newId = push(getDbRef('pantryItems')).key!;
       const newItem: PantryItem = { id: newId, name, quantity, pantryCategory: category };
-      set(getRef(`pantryItems/${newId}`), newItem);
+      set(getDbRef(`pantryItems/${newId}`), newItem);
   };
 
   const updatePantryItemQuantity = (itemId: string, newQuantity: number) => {
     if (!user) return;
     if (newQuantity <= 0) {
-        remove(getRef(`pantryItems/${itemId}`));
+        remove(getDbRef(`pantryItems/${itemId}`));
     } else {
-        update(getRef(`pantryItems/${itemId}`), { quantity: newQuantity });
+        update(getDbRef(`pantryItems/${itemId}`), { quantity: newQuantity });
     }
   };
 
@@ -323,61 +317,60 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
     if (!user) return;
     if (!pantryCategories.find(cat => cat.toLowerCase() === name.toLowerCase())) {
       const updatedCategories = [...pantryCategories, name];
-      set(getRef('pantryCategories'), updatedCategories);
+      set(getDbRef('pantryCategories'), updatedCategories);
     }
   };
 
   const deletePantryCategory = (name: string) => {
     if (!user) return;
     const updatedCategories = pantryCategories.filter(cat => cat !== name);
-    // You might want to move items from the deleted category to 'Outros'
-    set(getRef('pantryCategories'), updatedCategories);
+    set(getDbRef('pantryCategories'), updatedCategories);
   };
 
   // Task Management
   const addTask = (text: string) => {
     if (!user) return;
-    const newId = push(getRef('tasks')).key!;
+    const newId = push(getDbRef('tasks')).key!;
     const newTask: Task = { id: newId, text, completed: false };
-    set(getRef(`tasks/${newId}`), newTask);
+    set(getDbRef(`tasks/${newId}`), newTask);
   };
 
   const toggleTask = (id: string) => {
     if (!user) return;
     const task = tasks.find(t => t.id === id);
     if (task) {
-      update(getRef(`tasks/${id}`), { completed: !task.completed });
+      update(getDbRef(`tasks/${id}`), { completed: !task.completed });
     }
   };
 
   const deleteTask = (id: string) => {
     if (!user) return;
-    remove(getRef(`tasks/${id}`));
+    remove(getDbRef(`tasks/${id}`));
   };
 
   // Wish Management
   const addWish = (wish: Omit<Wish, 'id' | 'purchased'>) => {
     if (!user) return;
-    const newId = push(getRef('wishes')).key!;
+    const newId = push(getDbRef('wishes')).key!;
     const newWish: Wish = { ...wish, id: newId, purchased: false };
-    set(getRef(`wishes/${newId}`), newWish);
+    set(getDbRef(`wishes/${newId}`), newWish);
   };
   
   const updateWish = (id: string, updatedWish: Partial<Omit<Wish, 'id'>>) => {
     if (!user) return;
-    update(getRef(`wishes/${id}`), updatedWish);
+    update(getDbRef(`wishes/${id}`), updatedWish);
   };
 
   const deleteWish = (id: string) => {
     if (!user) return;
-    remove(getRef(`wishes/${id}`));
+    remove(getDbRef(`wishes/${id}`));
   };
 
   const toggleWishPurchased = (id: string) => {
     if (!user) return;
     const wish = wishes.find(w => w.id === id);
     if (wish) {
-      update(getRef(`wishes/${id}`), { purchased: !wish.purchased });
+      update(getDbRef(`wishes/${id}`), { purchased: !wish.purchased });
     }
   };
   
@@ -386,40 +379,49 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
   // Appointment Management
   const addAppointment = (appointment: Omit<Appointment, 'id'>) => {
     if (!user) return;
-    const newId = push(getRef('appointments')).key!;
+    const newId = push(getDbRef('appointments')).key!;
     const newAppointment: Appointment = { ...appointment, id: newId };
-    set(getRef(`appointments/${newId}`), newAppointment);
+    set(getDbRef(`appointments/${newId}`), newAppointment);
   };
 
   const updateAppointment = (id: string, updatedAppointment: Partial<Omit<Appointment, 'id'>>) => {
     if (!user) return;
-    update(getRef(`appointments/${id}`), updatedAppointment);
+    update(getDbRef(`appointments/${id}`), updatedAppointment);
   };
 
   const deleteAppointment = (id: string) => {
     if (!user) return;
-    remove(getRef(`appointments/${id}`));
+    remove(getDbRef(`appointments/${id}`));
   };
 
   // Shopping List Management
+  const getListRef = (listId: string, path?: string) => {
+    if (!user) throw new Error("User not authenticated to get list ref.");
+    let fullPath = `shoppingLists/${listId}`;
+    if (path) {
+      fullPath += `/${path}`;
+    }
+    return getDbRef(fullPath);
+  };
+
   const handleSetPrice = (itemId: string, price: number) => {
     if (!user || !selectedListId) return;
-    update(getListRef(`${selectedListId}/items/${itemId}`), { price, checked: true });
+    update(getListRef(selectedListId, `items/${itemId}`), { price, checked: true });
   };
   
   const handleCheckboxChange = (item: ShoppingListItem) => {
     if (!user || !selectedListId) return;
-    update(getListRef(`${selectedListId}/items/${item.id}`), { checked: !item.checked, price: item.checked ? null : item.price });
+    update(getListRef(selectedListId, `items/${item.id}`), { checked: !item.checked, price: item.checked ? null : item.price });
   };
 
   const handleDeleteItem = (itemId: string) => {
     if (!user || !selectedListId) return;
-    remove(getListRef(`${selectedListId}/items/${itemId}`));
+    remove(getListRef(selectedListId, `items/${itemId}`));
   };
   
   const handleUpdateItem = (itemId: string, name: string, quantity: number) => {
     if (!user || !selectedListId) return;
-    update(getListRef(`${selectedListId}/items/${itemId}`), { name, quantity });
+    update(getListRef(selectedListId, `items/${itemId}`), { name, quantity });
   };
   
   const handleClearCompletedItems = (listId: string) => {
@@ -432,28 +434,30 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
         updates[`shoppingLists/${listId}/items/${item.id}`] = null;
       }
     });
-    const database = getDatabase(firebaseApp);
-    update(ref(database, `users/${user.uid}`), updates);
+    const db = getDatabase(firebaseApp);
+    update(ref(db, `users/${user.uid}`), updates);
   };
 
   const handleAddItemToList = (name: string, quantity: number) => {
     if (!user || !selectedListId) return;
-    const newId = push(getListRef(`${selectedListId}/items`)).key!;
+    const itemsRef = getListRef(selectedListId, 'items');
+    const newId = push(itemsRef).key!;
     const newItem: ShoppingListItem = { id: newId, name, quantity, checked: false };
-    set(getListRef(`${selectedListId}/items/${newId}`), newItem);
+    set(ref(itemsRef, newId), newItem);
   };
 
   const handleCreateListSave = (name: string, callback: (newList: ShoppingList) => void) => {
     if (!user || !name.trim()) return;
-    const newId = push(getRef('shoppingLists')).key!;
+    const listsRef = getDbRef('shoppingLists');
+    const newId = push(listsRef).key!;
     const newList: ShoppingList = { id: newId, name: name.trim(), shared: false, items: [] };
-    set(getRef(`shoppingLists/${newId}`), newList);
+    set(ref(listsRef, newId), newList);
     callback(newList);
   };
   
   const handleDeleteList = (listId: string) => {
     if (!user) return;
-    remove(getRef(`shoppingLists/${listId}`));
+    remove(getDbRef(`shoppingLists/${listId}`));
     if (selectedListId === listId) {
       const remainingLists = shoppingLists.filter(l => l.id !== listId);
       setSelectedListId(remainingLists[0]?.id || null);
@@ -462,7 +466,7 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
   
   const handleRenameList = (listId: string, newName: string, callback: () => void) => {
      if (!user || !newName.trim()) return;
-     update(getRef(`shoppingLists/${listId}`), { name: newName.trim() });
+     update(getDbRef(`shoppingLists/${listId}`), { name: newName.trim() });
      callback();
   };
   
