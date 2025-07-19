@@ -1,12 +1,40 @@
 
 'use client';
 
-import React, { createContext, useState, ReactNode, useContext, useEffect } from 'react';
+import React, { createContext, useState, ReactNode, useEffect } from 'react';
 import type { Transaction } from '@/components/finance/transactions-table';
 import { addMonths, format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 
-// Mock Data
+// --- LocalStorage Helper Functions ---
+
+const useStickyState = <T,>(defaultValue: T, key: string): [T, React.Dispatch<React.SetStateAction<T>>] => {
+  const [value, setValue] = useState<T>(() => {
+    if (typeof window === 'undefined') {
+      return defaultValue;
+    }
+    try {
+      const stickyValue = window.localStorage.getItem(key);
+      return stickyValue !== null ? JSON.parse(stickyValue) : defaultValue;
+    } catch (error) {
+      console.warn(`Error reading localStorage key “${key}”:`, error);
+      return defaultValue;
+    }
+  });
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(key, JSON.stringify(value));
+    } catch (error) {
+      console.warn(`Error setting localStorage key “${key}”:`, error);
+    }
+  }, [key, value]);
+
+  return [value, setValue];
+};
+
+
+// Mock Data (used only if localStorage is empty)
 const initialTransactions: Transaction[] = [
     {
       id: '1',
@@ -252,7 +280,7 @@ type FinanceContextType = {
   toast: ReturnType<typeof useToast>['toast'];
   shoppingLists: ShoppingList[];
   selectedListId: string | null;
-  setSelectedListId: (id: string | null) => void;
+  setSelectedListId: React.Dispatch<React.SetStateAction<string | null>>;
   selectedList: ShoppingList | null;
   handleSetPrice: (itemId: string, price: number) => void;
   handleCheckboxChange: (item: ShoppingListItem) => void;
@@ -271,20 +299,22 @@ export const FinanceContext = createContext<FinanceContextType>({} as FinanceCon
 
 export const FinanceProvider = ({ children }: { children: ReactNode }) => {
   const { toast } = useToast();
-  const [transactions, setTransactions] = useState<Transaction[]>(initialTransactions);
-  const [accounts, setAccounts] = useState<Account[]>(initialAccounts);
-  const [cards, setCards] = useState<Card[]>(initialCards);
-  const [incomeCategories, setIncomeCategories] = useState<string[]>(initialIncomeCategories);
-  const [expenseCategories, setExpenseCategories] = useState<string[]>(initialExpenseCategories);
+  
+  // Use the custom hook for all state management
+  const [transactions, setTransactions] = useStickyState<Transaction[]>(initialTransactions, 'app-transactions');
+  const [accounts, setAccounts] = useStickyState<Account[]>(initialAccounts, 'app-accounts');
+  const [cards, setCards] = useStickyState<Card[]>(initialCards, 'app-cards');
+  const [incomeCategories, setIncomeCategories] = useStickyState<string[]>(initialIncomeCategories, 'app-income-categories');
+  const [expenseCategories, setExpenseCategories] = useStickyState<string[]>(initialExpenseCategories, 'app-expense-categories');
+  const [pantryItems, setPantryItems] = useStickyState<PantryItem[]>(initialPantryItems, 'app-pantry-items');
+  const [pantryCategories, setPantryCategories] = useStickyState<PantryCategory[]>(initialPantryCategories, 'app-pantry-categories');
+  const [tasks, setTasks] = useStickyState<Task[]>(initialTasks, 'app-tasks');
+  const [wishes, setWishes] = useStickyState<Wish[]>(initialWishes, 'app-wishes');
+  const [appointments, setAppointments] = useStickyState<Appointment[]>(initialAppointments, 'app-appointments');
+  const [shoppingLists, setShoppingLists] = useStickyState<ShoppingList[]>(initialShoppingLists, 'app-shopping-lists');
+  
   const [isSensitiveDataVisible, setIsSensitiveDataVisible] = useState(true);
-  const [pantryItems, setPantryItems] = useState<PantryItem[]>(initialPantryItems);
-  const [pantryCategories, setPantryCategories] = useState<PantryCategory[]>(initialPantryCategories);
-  const [tasks, setTasks] = useState<Task[]>(initialTasks);
-  const [wishes, setWishes] = useState<Wish[]>(initialWishes);
-  const [appointments, setAppointments] = useState<Appointment[]>(initialAppointments);
-  const [appointmentCategories] = useState<string[]>(['Trabalho', 'Saúde', 'Social', 'Pessoal', 'Outros']);
-  const [shoppingLists, setShoppingLists] = useState<ShoppingList[]>(initialShoppingLists);
-  const [selectedListId, setSelectedListId] = useState<string | null>(initialShoppingLists[0]?.id || null);
+  const [selectedListId, setSelectedListId] = useStickyState<string | null>(initialShoppingLists[0]?.id || null, 'app-selected-list-id');
 
   const selectedList = shoppingLists.find(l => l.id === selectedListId) || null;
 
@@ -292,7 +322,11 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
     if (!selectedListId && shoppingLists.length > 0) {
       setSelectedListId(shoppingLists[0].id);
     }
-  }, [shoppingLists, selectedListId]);
+     // If the selected list was deleted, select the first available one.
+    if (selectedListId && !shoppingLists.find(l => l.id === selectedListId)) {
+        setSelectedListId(shoppingLists[0]?.id || null);
+    }
+  }, [shoppingLists, selectedListId, setSelectedListId]);
 
 
   const toggleSensitiveDataVisibility = () => {
@@ -475,19 +509,26 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
 
 
   const resetAllData = () => {
-    setTransactions([]);
-    setAccounts([]);
-    setCards([]);
-    setPantryItems([]);
-    setTasks([]);
-    setWishes([]);
-    setAppointments([]);
-    setShoppingLists([]);
-    setSelectedListId(null);
+    // Reset state to initial mock data, which will then be saved to localStorage
+    setTransactions(initialTransactions);
+    setAccounts(initialAccounts);
+    setCards(initialCards);
+    setPantryItems(initialPantryItems);
+    setTasks(initialTasks);
+    setWishes(initialWishes);
+    setAppointments(initialAppointments);
+    setShoppingLists(initialShoppingLists);
+    setSelectedListId(initialShoppingLists[0]?.id || null);
+    
     // We keep the categories for convenience
     setIncomeCategories(initialIncomeCategories);
     setExpenseCategories(initialExpenseCategories);
     setPantryCategories(initialPantryCategories);
+    
+    toast({
+        title: "Dados Resetados!",
+        description: "O aplicativo foi restaurado para o estado inicial."
+    })
   };
   
   // Task Management
@@ -531,6 +572,8 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
       )
     );
   };
+
+  const [appointmentCategories] = useState<string[]>(['Trabalho', 'Saúde', 'Social', 'Pessoal', 'Outros']);
 
   // Appointment Management
   const addAppointment = (appointment: Omit<Appointment, 'id'>) => {
@@ -659,3 +702,5 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
     </FinanceContext.Provider>
   );
 };
+
+    
