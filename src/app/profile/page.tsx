@@ -41,12 +41,18 @@ const getSinceText = (isoDate?: string): string => {
     if (!isoDate) return 'Defina a data de início';
     const startDate = new Date(isoDate);
     const now = new Date();
+    
+    const totalDays = differenceInDays(now, startDate);
+    if (totalDays < 0) return 'Data no futuro!';
+
     const years = differenceInYears(now, startDate);
+    const dateAfterYears = addYears(startDate, years);
+    const days = differenceInDays(now, dateAfterYears);
+
     if (years > 0) {
-        return `Juntos há ${years} ano${years > 1 ? 's' : ''}`;
+        return `Juntos há ${years} ano${years > 1 ? 's' : ''} e ${days} dia${days !== 1 ? 's' : ''}`;
     }
-    const days = differenceInDays(now, startDate);
-    return `Juntos há ${days} dia${days !== 1 ? 's' : ''}`;
+    return `Juntos há ${totalDays} dia${totalDays !== 1 ? 's' : ''}`;
 }
 
 
@@ -221,9 +227,9 @@ export default function ProfilePage() {
                     )}
 
                     <Popover>
-                    <PopoverTrigger asChild disabled={isEditing}>
+                    <PopoverTrigger asChild>
                         <Button variant="link" className="text-lg text-white/80 hover:text-white mt-1 h-auto p-1 disabled:opacity-70">
-                        {isEditing ? getSinceText(tempData.sinceDate) : getSinceText(profileData.sinceDate)}
+                            {isEditing ? getSinceText(tempData.sinceDate) : getSinceText(profileData.sinceDate)}
                         </Button>
                     </PopoverTrigger>
                     <PopoverContent className="w-auto p-0" align="center">
