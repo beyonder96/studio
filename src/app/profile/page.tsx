@@ -8,13 +8,14 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { ArrowLeft, Camera, Edit, Utensils, Film, Music, MapPin, Save, Calendar as CalendarIcon, Loader2, Disc } from 'lucide-react';
+import { ArrowLeft, Camera, Edit, Utensils, Film, Music, MapPin, Save, Calendar as CalendarIcon, Loader2, Disc, Mail, Users, Info } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { format, differenceInYears, addYears, differenceInDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
+import { Textarea } from '@/components/ui/textarea';
 
 
 const defaultProfileImage = "https://placehold.co/600x800.png";
@@ -26,6 +27,9 @@ type ProfileData = {
   movie: string;
   music: string;
   place: string;
+  email: string;
+  partnerEmail: string;
+  details: string;
 };
 
 const defaultProfileData: ProfileData = {
@@ -34,7 +38,10 @@ const defaultProfileData: ProfileData = {
     food: 'Pizza',
     movie: 'Interestelar',
     music: 'Bohemian Rhapsody',
-    place: 'A praia ao entardecer'
+    place: 'A praia ao entardecer',
+    email: 'seuemail@exemplo.com',
+    partnerEmail: 'parceiro@exemplo.com',
+    details: 'Amamos viajar, descobrir novos restaurantes e assistir a séries juntos nos fins de semana. Sonhamos em conhecer o mundo, começando pela Itália!'
 };
 
 const getSinceText = (isoDate?: string): string => {
@@ -159,8 +166,12 @@ export default function ProfilePage() {
     });
   };
 
-  const handleInputChange = (field: keyof Omit<ProfileData, 'sinceDate'>, value: string) => {
+  const handleInputChange = (field: keyof Omit<ProfileData, 'sinceDate' | 'details'>, value: string) => {
     setTempData(prev => ({...prev, [field]: value}));
+  };
+  
+  const handleTextareaChange = (field: keyof Pick<ProfileData, 'details'>, value: string) => {
+    setTempData(prev => ({ ...prev, [field]: value }));
   };
   
   const handleDateSelect = (date: Date | undefined) => {
@@ -278,6 +289,46 @@ export default function ProfilePage() {
 
             {/* Content Area */}
             <div className="flex-grow p-4 md:p-6 space-y-6">
+
+                {isEditing && (
+                    <Card className="bg-transparent">
+                        <CardHeader>
+                            <CardTitle>Informações de Contato</CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                            <div className="space-y-2">
+                                <Label htmlFor="email">Seu E-mail</Label>
+                                <Input id="email" type="email" value={tempData.email} onChange={e => handleInputChange('email', e.target.value)} />
+                            </div>
+                             <div className="space-y-2">
+                                <Label htmlFor="partnerEmail">E-mail do Parceiro(a)</Label>
+                                <Input id="partnerEmail" type="email" value={tempData.partnerEmail} onChange={e => handleInputChange('partnerEmail', e.target.value)} />
+                            </div>
+                        </CardContent>
+                    </Card>
+                )}
+
+                <Card className="bg-transparent">
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                           <Info className="h-5 w-5" />
+                           Detalhes
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                       {isEditing ? (
+                            <Textarea
+                                value={tempData.details}
+                                onChange={e => handleTextareaChange('details', e.target.value)}
+                                placeholder="Escrevam um pouco sobre vocês..."
+                                rows={5}
+                            />
+                        ) : (
+                            <p className="text-muted-foreground whitespace-pre-wrap">{profileData.details}</p>
+                        )}
+                    </CardContent>
+                </Card>
+
                 <Card className="bg-transparent">
                     <CardHeader>
                         <CardTitle>Nossos Favoritos</CardTitle>

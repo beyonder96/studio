@@ -18,8 +18,9 @@ import { useState, useEffect } from "react";
 
 export function UserNav() {
     const [profileImage, setProfileImage] = useState("https://placehold.co/80x80.png");
-    const [profileName, setProfileName] = useState("Kenned & Nicoli");
-    const [profileEmail, setProfileEmail] = useState("casal@email.com");
+    const [profileName, setProfileName] = useState("Carregando...");
+    const [profileEmail, setProfileEmail] = useState("");
+    const [partnerEmail, setPartnerEmail] = useState("");
 
 
     useEffect(() => {
@@ -28,7 +29,12 @@ export function UserNav() {
             if (savedImage) setProfileImage(savedImage);
             
             const savedData = localStorage.getItem('app-profile-data');
-            if (savedData) setProfileName(JSON.parse(savedData).names);
+            if (savedData) {
+                const data = JSON.parse(savedData);
+                setProfileName(data.names || "Casal");
+                setProfileEmail(data.email || "");
+                setPartnerEmail(data.partnerEmail || "");
+            }
         };
 
         updateProfileInfo(); // Initial load
@@ -53,13 +59,20 @@ export function UserNav() {
           </Avatar>
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent className="w-56 user-nav-dropdown" align="end" forceMount>
+      <DropdownMenuContent className="w-64 user-nav-dropdown" align="end" forceMount>
         <DropdownMenuLabel className="font-normal">
-          <div className="flex flex-col space-y-1">
+          <div className="flex flex-col space-y-2">
             <p className="text-sm font-medium leading-none">{profileName}</p>
-            <p className="text-xs leading-none text-muted-foreground">
-              {profileEmail}
-            </p>
+            {profileEmail && (
+                <p className="text-xs leading-none text-muted-foreground">
+                    {profileEmail}
+                </p>
+            )}
+            {partnerEmail && (
+                 <p className="text-xs leading-none text-muted-foreground">
+                    {partnerEmail}
+                </p>
+            )}
           </div>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
