@@ -28,6 +28,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { AnimatePresence, motion } from 'framer-motion';
+import { useAuth } from '@/contexts/auth-context';
 
 const navItems = [
   { href: '/', icon: LayoutDashboard, label: 'Painel' },
@@ -47,10 +48,11 @@ const bottomNavItems = [
 
 export function SideNav() {
   const pathname = usePathname();
+  const { user } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
 
-  // Don't render the nav on login/signup pages
-  if (pathname === '/login' || pathname === '/signup') {
+  // Don't render the nav if user is not logged in
+  if (!user) {
     return null;
   }
 
@@ -161,5 +163,3 @@ export function SideNav() {
     </TooltipProvider>
   );
 }
-
-    

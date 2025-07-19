@@ -19,20 +19,18 @@ import { ptBR } from 'date-fns/locale';
 import { format } from 'date-fns';
 import { useRouter } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
+import { useAuth } from '@/contexts/auth-context';
 
 
 export default function Home() {
   const router = useRouter();
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
+  const { user, loading } = useAuth();
 
   useEffect(() => {
-    // Check for authentication status from localStorage
-    const authStatus = localStorage.getItem('isAuthenticated') === 'true';
-    setIsAuthenticated(authStatus);
-    if (!authStatus) {
+    if (!loading && !user) {
       router.replace('/login');
     }
-  }, [router]);
+  }, [user, loading, router]);
 
   const { transactions, addAppointment } = useContext(FinanceContext);
   const eventDates = transactions.map(t => new Date(t.date + 'T00:00:00'));
@@ -56,7 +54,7 @@ export default function Home() {
     setIsAppointmentDialogOpen(false);
   };
   
-  if (isAuthenticated === null || !isAuthenticated) {
+  if (loading || !user) {
     return (
       <div className="flex items-center justify-center min-h-screen">
           <Loader2 className="h-12 w-12 animate-spin text-primary" />

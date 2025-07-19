@@ -11,36 +11,51 @@ import { LogoIcon } from '@/components/logo';
 import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
 import { Loader2 } from 'lucide-react';
+import { signInWithEmailAndPassword } from 'firebase/auth';
+import { auth } from '@/lib/firebase';
+import { useAuth } from '@/contexts/auth-context';
 
 export default function LoginPage() {
   const router = useRouter();
   const { toast } = useToast();
+  const { user } = useAuth();
+
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-
-  const handleLogin = () => {
+  
+  const handleLogin = async () => {
     setIsLoading(true);
-    // Simulating a network request
-    setTimeout(() => {
-        // Mock authentication logic
-        if (email === 'casal@vidaa2.com' && password === '123456') {
-             toast({
-                title: 'Login bem-sucedido!',
-                description: 'Bem-vindos de volta!',
-            });
-            localStorage.setItem('isAuthenticated', 'true');
-            router.push('/');
-        } else {
-             toast({
-                variant: 'destructive',
-                title: 'Credenciais inválidas',
-                description: 'Por favor, verifique seu e-mail e senha.',
-            });
-            setIsLoading(false);
+    try {
+        await signInWithEmailAndPassword(auth, email, password);
+        toast({
+            title: 'Login bem-sucedido!',
+            description: 'Bem-vindos de volta!',
+        });
+        router.push('/');
+    } catch (error: any) {
+        let description = 'Ocorreu um erro desconhecido. Tente novamente.';
+        if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
+            description = 'E-mail ou senha inválidos. Por favor, verifique seus dados.';
         }
-    }, 1000);
+        toast({
+            variant: 'destructive',
+            title: 'Falha no Login',
+            description,
+        });
+    } finally {
+        setIsLoading(false);
+    }
   };
+
+  if (user) {
+    router.replace('/');
+    return (
+        <div className="flex items-center justify-center min-h-screen">
+          <Loader2 className="h-12 w-12 animate-spin text-primary" />
+        </div>
+    );
+  }
 
   return (
     <div className="flex items-center justify-center min-h-screen">
@@ -48,7 +63,7 @@ export default function LoginPage() {
         <CardHeader className="items-center text-center">
           <LogoIcon />
           <CardTitle className="text-2xl pt-4">Bem-vindos de volta!</CardTitle>
-          <CardDescription>Insira os dados para acessar o painel de testes.</CardDescription>
+          <CardDescription>Insira os dados para acessar o painel.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">
@@ -56,10 +71,11 @@ export default function LoginPage() {
             <Input 
                 id="email" 
                 type="email" 
-                placeholder="casal@vidaa2.com" 
+                placeholder="seu@email.com" 
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required 
+                onKeyDown={(e) => e.key === 'Enter' && handleLogin()}
             />
           </div>
           <div className="space-y-2">
@@ -67,10 +83,11 @@ export default function LoginPage() {
             <Input 
                 id="password" 
                 type="password"
-                placeholder="123456"
+                placeholder="Sua senha"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
+                onKeyDown={(e) => e.key === 'Enter' && handleLogin()}
             />
           </div>
         </CardContent>

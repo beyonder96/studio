@@ -11,36 +11,72 @@ import { LogoIcon } from '@/components/logo';
 import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
 import { Loader2 } from 'lucide-react';
+import { createUserWithEmailAndPassword } from 'firebase/auth';
+import { auth } from '@/lib/firebase';
+import { useAuth } from '@/contexts/auth-context';
 
 export default function SignupPage() {
   const router = useRouter();
   const { toast } = useToast();
+  const { user } = useAuth();
+
   const [names, setNames] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  
+  const handleSignup = async () => {
+    if (!names || !email || !password) {
+        toast({
+            variant: 'destructive',
+            title: 'Campos incompletos',
+            description: 'Por favor, preencha todos os campos.',
+        });
+        return;
+    }
 
-  const handleSignup = () => {
     setIsLoading(true);
-    // Simulating a network request
-    setTimeout(() => {
-        if (names && email && password) {
-             toast({
-                title: 'Cadastro realizado com sucesso!',
-                description: 'Vocês agora podem fazer o login.',
-            });
-            // In a real app, you would save user data here
-            router.push('/login');
-        } else {
-             toast({
-                variant: 'destructive',
-                title: 'Campos incompletos',
-                description: 'Por favor, preencha todos os campos.',
-            });
-            setIsLoading(false);
+    
+    try {
+        await createUserWithEmailAndPassword(auth, email, password);
+        
+        // In a real app, you would save the 'names' to a user profile in Firestore
+        // For now, we can save it to localStorage to be picked up by the profile page
+        const profileData = { names, email, partnerEmail: '' };
+        localStorage.setItem('app-profile-data', JSON.stringify(profileData));
+
+        toast({
+            title: 'Cadastro realizado com sucesso!',
+            description: 'Você será redirecionado para a tela de login.',
+        });
+        router.push('/login');
+    } catch (error: any) {
+        let description = 'Ocorreu um erro desconhecido. Tente novamente.';
+        if (error.code === 'auth/email-already-in-use') {
+            description = 'Este e-mail já está sendo utilizado por outra conta.';
+        } else if (error.code === 'auth/weak-password') {
+            description = 'Sua senha é muito fraca. Ela deve ter pelo menos 6 caracteres.';
+        } else if (error.code === 'auth/invalid-email') {
+            description = 'O e-mail fornecido não é válido.';
         }
-    }, 1000);
+        toast({
+            variant: 'destructive',
+            title: 'Falha no Cadastro',
+            description,
+        });
+    } finally {
+        setIsLoading(false);
+    }
   };
+  
+  if (user) {
+    router.replace('/');
+    return (
+        <div className="flex items-center justify-center min-h-screen">
+          <Loader2 className="h-12 w-12 animate-spin text-primary" />
+        </div>
+    );
+  }
 
   return (
     <div className="flex items-center justify-center min-h-screen">
@@ -78,7 +114,7 @@ export default function SignupPage() {
             <Input 
                 id="password" 
                 type="password" 
-                placeholder="••••••••"
+                placeholder="Pelo menos 6 caracteres"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required

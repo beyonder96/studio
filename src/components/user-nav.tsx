@@ -14,16 +14,17 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { CreditCard, HelpCircle, LogOut, Settings, User as UserIcon, LayoutDashboard, Banknote, ShoppingBasket, Gift } from "lucide-react";
+import { CreditCard, HelpCircle, LogOut, Settings, User as UserIcon } from "lucide-react";
 import { useState, useEffect } from "react";
+import { useAuth } from "@/contexts/auth-context";
+import { auth } from "@/lib/firebase";
+import { signOut } from "firebase/auth";
 
 export function UserNav() {
     const router = useRouter();
+    const { user } = useAuth();
     const [profileImage, setProfileImage] = useState("https://placehold.co/80x80.png");
     const [profileName, setProfileName] = useState("Carregando...");
-    const [profileEmail, setProfileEmail] = useState("");
-    const [partnerEmail, setPartnerEmail] = useState("");
-
 
     useEffect(() => {
         const updateProfileInfo = () => {
@@ -34,12 +35,12 @@ export function UserNav() {
             if (savedData) {
                 const data = JSON.parse(savedData);
                 setProfileName(data.names || "Casal");
-                setProfileEmail(data.email || "");
-                setPartnerEmail(data.partnerEmail || "");
+            } else if (user?.displayName) {
+                setProfileName(user.displayName);
             }
         };
 
-        updateProfileInfo(); // Initial load
+        updateProfileInfo();
 
         const handleStorageChange = (e: StorageEvent) => {
             if (e.key === 'app-profile-image' || e.key === 'app-profile-data') {
@@ -49,10 +50,10 @@ export function UserNav() {
 
         window.addEventListener('storage', handleStorageChange);
         return () => window.removeEventListener('storage', handleStorageChange);
-    }, []);
+    }, [user]);
     
-    const handleLogout = () => {
-        localStorage.removeItem('isAuthenticated');
+    const handleLogout = async () => {
+        await signOut(auth);
         router.push('/login');
     }
 
@@ -62,7 +63,7 @@ export function UserNav() {
         <Button variant="ghost" className="relative h-10 w-10 rounded-full">
           <Avatar className="h-10 w-10">
             <AvatarImage src={profileImage} alt="Foto do casal" data-ai-hint="couple photo"/>
-            <AvatarFallback className="bg-primary/20">KN</AvatarFallback>
+            <AvatarFallback className="bg-primary/20">{profileName?.charAt(0) || 'U'}</AvatarFallback>
           </Avatar>
         </Button>
       </DropdownMenuTrigger>
@@ -70,14 +71,9 @@ export function UserNav() {
         <DropdownMenuLabel className="font-normal">
           <div className="flex flex-col space-y-2">
             <p className="text-sm font-medium leading-none">{profileName}</p>
-            {profileEmail && (
+            {user?.email && (
                 <p className="text-xs leading-none text-muted-foreground">
-                    {profileEmail}
-                </p>
-            )}
-            {partnerEmail && (
-                 <p className="text-xs leading-none text-muted-foreground">
-                    {partnerEmail}
+                    {user.email}
                 </p>
             )}
           </div>
