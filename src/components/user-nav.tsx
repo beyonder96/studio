@@ -2,6 +2,7 @@
 'use client';
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
@@ -17,6 +18,7 @@ import { CreditCard, HelpCircle, LogOut, Settings, User as UserIcon, LayoutDashb
 import { useState, useEffect } from "react";
 
 export function UserNav() {
+    const router = useRouter();
     const [profileImage, setProfileImage] = useState("https://placehold.co/80x80.png");
     const [profileName, setProfileName] = useState("Carregando...");
     const [profileEmail, setProfileEmail] = useState("");
@@ -48,6 +50,11 @@ export function UserNav() {
         window.addEventListener('storage', handleStorageChange);
         return () => window.removeEventListener('storage', handleStorageChange);
     }, []);
+    
+    const handleLogout = () => {
+        localStorage.removeItem('isAuthenticated');
+        router.push('/login');
+    }
 
   return (
     <DropdownMenu>
@@ -99,7 +106,7 @@ export function UserNav() {
             <HelpCircle className="mr-2 h-4 w-4" />
             <span>Central de Ajuda</span>
         </DropdownMenuItem>
-        <DropdownMenuItem disabled>
+        <DropdownMenuItem onClick={handleLogout}>
           <LogOut className="mr-2 h-4 w-4" />
           <span>Sair</span>
         </DropdownMenuItem>

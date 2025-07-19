@@ -38,13 +38,21 @@ const navItems = [
   { href: '/tasks', icon: CheckSquare, label: 'Tarefas' },
   { href: '/calendar', icon: Calendar, label: 'Calendário' },
   { href: '/discover', icon: Sparkles, label: 'Descobrir (Em Breve)', disabled: true },
-  { href: '/settings', icon: Settings, label: 'Ajustes' },
-  { href: '/profile', icon: User, label: 'Perfil' },
 ];
+
+const bottomNavItems = [
+    { href: '/settings', icon: Settings, label: 'Ajustes' },
+    { href: '/profile', icon: User, label: 'Perfil' },
+]
 
 export function SideNav() {
   const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
+
+  // Don't render the nav on login/signup pages
+  if (pathname === '/login' || pathname === '/signup') {
+    return null;
+  }
 
   const isActive = (href: string) => pathname === href;
 
@@ -125,6 +133,27 @@ export function SideNav() {
                   })}
                 </ul>
               </nav>
+               <nav className="p-4 border-t">
+                 <ul className="space-y-2">
+                    {bottomNavItems.map((item) => (
+                        <li key={item.href}>
+                            <Link href={item.href} onClick={handleLinkClick}>
+                                <div
+                                className={cn(
+                                    'flex items-center gap-4 p-3 rounded-lg transition-colors text-foreground',
+                                    isActive(item.href)
+                                    ? 'bg-primary/20 text-primary font-semibold'
+                                    : 'hover:bg-muted'
+                                )}
+                                >
+                                <item.icon className="h-5 w-5" />
+                                <span>{item.label}</span>
+                                </div>
+                            </Link>
+                        </li>
+                    ))}
+                 </ul>
+               </nav>
             </motion.div>
           </>
         )}
