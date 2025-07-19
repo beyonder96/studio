@@ -3,11 +3,12 @@
 
 import { useState, useRef, useEffect } from 'react';
 import Image from 'next/image';
+import imageCompression from 'browser-image-compression';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { ArrowLeft, Camera, Edit, Utensils, Film, Music, MapPin, Save, Calendar as CalendarIcon } from 'lucide-react';
+import { ArrowLeft, Camera, Edit, Utensils, Film, Music, MapPin, Save, Calendar as CalendarIcon, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
@@ -55,6 +56,7 @@ export default function ProfilePage() {
   const [profileData, setProfileData] = useState<ProfileData>(defaultProfileData);
   const [tempData, setTempData] = useState<ProfileData>(defaultProfileData);
   const [isEditing, setIsEditing] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -75,32 +77,55 @@ export default function ProfilePage() {
   }, []);
 
   const handleImageClick = () => {
+    if (isUploading) return;
     fileInputRef.current?.click();
   };
 
-  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        const result = reader.result as string;
-        try {
-            localStorage.setItem('app-profile-image', result);
-            setProfileImage(result);
-            window.dispatchEvent(new Event('storage')); // Notify other components of the change
-            toast({
-                title: 'Foto de perfil atualizada!',
-                description: 'Sua nova foto foi salva com sucesso.',
-            })
-        } catch (e) {
-            toast({
-                variant: 'destructive',
-                title: 'Erro ao salvar a foto',
-                description: 'A imagem é muito grande para ser salva. Tente uma imagem menor.',
-            });
-        }
+      setIsUploading(true);
+
+      const options = {
+        maxSizeMB: 1, // Compress to a smaller size for localStorage
+        maxWidthOrHeight: 1920,
+        useWebWorker: true,
       };
-      reader.readAsDataURL(file);
+
+      try {
+        const compressedFile = await imageCompression(file, options);
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          const result = reader.result as string;
+          try {
+              localStorage.setItem('app-profile-image', result);
+              setProfileImage(result);
+              window.dispatchEvent(new Event('storage')); // Notify other components of the change
+              toast({
+                  title: 'Foto de perfil atualizada!',
+                  description: 'Sua nova foto foi salva com sucesso.',
+              });
+          } catch (e) {
+              console.error(e);
+              toast({
+                  variant: 'destructive',
+                  title: 'Erro ao salvar a foto',
+                  description: 'Ocorreu um erro ao salvar a imagem. O armazenamento local pode estar cheio.',
+              });
+          } finally {
+            setIsUploading(false);
+          }
+        };
+        reader.readAsDataURL(compressedFile);
+      } catch (error) {
+        console.error(error);
+        toast({
+            variant: 'destructive',
+            title: 'Erro ao processar a imagem',
+            description: 'Não foi possível comprimir a imagem. Tente uma imagem diferente.',
+        });
+        setIsUploading(false);
+      }
     }
   };
   
@@ -229,9 +254,13 @@ export default function ProfilePage() {
                     </>
                     ) : (
                     <>
-                        <Button variant="secondary" onClick={handleImageClick}>
-                            <Camera className="mr-2 h-4 w-4" />
-                            Trocar Foto
+                        <Button variant="secondary" onClick={handleImageClick} disabled={isUploading}>
+                            {isUploading ? (
+                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            ) : (
+                                <Camera className="mr-2 h-4 w-4" />
+                            )}
+                            {isUploading ? 'Enviando...' : 'Trocar Foto'}
                         </Button>
                         <Button variant="secondary" onClick={handleEditClick}>
                             <Edit className="mr-2 h-4 w-4" />
