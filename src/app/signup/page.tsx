@@ -18,7 +18,7 @@ import { useAuth } from '@/contexts/auth-context';
 export default function SignupPage() {
   const router = useRouter();
   const { toast } = useToast();
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
 
   const [names, setNames] = useState('');
   const [email, setEmail] = useState('');
@@ -33,15 +33,6 @@ export default function SignupPage() {
             description: 'Por favor, preencha todos os campos.',
         });
         return;
-    }
-
-    if (!auth) {
-      toast({
-        variant: 'destructive',
-        title: 'Erro de Configuração',
-        description: 'A autenticação não está disponível. Verifique as configurações do Firebase.',
-      });
-      return;
     }
 
     setIsLoading(true);
@@ -67,6 +58,8 @@ export default function SignupPage() {
             description = 'Sua senha é muito fraca. Ela deve ter pelo menos 6 caracteres.';
         } else if (error.code === 'auth/invalid-email') {
             description = 'O e-mail fornecido não é válido.';
+        } else if (error.code === 'auth/invalid-api-key') {
+            description = 'Chave de API do Firebase inválida. Verifique sua configuração.';
         }
         toast({
             variant: 'destructive',
@@ -78,8 +71,8 @@ export default function SignupPage() {
     }
   };
   
-  if (user) {
-    router.replace('/');
+  if (loading || user) {
+    if (user) router.replace('/');
     return (
         <div className="flex items-center justify-center min-h-screen">
           <Loader2 className="h-12 w-12 animate-spin text-primary" />
@@ -131,7 +124,7 @@ export default function SignupPage() {
           </div>
         </CardContent>
         <CardFooter className="flex flex-col gap-4">
-          <Button className="w-full" onClick={handleSignup} disabled={isLoading}>
+          <Button className="w-full" onClick={handleSignup} disabled={isLoading || !auth}>
              {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
              {isLoading ? 'Criando...' : 'Criar Conta'}
           </Button>

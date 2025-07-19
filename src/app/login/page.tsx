@@ -18,21 +18,13 @@ import { useAuth } from '@/contexts/auth-context';
 export default function LoginPage() {
   const router = useRouter();
   const { toast } = useToast();
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   
   const handleLogin = async () => {
-    if (!auth) {
-      toast({
-        variant: 'destructive',
-        title: 'Erro de Configuração',
-        description: 'A autenticação não está disponível. Verifique as configurações do Firebase.',
-      });
-      return;
-    }
     setIsLoading(true);
     try {
         await signInWithEmailAndPassword(auth, email, password);
@@ -45,6 +37,8 @@ export default function LoginPage() {
         let description = 'Ocorreu um erro desconhecido. Tente novamente.';
         if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
             description = 'E-mail ou senha inválidos. Por favor, verifique seus dados.';
+        } else if (error.code === 'auth/invalid-api-key') {
+            description = 'Chave de API do Firebase inválida. Verifique sua configuração.';
         }
         toast({
             variant: 'destructive',
@@ -56,8 +50,8 @@ export default function LoginPage() {
     }
   };
 
-  if (user) {
-    router.replace('/');
+  if (loading || user) {
+    if (user) router.replace('/');
     return (
         <div className="flex items-center justify-center min-h-screen">
           <Loader2 className="h-12 w-12 animate-spin text-primary" />
@@ -100,7 +94,7 @@ export default function LoginPage() {
           </div>
         </CardContent>
         <CardFooter className="flex flex-col gap-4">
-          <Button className="w-full" onClick={handleLogin} disabled={isLoading}>
+          <Button className="w-full" onClick={handleLogin} disabled={isLoading || !auth}>
             {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             {isLoading ? 'Entrando...' : 'Entrar'}
           </Button>
