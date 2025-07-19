@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { ArrowLeft, Camera, Edit, Utensils, Film, Music, MapPin, Save, Calendar as CalendarIcon, Loader2 } from 'lucide-react';
+import { ArrowLeft, Camera, Edit, Utensils, Film, Music, MapPin, Save, Calendar as CalendarIcon, Loader2, Disc } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
@@ -337,6 +337,27 @@ export default function ProfilePage() {
                                 </div>
                             </li>
                         </ul>
+                    </CardContent>
+                </Card>
+
+                 <Card className="bg-transparent">
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                           <Disc className="h-5 w-5 animate-spin" style={{ animationDuration: '3s' }} />
+                           Nossa Trilha Sonora
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <iframe
+                            style={{ borderRadius: '12px' }}
+                            src="https://open.spotify.com/embed/playlist/37i9dQZF1DXcBWIGoYBM5M?utm_source=generator"
+                            width="100%"
+                            height="352"
+                            frameBorder="0"
+                            allowFullScreen
+                            allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+                            loading="lazy"
+                        ></iframe>
                     </CardContent>
                 </Card>
             </div>
