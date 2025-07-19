@@ -8,21 +8,27 @@ import {
   CardContent,
   CardDescription,
 } from "@/components/ui/card";
-import { DollarSign, CalendarCheck, MoreHorizontal, Landmark, Utensils, Home } from "lucide-react";
+import { DollarSign, CalendarCheck, MoreHorizontal, Landmark, Utensils, Home, Briefcase, Heart } from "lucide-react";
 import { useContext, useMemo } from "react";
 import { FinanceContext } from "@/contexts/finance-context";
 import { isSameMonth, startOfMonth, endOfMonth, isWithinInterval, parseISO, format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import type { Transaction } from "@/components/finance/transactions-table";
+import type { Appointment } from "@/contexts/finance-context";
 import Link from "next/link";
 
 
 const categoryIcons: { [key: string]: React.ReactNode } = {
+  // Transaction Icons
   'Salário': <Landmark className="h-5 w-5" />,
   'Alimentação': <Utensils className="h-5 w-5" />,
   'Moradia': <Home className="h-5 w-5" />,
-  'Reunião': <CalendarCheck className="h-5 w-5" />,
+  // Appointment Icons
+  'Trabalho': <Briefcase className="h-5 w-5" />,
+  'Saúde': <Heart className="h-5 w-5" />,
+  'Social': <CalendarCheck className="h-5 w-5" />,
+  'Pessoal': <CalendarCheck className="h-5 w-5" />,
   'Outros': <MoreHorizontal className="h-5 w-5" />,
 };
 
@@ -36,13 +42,8 @@ type CalendarEvent = {
   icon: React.ReactNode;
 };
 
-const exampleAppointments: Omit<CalendarEvent, 'id' | 'type' | 'icon'| 'date'>[] = [
-    { title: "Reunião de Design", category: "Reunião" },
-    { title: "Consulta Médica", category: "Outros" },
-];
-
 export function MonthOverview() {
-  const { transactions, formatCurrency } = useContext(FinanceContext);
+  const { transactions, appointments, formatCurrency } = useContext(FinanceContext);
 
   const allEventsForMonth = useMemo(() => {
     const today = new Date();
@@ -60,16 +61,17 @@ export function MonthOverview() {
         }))
         .filter(e => isWithinInterval(e.date, monthInterval));
 
-    const appointmentEvents: CalendarEvent[] = exampleAppointments.map((a, i) => ({
-      ...a,
-      id: `appt-${i}`,
+    const appointmentEvents: CalendarEvent[] = appointments.map((a: Appointment) => ({
+      id: `appt-${a.id}`,
+      title: a.title,
       type: 'appointment' as 'appointment',
-      date: new Date(today.getFullYear(), today.getMonth(), 15 + i * 5), // Example dates
+      category: a.category,
+      date: parseISO(a.date + 'T00:00:00'),
       icon: categoryIcons[a.category] || <CalendarCheck className="h-5 w-5" />,
     })).filter(e => isWithinInterval(e.date, monthInterval));
     
     return [...transactionEvents, ...appointmentEvents].sort((a, b) => a.date.getTime() - b.date.getTime()).slice(0, 4); // Limit to 4 events
-  }, [transactions]);
+  }, [transactions, appointments]);
 
 
   return (

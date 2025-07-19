@@ -108,20 +108,21 @@ export default function CalendarPage() {
             <div className="flex flex-1 flex-col md:flex-row gap-4 overflow-auto rounded-lg bg-transparent pt-4 sm:pt-6">
                 <div className="w-full md:w-auto md:max-w-sm">
                     <Card className="bg-transparent">
-                        <CardContent className="p-2 sm:p-4">
-                            <Calendar
+                        <CardContent className="p-0 sm:p-0">
+                             <Calendar
                                 mode="single"
                                 selected={selectedDate}
                                 onSelect={setSelectedDate}
-                                className="p-0 [&_td]:w-full"
+                                className="p-0"
                                 classNames={{
                                     month: 'space-y-4 w-full',
                                     table: 'w-full border-collapse',
-                                    head_row: 'flex justify-around',
-                                    row: 'flex w-full mt-2 justify-around',
-                                    cell: 'text-center text-sm p-0 relative focus-within:relative focus-within:z-20',
+                                    head_row: 'grid grid-cols-7',
+                                    head_cell: 'text-muted-foreground rounded-md w-full font-normal text-[0.8rem] justify-center flex',
+                                    row: 'grid grid-cols-7 w-full mt-2',
+                                    cell: 'text-center text-sm p-0 relative focus-within:relative focus-within:z-20 flex justify-center',
                                     day: cn(
-                                        'h-10 w-14 rounded-md',
+                                        'h-10 w-10 p-0 font-normal aria-selected:opacity-100 rounded-md',
                                         buttonVariants({ variant: "ghost" })
                                     ),
                                     day_selected: "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground",
