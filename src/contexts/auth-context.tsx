@@ -18,7 +18,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // auth will be undefined on the server, so we need to check for its existence.
+    // auth will be null on the server, so we only run this on the client.
     if (!auth) {
       setLoading(false);
       return;

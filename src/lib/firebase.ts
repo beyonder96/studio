@@ -17,12 +17,11 @@ const firebaseConfig = {
 
 // Initialize Firebase for client-side
 let app: FirebaseApp;
-let auth: Auth;
+let auth: Auth | null = null;
 
 if (typeof window !== 'undefined') {
     app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
     auth = getAuth(app);
 }
 
-// @ts-ignore
 export { app, auth };
