@@ -26,7 +26,7 @@ export function BalanceCard() {
         </div>
       </CardHeader>
       <CardContent className="flex-grow">
-         <p className="text-xs text-muted-foreground">Excluindo parcelas futuras</p>
+         <p className="text-xs text-muted-foreground">Soma de todas as contas</p>
       </CardContent>
     </Card>
   );
