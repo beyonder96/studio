@@ -4,8 +4,9 @@
 import Link from 'next/link';
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { useContext } from "react";
+import { useContext, useState, useEffect } from "react";
 import { FinanceContext } from "@/contexts/finance-context";
+import { Skeleton } from '../ui/skeleton';
 
 // A simple hashing function to create a pseudo-random but stable progress for a given wish name
 const getStableProgress = (wishName: string) => {
@@ -22,7 +23,27 @@ const getStableProgress = (wishName: string) => {
 
 export function GoalsOverview() {
   const { wishes, formatCurrency } = useContext(FinanceContext);
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+
   const pendingWishes = wishes.filter(w => !w.purchased).slice(0, 3); // Show up to 3 pending wishes
+
+  const renderSkeletons = () => (
+    <div className="space-y-4">
+      {[...Array(2)].map((_, i) => (
+        <div key={i}>
+          <div className="flex justify-between mb-1">
+            <Skeleton className="h-4 w-3/5" />
+            <Skeleton className="h-4 w-1/5" />
+          </div>
+          <Skeleton className="h-2 w-full" />
+        </div>
+      ))}
+    </div>
+  );
 
   return (
     <Link href="/wishes" className="block">
@@ -31,7 +52,7 @@ export function GoalsOverview() {
             <CardTitle>Metas e Desejos</CardTitle>
         </CardHeader>
         <CardContent>
-            {pendingWishes.length > 0 ? (
+            {!isClient ? renderSkeletons() : pendingWishes.length > 0 ? (
             <div className="space-y-6">
                 {pendingWishes.map((wish) => {
                 const progress = getStableProgress(wish.name);
