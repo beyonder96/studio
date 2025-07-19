@@ -12,7 +12,7 @@ const firebaseConfig = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
 };
 
-// Initialize Firebase for client-side
+// Initialize Firebase for client-side only
 let app: FirebaseApp;
 let auth: Auth;
 
@@ -21,4 +21,5 @@ if (typeof window !== 'undefined') {
   auth = getAuth(app);
 }
 
+// @ts-ignore
 export { app, auth };
