@@ -48,7 +48,7 @@ export default function LoginPage() {
         <CardHeader className="items-center text-center">
           <LogoIcon />
           <CardTitle className="text-2xl pt-4">Bem-vindos de volta!</CardTitle>
-          <CardDescription>Insiram seus dados para acessar o painel.</CardDescription>
+          <CardDescription>Insira os dados para acessar o painel de testes.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">
@@ -67,7 +67,7 @@ export default function LoginPage() {
             <Input 
                 id="password" 
                 type="password"
-                placeholder="••••••••"
+                placeholder="123456"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
