@@ -81,11 +81,11 @@ export default function ProfilePage() {
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
-      if (file.size > 2 * 1024 * 1024) { // 2MB limit
+      if (file.size > 10 * 1024 * 1024) { // 10MB limit
         toast({
           variant: 'destructive',
           title: 'Arquivo muito grande',
-          description: 'Por favor, selecione uma imagem com menos de 2MB.',
+          description: 'Por favor, selecione uma imagem com menos de 10MB.',
         });
         return;
       }
