@@ -81,24 +81,24 @@ export default function ProfilePage() {
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
-      if (file.size > 10 * 1024 * 1024) { // 10MB limit
-        toast({
-          variant: 'destructive',
-          title: 'Arquivo muito grande',
-          description: 'Por favor, selecione uma imagem com menos de 10MB.',
-        });
-        return;
-      }
       const reader = new FileReader();
       reader.onloadend = () => {
         const result = reader.result as string;
-        setProfileImage(result);
-        localStorage.setItem('app-profile-image', result);
-        window.dispatchEvent(new Event('storage')); // Notify other components of the change
-        toast({
-            title: 'Foto de perfil atualizada!',
-            description: 'Sua nova foto foi salva com sucesso.',
-        })
+        try {
+            localStorage.setItem('app-profile-image', result);
+            setProfileImage(result);
+            window.dispatchEvent(new Event('storage')); // Notify other components of the change
+            toast({
+                title: 'Foto de perfil atualizada!',
+                description: 'Sua nova foto foi salva com sucesso.',
+            })
+        } catch (e) {
+            toast({
+                variant: 'destructive',
+                title: 'Erro ao salvar a foto',
+                description: 'A imagem é muito grande para ser salva. Tente uma imagem menor.',
+            });
+        }
       };
       reader.readAsDataURL(file);
     }
