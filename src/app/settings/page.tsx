@@ -313,7 +313,7 @@ export default function SettingsPage() {
                         <AlertDialogHeader>
                             <AlertDialogTitle>Você tem certeza absoluta?</AlertDialogTitle>
                             <AlertDialogDescription>
-                            Esta ação é irreversível. Todos os dados do aplicativo (transações, listas, desejos, etc.) serão restaurados para o estado de demonstração inicial. Suas personalizações de aparência serão mantidas.
+                            Esta ação é irreversível. Todos os dados do aplicativo (transações, contas, listas, desejos, etc.) serão permanentemente excluídos. Suas personalizações de aparência e categorias padrão serão mantidas.
                             </AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>
@@ -322,7 +322,7 @@ export default function SettingsPage() {
                             className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                             onClick={resetAllData}
                             >
-                            Sim, resetar dados
+                            Sim, apagar tudo
                             </AlertDialogAction>
                         </AlertDialogFooter>
                         </AlertDialogContent>

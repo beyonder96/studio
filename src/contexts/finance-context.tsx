@@ -9,32 +9,30 @@ import { useToast } from '@/hooks/use-toast';
 // --- LocalStorage Helper Functions ---
 
 const useStickyState = <T,>(defaultValue: T, key: string): [T, React.Dispatch<React.SetStateAction<T>>] => {
-  const [value, setValue] = useState<T>(defaultValue);
-  const [isInitialized, setIsInitialized] = useState(false);
-
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      try {
-        const stickyValue = window.localStorage.getItem(key);
-        if (stickyValue !== null) {
-          setValue(JSON.parse(stickyValue));
-        }
-      } catch (error) {
-        console.warn(`Error reading localStorage key “${key}”:`, error);
-      }
-      setIsInitialized(true);
+  const [value, setValue] = useState<T>(() => {
+    // This function now only runs on the initial render on the client.
+    if (typeof window === 'undefined') {
+      return defaultValue;
     }
-  }, [key]);
+    try {
+      const stickyValue = window.localStorage.getItem(key);
+      return stickyValue !== null ? JSON.parse(stickyValue) : defaultValue;
+    } catch (error) {
+      console.warn(`Error reading localStorage key “${key}”:`, error);
+      return defaultValue;
+    }
+  });
 
   useEffect(() => {
-    if (isInitialized && typeof window !== 'undefined') {
+    // This effect runs only when the value changes, not on every render.
+    if (typeof window !== 'undefined') {
       try {
         window.localStorage.setItem(key, JSON.stringify(value));
       } catch (error) {
         console.warn(`Error setting localStorage key “${key}”:`, error);
       }
     }
-  }, [key, value, isInitialized]);
+  }, [key, value]);
 
   return [value, setValue];
 };
@@ -515,23 +513,24 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
 
 
   const resetAllData = () => {
-    // Reset state to initial mock data, which will then be saved to localStorage
-    setTransactions(initialTransactions);
-    setAccounts(initialAccounts);
-    setCards(initialCards);
+    // Set all data to an empty state, keeping default categories
+    setTransactions([]);
+    setAccounts([]);
+    setCards([]);
     setIncomeCategories(initialIncomeCategories);
     setExpenseCategories(initialExpenseCategories);
-    setPantryItems(initialPantryItems);
-    setPantryCategories(initialPantryCategories);
-    setTasks(initialTasks);
-    setWishes(initialWishes);
-    setAppointments(initialAppointments);
-    setShoppingLists(initialShoppingLists);
-    setSelectedListId(initialShoppingLists[0]?.id || null);
+    setPantryItems([]);
+    setTasks([]);
+    setWishes([]);
+    setAppointments([]);
+    setShoppingLists([]);
+    setSelectedListId(null);
+    
+    // Note: pantryCategories are kept by design for now
     
     toast({
-        title: "Dados Resetados!",
-        description: "O aplicativo foi restaurado para o estado de demonstração."
+        title: "Dados Apagados!",
+        description: "Todos os dados do aplicativo foram removidos com sucesso."
     })
   };
   
