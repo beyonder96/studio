@@ -110,7 +110,7 @@ export default function ProfilePage() {
               toast({
                   variant: 'destructive',
                   title: 'Erro ao salvar a foto',
-                  description: 'Ocorreu um erro ao salvar a imagem. O armazenamento local pode estar cheio.',
+                  description: 'A imagem é muito grande para ser salva. Tente uma imagem menor.',
               });
           } finally {
             setIsUploading(false);
@@ -178,9 +178,9 @@ export default function ProfilePage() {
   }
 
   return (
-    <Card className="bg-white/10 dark:bg-black/10 backdrop-blur-3xl border-white/20 dark:border-black/20 rounded-3xl shadow-2xl">
-        <CardContent className="p-0 sm:p-0">
-            <div className="flex flex-col -mx-4 -mt-4 sm:-mx-6 sm:-mt-6 bg-transparent">
+    <Card className="bg-white/10 dark:bg-black/10 backdrop-blur-3xl border-white/20 dark:border-black/20 rounded-3xl shadow-2xl overflow-hidden">
+        <CardContent className="p-0">
+            <div className="flex flex-col bg-transparent">
             {/* Profile Header */}
             <div className="relative w-full h-[45vh] text-white">
                 <Image
@@ -188,7 +188,7 @@ export default function ProfilePage() {
                 alt="Foto do casal"
                 layout="fill"
                 objectFit="cover"
-                className="brightness-90 rounded-t-3xl"
+                className="brightness-90"
                 data-ai-hint="couple photo"
                 priority
                 />
