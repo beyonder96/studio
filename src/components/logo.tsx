@@ -4,6 +4,9 @@
 import { Heart } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState, useEffect } from "react";
+import { useAuth } from "@/contexts/auth-context";
+import { getDatabase, ref, onValue } from "firebase/database";
+import { app as firebaseApp } from "@/lib/firebase";
 
 
 export function LogoIcon() {
@@ -15,23 +18,22 @@ export function LogoIcon() {
 }
 
 export function DashboardHeader() {
+  const { user } = useAuth();
   const [profileName, setProfileName] = useState("Carregando...");
 
   useEffect(() => {
-    const updateProfileName = () => {
-      const savedData = localStorage.getItem('app-profile-data');
-      if (savedData) {
-        setProfileName(JSON.parse(savedData).names);
-      } else {
+    if (user) {
+        const db = getDatabase(firebaseApp);
+        const namesRef = ref(db, `users/${user.uid}/profile/names`);
+        const unsubscribe = onValue(namesRef, (snapshot) => {
+            const name = snapshot.val();
+            setProfileName(name || "Casal");
+        });
+        return () => unsubscribe();
+    } else {
         setProfileName("Casal");
-      }
-    };
-
-    updateProfileName();
-
-    window.addEventListener('storage', updateProfileName);
-    return () => window.removeEventListener('storage', updateProfileName);
-  }, []);
+    }
+  }, [user]);
 
   return (
     <div className="flex items-center gap-4">
