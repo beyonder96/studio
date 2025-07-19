@@ -235,9 +235,8 @@ export default function ProfilePage() {
                 <Image
                 src={profileImage}
                 alt="Foto do casal"
-                layout="fill"
-                objectFit="cover"
-                className="brightness-90"
+                fill
+                className="object-cover brightness-90"
                 data-ai-hint="couple photo"
                 priority
                 />
