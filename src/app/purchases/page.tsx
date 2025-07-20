@@ -386,10 +386,10 @@ export default function PurchasesPage() {
                                                     {item.price.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
                                                     </Badge>
                                                 )}
-                                                <Button variant="ghost" size="icon" onClick={() => onEditItem(item)} className="h-7 w-7 text-muted-foreground">
+                                                <Button variant="outline" size="icon" onClick={() => onEditItem(item)} className="h-7 w-7 text-muted-foreground">
                                                     <Pencil className="h-4 w-4"/>
                                                 </Button>
-                                                <Button variant="ghost" size="icon" onClick={() => onDeleteItem(item.id)} className="h-7 w-7 text-destructive/70 hover:text-destructive">
+                                                <Button variant="outline" size="icon" onClick={() => onDeleteItem(item.id)} className="h-7 w-7 text-destructive/70 hover:text-destructive">
                                                     <Trash2 className="h-4 w-4"/>
                                                 </Button>
                                             </div>

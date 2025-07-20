@@ -260,8 +260,8 @@ export default function SettingsPage() {
                                         <li key={cat} className="flex items-center justify-between p-3 rounded-lg border">
                                             <p>{cat}</p>
                                             <div className="flex items-center gap-1">
-                                                <Button variant="ghost" size="icon" onClick={() => setItemToEdit({ type: 'incomeCategory', name: cat })}><Edit className="h-4 w-4" /></Button>
-                                                <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={() => setItemToDelete({ type: 'incomeCategory', name: cat })} disabled><Trash2 className="h-4 w-4" /></Button>
+                                                <Button variant="outline" size="icon" onClick={() => setItemToEdit({ type: 'incomeCategory', name: cat })}><Edit className="h-4 w-4" /></Button>
+                                                <Button variant="outline" size="icon" className="text-destructive hover:text-destructive" onClick={() => setItemToDelete({ type: 'incomeCategory', name: cat })} disabled><Trash2 className="h-4 w-4" /></Button>
                                             </div>
                                         </li>
                                     ))}
@@ -274,8 +274,8 @@ export default function SettingsPage() {
                                         <li key={cat} className="flex items-center justify-between p-3 rounded-lg border">
                                             <p>{cat}</p>
                                             <div className="flex items-center gap-1">
-                                                <Button variant="ghost" size="icon" onClick={() => setItemToEdit({ type: 'expenseCategory', name: cat })}><Edit className="h-4 w-4" /></Button>
-                                                <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={() => setItemToDelete({ type: 'expenseCategory', name: cat })} disabled><Trash2 className="h-4 w-4" /></Button>
+                                                <Button variant="outline" size="icon" onClick={() => setItemToEdit({ type: 'expenseCategory', name: cat })}><Edit className="h-4 w-4" /></Button>
+                                                <Button variant="outline" size="icon" className="text-destructive hover:text-destructive" onClick={() => setItemToDelete({ type: 'expenseCategory', name: cat })} disabled><Trash2 className="h-4 w-4" /></Button>
                                             </div>
                                         </li>
                                     ))}
@@ -303,8 +303,8 @@ export default function SettingsPage() {
                                 <li key={category} className="flex items-center justify-between p-3 rounded-lg border">
                                     <p>{category}</p>
                                     <div className="flex items-center gap-1">
-                                        <Button variant="ghost" size="icon" onClick={() => setItemToEdit({ type: 'pantryCategory', name: category })}><Edit className="h-4 w-4" /></Button>
-                                        <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={() => setItemToDelete({ type: 'pantryCategory', name: category })}><Trash2 className="h-4 w-4" /></Button>
+                                        <Button variant="outline" size="icon" onClick={() => setItemToEdit({ type: 'pantryCategory', name: category })}><Edit className="h-4 w-4" /></Button>
+                                        <Button variant="outline" size="icon" className="text-destructive hover:text-destructive" onClick={() => setItemToDelete({ type: 'pantryCategory', name: category })}><Trash2 className="h-4 w-4" /></Button>
                                     </div>
                                 </li>
                             ))}
@@ -344,8 +344,8 @@ export default function SettingsPage() {
                             <p className="text-sm text-muted-foreground">Saldo: {account.balance.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</p>
                             </div>
                             <div className="flex items-center gap-2">
-                            <Button variant="ghost" size="icon" onClick={() => openEditDialog(account)}><Edit className="h-4 w-4" /></Button>
-                            <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={() => setItemToDelete({ type: 'account', id: account.id, name: account.name })}><Trash2 className="h-4 w-4" /></Button>
+                            <Button variant="outline" size="icon" onClick={() => openEditDialog(account)}><Edit className="h-4 w-4" /></Button>
+                            <Button variant="outline" size="icon" className="text-destructive hover:text-destructive" onClick={() => setItemToDelete({ type: 'account', id: account.id, name: account.name })}><Trash2 className="h-4 w-4" /></Button>
                             </div>
                         </li>
                         ))}
@@ -356,8 +356,8 @@ export default function SettingsPage() {
                             <p className="text-sm text-muted-foreground">Limite: {card.limit.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} | Vencimento: dia {card.dueDay}</p>
                             </div>
                             <div className="flex items-center gap-2">
-                            <Button variant="ghost" size="icon" onClick={() => openEditDialog(card)}><Edit className="h-4 w-4" /></Button>
-                            <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={() => setItemToDelete({ type: 'card', id: card.id, name: card.name })}><Trash2 className="h-4 w-4" /></Button>
+                            <Button variant="outline" size="icon" onClick={() => openEditDialog(card)}><Edit className="h-4 w-4" /></Button>
+                            <Button variant="outline" size="icon" className="text-destructive hover:text-destructive" onClick={() => setItemToDelete({ type: 'card', id: card.id, name: card.name })}><Trash2 className="h-4 w-4" /></Button>
                             </div>
                         </li>
                         ))}

@@ -151,10 +151,10 @@ export function TransactionsTable({ transactions, onEdit, onDelete }: Transactio
                     </TableCell>
                     <TableCell>
                     <div className="flex items-center justify-end gap-2">
-                        <Button variant="ghost" size="icon" onClick={() => onEdit(transaction)}>
+                        <Button variant="outline" size="icon" onClick={() => onEdit(transaction)}>
                         <Edit className="h-4 w-4" />
                         </Button>
-                        <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={() => onDelete(transaction.id)}>
+                        <Button variant="outline" size="icon" className="text-destructive hover:text-destructive" onClick={() => onDelete(transaction.id)}>
                         <Trash2 className="h-4 w-4" />
                         </Button>
                     </div>
