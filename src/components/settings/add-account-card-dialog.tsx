@@ -19,7 +19,7 @@ import { Label } from '@/components/ui/label';
 import { CurrencyInput } from '@/components/finance/currency-input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useState, useEffect } from 'react';
-import type { Account, Card } from '@/contexts/finance-context';
+import type { Account, Card as CardType } from '@/contexts/finance-context';
 
 
 const accountSchema = z.object({
@@ -37,44 +37,53 @@ const cardSchema = z.object({
 
 const formSchema = z.discriminatedUnion('type', [accountSchema, cardSchema]);
 
-type FormData = z.infer<typeof formSchema>;
+export type AccountCardFormData = z.infer<typeof formSchema>;
 
-type AddAccountCardDialogProps = {
+type EditAccountCardDialogProps = {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (data: FormData) => void;
+  onSave: (data: AccountCardFormData) => void;
+  item: Account | CardType | null;
 };
 
-export function AddAccountCardDialog({ isOpen, onClose, onSave }: AddAccountCardDialogProps) {
-  const [activeTab, setActiveTab] = useState<'account' | 'card'>('account');
+export function EditAccountCardDialog({ isOpen, onClose, onSave, item }: EditAccountCardDialogProps) {
+  const isEditing = !!item;
+  const itemType = item && 'balance' in item ? 'account' : 'card';
+  const [activeTab, setActiveTab] = useState<'account' | 'card'>(isEditing ? itemType : 'account');
   
   const {
     register,
     handleSubmit,
     control,
     reset,
-    watch,
     formState: { errors },
-  } = useForm<FormData>({
+  } = useForm<AccountCardFormData>({
     resolver: zodResolver(formSchema),
-    defaultValues: {
-      type: 'account',
-      name: '',
-      balance: 0,
-    },
   });
 
   useEffect(() => {
     if (isOpen) {
-      reset({
-        type: activeTab,
-        name: '',
-        ...(activeTab === 'account' ? { balance: 0 } : { limit: 1000, dueDay: 10 }),
-      });
+      if (item) {
+        // Editing
+        const type = 'balance' in item ? 'account' : 'card';
+        setActiveTab(type);
+        reset({
+          type,
+          name: item.name,
+          ...(type === 'account' ? { balance: (item as Account).balance } : { limit: (item as CardType).limit, dueDay: (item as CardType).dueDay }),
+        });
+      } else {
+        // Adding new
+        reset({
+          type: activeTab,
+          name: '',
+          ...(activeTab === 'account' ? { balance: 0 } : { limit: 1000, dueDay: 10 }),
+        });
+      }
     }
-  }, [isOpen, reset, activeTab]);
+  }, [isOpen, reset, item, activeTab]);
 
-  const onSubmit = (data: FormData) => {
+  const onSubmit = (data: AccountCardFormData) => {
     onSave(data);
   };
 
@@ -82,16 +91,16 @@ export function AddAccountCardDialog({ isOpen, onClose, onSave }: AddAccountCard
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Adicionar Conta ou Cartão</DialogTitle>
+          <DialogTitle>{isEditing ? (itemType === 'account' ? 'Editar Conta' : 'Editar Cartão') : 'Adicionar Conta ou Cartão'}</DialogTitle>
            <DialogDescription>
-            Selecione o tipo e preencha as informações.
+            {isEditing ? 'Atualize as informações abaixo.' : 'Selecione o tipo e preencha as informações.'}
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit(onSubmit)}>
             <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'account' | 'card')} className="w-full">
                 <TabsList className="grid w-full grid-cols-2">
-                    <TabsTrigger value="account">Conta</TabsTrigger>
-                    <TabsTrigger value="card">Cartão de Crédito</TabsTrigger>
+                    <TabsTrigger value="account" disabled={isEditing && itemType !== 'account'}>Conta</TabsTrigger>
+                    <TabsTrigger value="card" disabled={isEditing && itemType !== 'card'}>Cartão de Crédito</TabsTrigger>
                 </TabsList>
                 <TabsContent value="account" className="pt-4">
                     <div className="space-y-4">
@@ -99,10 +108,10 @@ export function AddAccountCardDialog({ isOpen, onClose, onSave }: AddAccountCard
                         <div className="space-y-2">
                             <Label htmlFor="account-name">Nome da Conta</Label>
                             <Input id="account-name" {...register('name')} placeholder="Ex: Conta Corrente" />
-                            {errors.name && <p className="text-red-500 text-xs mt-1">{errors.name.message}</p>}
+                            {errors.name && errors.type === 'account' && <p className="text-red-500 text-xs mt-1">{errors.name.message}</p>}
                         </div>
                         <div className="space-y-2">
-                            <Label htmlFor="balance">Saldo Inicial</Label>
+                            <Label htmlFor="balance">{isEditing ? "Saldo Atual" : "Saldo Inicial"}</Label>
                             <Controller
                                 name="balance"
                                 control={control}
@@ -114,7 +123,7 @@ export function AddAccountCardDialog({ isOpen, onClose, onSave }: AddAccountCard
                                 />
                                 )}
                             />
-                            {errors.balance && <p className="text-red-500 text-xs mt-1">{errors.balance.message}</p>}
+                             {errors.balance && errors.type === 'account' && <p className="text-red-500 text-xs mt-1">{errors.balance.message}</p>}
                         </div>
                     </div>
                 </TabsContent>
@@ -124,7 +133,7 @@ export function AddAccountCardDialog({ isOpen, onClose, onSave }: AddAccountCard
                         <div className="space-y-2">
                             <Label htmlFor="card-name">Nome do Cartão</Label>
                             <Input id="card-name" {...register('name')} placeholder="Ex: Cartão Principal" />
-                            {errors.name && <p className="text-red-500 text-xs mt-1">{errors.name.message}</p>}
+                            {errors.name && errors.type === 'card' && <p className="text-red-500 text-xs mt-1">{errors.name.message}</p>}
                         </div>
                         <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-2">
@@ -140,12 +149,12 @@ export function AddAccountCardDialog({ isOpen, onClose, onSave }: AddAccountCard
                                     />
                                     )}
                                 />
-                                {errors.limit && <p className="text-red-500 text-xs mt-1">{errors.limit.message}</p>}
+                                 {errors.limit && errors.type === 'card' && <p className="text-red-500 text-xs mt-1">{errors.limit.message}</p>}
                             </div>
                              <div className="space-y-2">
                                 <Label htmlFor="dueDay">Dia do Vencimento</Label>
                                 <Input id="dueDay" type="number" {...register('dueDay')} min="1" max="31" />
-                                {errors.dueDay && <p className="text-red-500 text-xs mt-1">{errors.dueDay.message}</p>}
+                                {errors.dueDay && errors.type === 'card' && <p className="text-red-500 text-xs mt-1">{errors.dueDay.message}</p>}
                             </div>
                         </div>
                     </div>

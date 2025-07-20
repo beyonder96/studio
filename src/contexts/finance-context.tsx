@@ -51,8 +51,12 @@ type FinanceContextType = {
   deleteTransaction: (id: string) => void;
   accounts: Account[];
   addAccount: (account: Omit<Account, 'id'>) => void;
+  updateAccount: (id: string, account: Partial<Omit<Account, 'id'>>) => void;
+  deleteAccount: (id: string) => void;
   cards: Card[];
   addCard: (card: Omit<Card, 'id'>) => void;
+  updateCard: (id: string, card: Partial<Omit<Card, 'id'>>) => void;
+  deleteCard: (id: string) => void;
   incomeCategories: string[];
   expenseCategories: string[];
   totalIncome: () => number;
@@ -414,10 +418,30 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
     set(getDbRef(`accounts/${newId}`), account);
   }
 
+  const updateAccount = (id: string, updatedAccount: Partial<Omit<Account, 'id'>>) => {
+    if(!user) return;
+    update(getDbRef(`accounts/${id}`), updatedAccount);
+  }
+
+  const deleteAccount = (id: string) => {
+    if(!user) return;
+    remove(getDbRef(`accounts/${id}`));
+  }
+
   const addCard = (card: Omit<Card, 'id'>) => {
     if(!user) return;
     const newId = push(getDbRef('cards')).key!;
     set(getDbRef(`cards/${newId}`), card);
+  }
+
+  const updateCard = (id: string, updatedCard: Partial<Omit<Card, 'id'>>) => {
+    if(!user) return;
+    update(getDbRef(`cards/${id}`), updatedCard);
+  }
+
+  const deleteCard = (id: string) => {
+    if(!user) return;
+    remove(getDbRef(`cards/${id}`));
   }
 
   // Shopping List Management
@@ -517,7 +541,9 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
 
   const value = {
     transactions, addTransaction, updateTransaction, deleteTransaction,
-    accounts, addAccount, cards, addCard, incomeCategories, expenseCategories,
+    accounts, addAccount, updateAccount, deleteAccount, 
+    cards, addCard, updateCard, deleteCard, 
+    incomeCategories, expenseCategories,
     totalIncome, totalExpenses, totalBalance, countRecurringTransactions,
     isSensitiveDataVisible, toggleSensitiveDataVisibility, formatCurrency,
     resetAllData,

@@ -27,7 +27,7 @@ import { FinanceContext } from '@/contexts/finance-context';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
-import { AddAccountCardDialog } from '@/components/settings/add-account-card-dialog';
+import { EditAccountCardDialog } from '@/components/settings/edit-account-card-dialog';
 import type { Account, Card as CardType } from '@/contexts/finance-context';
 
 
@@ -41,6 +41,7 @@ const pastelColors = [
 ];
 
 type Theme = 'light' | 'dark';
+type ItemToDelete = { type: 'account' | 'card'; id: string; name: string } | { type: 'pantryCategory'; name: string };
 
 export default function SettingsPage() {
   const { 
@@ -54,6 +55,10 @@ export default function SettingsPage() {
     expenseCategories,
     addAccount,
     addCard,
+    updateAccount,
+    updateCard,
+    deleteAccount,
+    deleteCard,
   } = useContext(FinanceContext);
   const { toast } = useToast();
   
@@ -65,8 +70,12 @@ export default function SettingsPage() {
   const [tempColor, setTempColor] = useState<string>(pastelColors[2].value);
   
   const [newCategoryName, setNewCategoryName] = useState('');
-  const [categoryToDelete, setCategoryToDelete] = useState<string | null>(null);
-  const [isAddAccountDialogOpen, setIsAddAccountDialogOpen] = useState(false);
+  
+  const [isAccountCardDialogOpen, setIsAccountCardDialogOpen] = useState(false);
+  const [editingItem, setEditingItem] = useState<Account | CardType | null>(null);
+
+  const [itemToDelete, setItemToDelete] = useState<ItemToDelete | null>(null);
+
 
   // Load theme and color from localStorage only on the client
   useEffect(() => {
@@ -121,24 +130,43 @@ export default function SettingsPage() {
     }
   }
   
-  const handleDeleteCategoryConfirm = () => {
-    if(categoryToDelete) {
-        deletePantryCategory(categoryToDelete);
-        setCategoryToDelete(null);
+  const handleDeleteConfirm = () => {
+    if(!itemToDelete) return;
+    if(itemToDelete.type === 'pantryCategory') {
+        deletePantryCategory(itemToDelete.name);
+    } else if (itemToDelete.type === 'account') {
+        deleteAccount(itemToDelete.id);
+    } else if (itemToDelete.type === 'card') {
+        deleteCard(itemToDelete.id);
     }
+    setItemToDelete(null);
   }
 
-  const handleSaveAccountCard = (data: { type: 'account' | 'card' } & Partial<Account> & Partial<CardType>) => {
-    if (data.type === 'account') {
-        if(data.name && data.balance !== undefined){
-            addAccount({ name: data.name, balance: data.balance, type: 'checking' });
+  const openAddDialog = () => {
+    setEditingItem(null);
+    setIsAccountCardDialogOpen(true);
+  }
+
+  const openEditDialog = (item: Account | CardType) => {
+    setEditingItem(item);
+    setIsAccountCardDialogOpen(true);
+  }
+
+  const handleSaveAccountCard = (data: ({ type: 'account' | 'card' } & Partial<Account> & Partial<CardType>)) => {
+    if (editingItem) { // Editing existing item
+        if (data.type === 'account' && data.name && data.balance !== undefined) {
+            updateAccount(editingItem.id, { name: data.name, balance: data.balance });
+        } else if (data.type === 'card' && data.name && data.limit !== undefined && data.dueDay !== undefined) {
+            updateCard(editingItem.id, { name: data.name, limit: data.limit, dueDay: data.dueDay });
         }
-    } else {
-        if(data.name && data.limit !== undefined && data.dueDay !== undefined){
+    } else { // Adding new item
+        if (data.type === 'account' && data.name && data.balance !== undefined) {
+            addAccount({ name: data.name, balance: data.balance, type: 'checking' });
+        } else if (data.type === 'card' && data.name && data.limit !== undefined && data.dueDay !== undefined) {
             addCard({ name: data.name, limit: data.limit, dueDay: data.dueDay });
         }
     }
-    setIsAddAccountDialogOpen(false);
+    setIsAccountCardDialogOpen(false);
   };
 
   return (
@@ -252,7 +280,7 @@ export default function SettingsPage() {
                                     <p>{category}</p>
                                     <div className="flex items-center gap-1">
                                         <Button variant="ghost" size="icon" disabled><Edit className="h-4 w-4" /></Button>
-                                        <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={() => setCategoryToDelete(category)}><Trash2 className="h-4 w-4" /></Button>
+                                        <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={() => setItemToDelete({ type: 'pantryCategory', name: category })}><Trash2 className="h-4 w-4" /></Button>
                                     </div>
                                 </li>
                             ))}
@@ -292,8 +320,8 @@ export default function SettingsPage() {
                             <p className="text-sm text-muted-foreground">Saldo: {account.balance.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</p>
                             </div>
                             <div className="flex items-center gap-2">
-                            <Button variant="ghost" size="icon" disabled><Edit className="h-4 w-4" /></Button>
-                            <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" disabled><Trash2 className="h-4 w-4" /></Button>
+                            <Button variant="ghost" size="icon" onClick={() => openEditDialog(account)}><Edit className="h-4 w-4" /></Button>
+                            <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={() => setItemToDelete({ type: 'account', id: account.id, name: account.name })}><Trash2 className="h-4 w-4" /></Button>
                             </div>
                         </li>
                         ))}
@@ -304,15 +332,15 @@ export default function SettingsPage() {
                             <p className="text-sm text-muted-foreground">Limite: {card.limit.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} | Vencimento: dia {card.dueDay}</p>
                             </div>
                             <div className="flex items-center gap-2">
-                            <Button variant="ghost" size="icon" disabled><Edit className="h-4 w-4" /></Button>
-                            <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" disabled><Trash2 className="h-4 w-4" /></Button>
+                            <Button variant="ghost" size="icon" onClick={() => openEditDialog(card)}><Edit className="h-4 w-4" /></Button>
+                            <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={() => setItemToDelete({ type: 'card', id: card.id, name: card.name })}><Trash2 className="h-4 w-4" /></Button>
                             </div>
                         </li>
                         ))}
                     </ul>
                     </CardContent>
                     <CardFooter>
-                    <Button variant="outline" className="w-full" onClick={() => setIsAddAccountDialogOpen(true)}>
+                    <Button variant="outline" className="w-full" onClick={openAddDialog}>
                         <PlusCircle className="mr-2 h-4 w-4" />
                         Adicionar Conta ou Cartão
                     </Button>
@@ -356,23 +384,27 @@ export default function SettingsPage() {
                 </div>
             </CardContent>
         </Card>
-         <AddAccountCardDialog 
-            isOpen={isAddAccountDialogOpen}
-            onClose={() => setIsAddAccountDialogOpen(false)}
+         <EditAccountCardDialog 
+            isOpen={isAccountCardDialogOpen}
+            onClose={() => setIsAccountCardDialogOpen(false)}
             onSave={handleSaveAccountCard}
+            item={editingItem}
         />
-         <AlertDialog open={!!categoryToDelete} onOpenChange={(open) => !open && setCategoryToDelete(null)}>
+         <AlertDialog open={!!itemToDelete} onOpenChange={(open) => !open && setItemToDelete(null)}>
             <AlertDialogContent>
                 <AlertDialogHeader>
-                    <AlertDialogTitle>Excluir categoria?</AlertDialogTitle>
+                    <AlertDialogTitle>Excluir {itemToDelete?.type === 'pantryCategory' ? 'categoria' : 'item'}?</AlertDialogTitle>
                     <AlertDialogDescription>
-                        Tem certeza que deseja excluir a categoria <span className="font-semibold">"{categoryToDelete}"</span>?
-                        Itens nesta categoria serão movidos para "Outros". Esta ação não pode ser desfeita.
+                       {itemToDelete?.type === 'pantryCategory' && `Tem certeza que deseja excluir a categoria "${itemToDelete.name}"? Itens nesta categoria serão movidos para "Outros".`}
+                       {itemToDelete?.type === 'account' && `Tem certeza que deseja excluir a conta "${itemToDelete.name}"? Todas as transações associadas também serão excluídas.`}
+                       {itemToDelete?.type === 'card' && `Tem certeza que deseja excluir o cartão "${itemToDelete.name}"? Todas as transações associadas também serão excluídas.`}
+                        <br/><br/>
+                        Esta ação não pode ser desfeita.
                     </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
-                    <AlertDialogCancel onClick={() => setCategoryToDelete(null)}>Cancelar</AlertDialogCancel>
-                    <AlertDialogAction onClick={handleDeleteCategoryConfirm} className="bg-destructive hover:bg-destructive/90">
+                    <AlertDialogCancel onClick={() => setItemToDelete(null)}>Cancelar</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleDeleteConfirm} className="bg-destructive hover:bg-destructive/90">
                         Sim, excluir
                     </AlertDialogAction>
                 </AlertDialogFooter>
