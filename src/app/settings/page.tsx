@@ -42,17 +42,6 @@ const pastelColors = [
 
 type Theme = 'light' | 'dark';
 
-const getInitialTheme = (): Theme => {
-  if (typeof window === 'undefined') return 'light';
-  return (localStorage.getItem('app-theme') as Theme) || 'light';
-};
-
-const getInitialColor = (): string => {
-    if (typeof window === 'undefined') return pastelColors[0].value;
-    return localStorage.getItem('app-color') || pastelColors[2].value;
-};
-
-
 export default function SettingsPage() {
   const { 
     accounts,
@@ -67,29 +56,47 @@ export default function SettingsPage() {
     addCard,
   } = useContext(FinanceContext);
   const { toast } = useToast();
-
-  const [savedTheme, setSavedTheme] = useState<Theme>(getInitialTheme);
-  const [savedColor, setSavedColor] = useState<string>(getInitialColor);
   
-  const [tempTheme, setTempTheme] = useState<Theme>(savedTheme);
-  const [tempColor, setTempColor] = useState<string>(savedColor);
+  const [isClient, setIsClient] = useState(false);
+  const [savedTheme, setSavedTheme] = useState<Theme>('light');
+  const [savedColor, setSavedColor] = useState<string>(pastelColors[2].value);
+  
+  const [tempTheme, setTempTheme] = useState<Theme>('light');
+  const [tempColor, setTempColor] = useState<string>(pastelColors[2].value);
   
   const [newCategoryName, setNewCategoryName] = useState('');
   const [categoryToDelete, setCategoryToDelete] = useState<string | null>(null);
   const [isAddAccountDialogOpen, setIsAddAccountDialogOpen] = useState(false);
 
+  // Load theme and color from localStorage only on the client
+  useEffect(() => {
+    setIsClient(true);
+    const storedTheme = (localStorage.getItem('app-theme') as Theme) || 'light';
+    const storedColor = localStorage.getItem('app-color') || pastelColors[2].value;
+
+    setSavedTheme(storedTheme);
+    setTempTheme(storedTheme);
+    
+    setSavedColor(storedColor);
+    setTempColor(storedColor);
+  }, []);
+
   // Apply visual changes immediately based on temporary selections
   useEffect(() => {
-    document.documentElement.classList.remove('light', 'dark');
-    document.documentElement.classList.add(tempTheme);
-  }, [tempTheme]);
+    if (isClient) {
+      document.documentElement.classList.remove('light', 'dark');
+      document.documentElement.classList.add(tempTheme);
+    }
+  }, [tempTheme, isClient]);
 
   useEffect(() => {
-    document.documentElement.style.setProperty('--primary', `hsl(${tempColor})`);
-    const [h, s, l] = tempColor.split(' ').map(v => parseInt(v.replace('%', '')));
-    document.documentElement.style.setProperty('--accent', `hsl(${h} ${s}% ${l + (l < 50 ? 15 : -15)}% / 0.2)`);
-    document.documentElement.style.setProperty('--ring', `hsl(${tempColor})`);
-  }, [tempColor]);
+    if (isClient) {
+      document.documentElement.style.setProperty('--primary', `hsl(${tempColor})`);
+      const [h, s, l] = tempColor.split(' ').map(v => parseInt(v.replace('%', '')));
+      document.documentElement.style.setProperty('--accent', `hsl(${h} ${s}% ${l + (l < 50 ? 15 : -15)}% / 0.2)`);
+      document.documentElement.style.setProperty('--ring', `hsl(${tempColor})`);
+    }
+  }, [tempColor, isClient]);
   
   const handleSaveAppearance = () => {
     localStorage.setItem('app-theme', tempTheme);
@@ -160,7 +167,7 @@ export default function SettingsPage() {
                     <div>
                         <Label className="block mb-2 font-medium">Cor de Destaque</Label>
                         <div className="flex flex-wrap gap-3">
-                        {pastelColors.map(color => (
+                        {isClient && pastelColors.map(color => (
                             <Button
                             key={color.name}
                             variant="outline"
