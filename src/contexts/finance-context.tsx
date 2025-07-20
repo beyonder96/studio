@@ -25,8 +25,8 @@ const initialWishes: Wish[] = [ { id: 'wish1', name: 'Viagem para a praia', pric
 const initialAppointments: Appointment[] = [];
 const initialShoppingLists: ShoppingList[] = [ { id: 'list1', name: 'Mercado', shared: true, items: [ { id: 'item1', name: 'Leite Integral', quantity: 1, checked: false } ] } ];
 
-type Account = { id: string; name: string; balance: number; type: 'checking' | 'savings'; }
-type Card = { id: string; name: string; limit: number; dueDay: number; }
+export type Account = { id: string; name: string; balance: number; type: 'checking' | 'savings'; }
+export type Card = { id: string; name: string; limit: number; dueDay: number; }
 export type Appointment = { id: string; title: string; date: string; time?: string; category: string; notes?: string; };
 export type PantryCategory = string;
 export type PantryItem = { id: string; name: string; quantity: number; pantryCategory: PantryCategory; }
@@ -50,7 +50,9 @@ type FinanceContextType = {
   updateTransaction: (id: string, transaction: Partial<Omit<Transaction, 'id'>>) => void;
   deleteTransaction: (id: string) => void;
   accounts: Account[];
+  addAccount: (account: Omit<Account, 'id'>) => void;
   cards: Card[];
+  addCard: (card: Omit<Card, 'id'>) => void;
   incomeCategories: string[];
   expenseCategories: string[];
   totalIncome: () => number;
@@ -137,7 +139,7 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
         const unsubscribe = onValue(userRef, (snapshot) => {
             const data = snapshot.val();
             if (data) {
-                const transformData = (d: any) => d ? Object.values(d) : [];
+                const transformData = (d: any) => d ? Object.keys(d).map(key => ({ id: key, ...d[key] })) : [];
                 setTransactions(transformData(data.transactions));
                 setAccounts(transformData(data.accounts));
                 setCards(transformData(data.cards));
@@ -148,10 +150,13 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
                 setTasks(transformData(data.tasks));
                 setWishes(transformData(data.wishes));
                 setAppointments(transformData(data.appointments));
-                const dbShoppingLists = transformData(data.shoppingLists);
-                setShoppingLists(dbShoppingLists as ShoppingList[]);
+                const dbShoppingLists: ShoppingList[] = transformData(data.shoppingLists).map((list: any) => ({
+                    ...list,
+                    items: list.items ? Object.keys(list.items).map(key => ({ id: key, ...list.items[key] })) : []
+                }));
+                setShoppingLists(dbShoppingLists);
                 if (!selectedListId && dbShoppingLists.length > 0) {
-                    setSelectedListId((dbShoppingLists[0] as ShoppingList).id || null);
+                    setSelectedListId(dbShoppingLists[0].id || null);
                 }
             } else {
                  const initialData = {
@@ -225,11 +230,12 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
           totalInstallments: installments,
           isRecurring: false,
         };
-        set(getDbRef(`transactions/${newTransaction.id}`), newTransaction);
+        const newId = push(getDbRef('transactions')).key!;
+        set(getDbRef(`transactions/${newId}`), {...newTransaction, id: undefined });
       }
     } else {
-      const newId = push(getDbRef('transactions')).key || crypto.randomUUID();
-      const newTransaction = { ...transaction, id: newId };
+      const newId = push(getDbRef('transactions')).key!;
+      const newTransaction = { ...transaction };
       set(getDbRef(`transactions/${newId}`), newTransaction);
     }
   };
@@ -247,14 +253,14 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
   const totalIncome = useCallback(() => {
     const today = new Date();
     return transactions
-      .filter((t) => t.type === 'income' && isSameMonth(parseISO(t.date), today))
+      .filter((t) => t.type === 'income' && isSameMonth(new Date(t.date + 'T00:00:00'), today))
       .reduce((sum, t) => sum + t.amount, 0);
   }, [transactions]);
 
   const totalExpenses = useCallback(() => {
     const today = new Date();
     return transactions
-      .filter((t) => t.type === 'expense' && isSameMonth(parseISO(t.date), today))
+      .filter((t) => t.type === 'expense' && isSameMonth(new Date(t.date + 'T00:00:00'), today))
       .reduce((sum, t) => sum + t.amount, 0);
   }, [transactions]);
 
@@ -283,8 +289,9 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
               updates[`pantryItems/${existingItem.id}`] = updatedItem;
               newPantryItems[existingItemIndex] = updatedItem;
           } else {
+              const newId = push(getDbRef('pantryItems')).key!;
               const newItem: PantryItem = {
-                  id: push(getDbRef('pantryItems')).key!,
+                  id: newId,
                   name: itemToAdd.name,
                   quantity: itemToAdd.quantity,
                   pantryCategory: mapShoppingItemToPantryCategory(itemToAdd.name),
@@ -325,6 +332,14 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
     if (!user) return;
     const updatedCategories = pantryCategories.filter(cat => cat !== name);
     set(getDbRef('pantryCategories'), updatedCategories);
+    // Also update items in that category to 'Outros'
+    const updates: any = {};
+    pantryItems.forEach(item => {
+        if(item.pantryCategory === name) {
+            updates[`pantryItems/${item.id}/pantryCategory`] = 'Outros';
+        }
+    });
+    update(getDbRef(''), updates);
   };
 
   // Task Management
@@ -332,7 +347,7 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
     if (!user) return;
     const newId = push(getDbRef('tasks')).key!;
     const newTask: Task = { id: newId, text, completed: false };
-    set(getDbRef(`tasks/${newId}`), newTask);
+    set(getDbRef(`tasks/${newId}`), {text: newTask.text, completed: newTask.completed});
   };
 
   const toggleTask = (id: string) => {
@@ -353,7 +368,7 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
     if (!user) return;
     const newId = push(getDbRef('wishes')).key!;
     const newWish: Wish = { ...wish, id: newId, purchased: false };
-    set(getDbRef(`wishes/${newId}`), newWish);
+    set(getDbRef(`wishes/${newId}`), { ...wish, purchased: false });
   };
   
   const updateWish = (id: string, updatedWish: Partial<Omit<Wish, 'id'>>) => {
@@ -380,8 +395,7 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
   const addAppointment = (appointment: Omit<Appointment, 'id'>) => {
     if (!user) return;
     const newId = push(getDbRef('appointments')).key!;
-    const newAppointment: Appointment = { ...appointment, id: newId };
-    set(getDbRef(`appointments/${newId}`), newAppointment);
+    set(getDbRef(`appointments/${newId}`), appointment);
   };
 
   const updateAppointment = (id: string, updatedAppointment: Partial<Omit<Appointment, 'id'>>) => {
@@ -393,6 +407,18 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
     if (!user) return;
     remove(getDbRef(`appointments/${id}`));
   };
+  
+  const addAccount = (account: Omit<Account, 'id'>) => {
+    if(!user) return;
+    const newId = push(getDbRef('accounts')).key!;
+    set(getDbRef(`accounts/${newId}`), account);
+  }
+
+  const addCard = (card: Omit<Card, 'id'>) => {
+    if(!user) return;
+    const newId = push(getDbRef('cards')).key!;
+    set(getDbRef(`cards/${newId}`), card);
+  }
 
   // Shopping List Management
   const getListRef = (listId: string, path?: string) => {
@@ -406,28 +432,32 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
 
   const handleSetPrice = (itemId: string, price: number) => {
     if (!user || !selectedListId) return;
-    update(getListRef(selectedListId, `items/${itemId}`), { price, checked: true });
+    const itemRef = getListRef(selectedListId, `items/${itemId}`);
+    update(itemRef, { price, checked: true });
   };
   
   const handleCheckboxChange = (item: ShoppingListItem) => {
     if (!user || !selectedListId) return;
-    update(getListRef(selectedListId, `items/${item.id}`), { checked: !item.checked, price: item.checked ? null : item.price });
+    const itemRef = getListRef(selectedListId, `items/${item.id}`);
+    update(itemRef, { checked: !item.checked, price: item.checked ? null : item.price });
   };
 
   const handleDeleteItem = (itemId: string) => {
     if (!user || !selectedListId) return;
-    remove(getListRef(selectedListId, `items/${itemId}`));
+    const itemRef = getListRef(selectedListId, `items/${itemId}`);
+    remove(itemRef);
   };
   
   const handleUpdateItem = (itemId: string, name: string, quantity: number) => {
     if (!user || !selectedListId) return;
-    update(getListRef(selectedListId, `items/${itemId}`), { name, quantity });
+    const itemRef = getListRef(selectedListId, `items/${itemId}`);
+    update(itemRef, { name, quantity });
   };
   
   const handleClearCompletedItems = (listId: string) => {
     if (!user) return;
     const list = shoppingLists.find(l => l.id === listId);
-    if (!list) return;
+    if (!list || !list.items) return;
     const updates: { [key: string]: null } = {};
     list.items.forEach(item => {
       if (item.checked) {
@@ -442,7 +472,7 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
     if (!user || !selectedListId) return;
     const itemsRef = getListRef(selectedListId, 'items');
     const newId = push(itemsRef).key!;
-    const newItem: ShoppingListItem = { id: newId, name, quantity, checked: false };
+    const newItem: Omit<ShoppingListItem, 'id'> = { name, quantity, checked: false };
     set(ref(itemsRef, newId), newItem);
   };
 
@@ -450,9 +480,9 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
     if (!user || !name.trim()) return;
     const listsRef = getDbRef('shoppingLists');
     const newId = push(listsRef).key!;
-    const newList: ShoppingList = { id: newId, name: name.trim(), shared: false, items: [] };
+    const newList: Omit<ShoppingList, 'id'> = { name: name.trim(), shared: false, items: [] };
     set(ref(listsRef, newId), newList);
-    callback(newList);
+    callback({ ...newList, id: newId });
   };
   
   const handleDeleteList = (listId: string) => {
@@ -487,7 +517,7 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
 
   const value = {
     transactions, addTransaction, updateTransaction, deleteTransaction,
-    accounts, cards, incomeCategories, expenseCategories,
+    accounts, addAccount, cards, addCard, incomeCategories, expenseCategories,
     totalIncome, totalExpenses, totalBalance, countRecurringTransactions,
     isSensitiveDataVisible, toggleSensitiveDataVisibility, formatCurrency,
     resetAllData,

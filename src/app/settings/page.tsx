@@ -27,6 +27,9 @@ import { FinanceContext } from '@/contexts/finance-context';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
+import { AddAccountCardDialog } from '@/components/settings/add-account-card-dialog';
+import type { Account, Card as CardType } from '@/contexts/finance-context';
+
 
 const pastelColors = [
   { name: 'Amarelo', value: '45 95% 55%' },
@@ -60,6 +63,8 @@ export default function SettingsPage() {
     resetAllData,
     incomeCategories,
     expenseCategories,
+    addAccount,
+    addCard,
   } = useContext(FinanceContext);
   const { toast } = useToast();
 
@@ -71,6 +76,7 @@ export default function SettingsPage() {
   
   const [newCategoryName, setNewCategoryName] = useState('');
   const [categoryToDelete, setCategoryToDelete] = useState<string | null>(null);
+  const [isAddAccountDialogOpen, setIsAddAccountDialogOpen] = useState(false);
 
   // Apply visual changes immediately based on temporary selections
   useEffect(() => {
@@ -115,6 +121,18 @@ export default function SettingsPage() {
     }
   }
 
+  const handleSaveAccountCard = (data: { type: 'account' | 'card' } & Partial<Account> & Partial<CardType>) => {
+    if (data.type === 'account') {
+        if(data.name && data.balance !== undefined){
+            addAccount({ name: data.name, balance: data.balance, type: 'checking' });
+        }
+    } else {
+        if(data.name && data.limit !== undefined && data.dueDay !== undefined){
+            addCard({ name: data.name, limit: data.limit, dueDay: data.dueDay });
+        }
+    }
+    setIsAddAccountDialogOpen(false);
+  };
 
   return (
     <>
@@ -287,7 +305,7 @@ export default function SettingsPage() {
                     </ul>
                     </CardContent>
                     <CardFooter>
-                    <Button variant="outline" className="w-full" disabled>
+                    <Button variant="outline" className="w-full" onClick={() => setIsAddAccountDialogOpen(true)}>
                         <PlusCircle className="mr-2 h-4 w-4" />
                         Adicionar Conta ou Cartão
                     </Button>
@@ -331,6 +349,11 @@ export default function SettingsPage() {
                 </div>
             </CardContent>
         </Card>
+         <AddAccountCardDialog 
+            isOpen={isAddAccountDialogOpen}
+            onClose={() => setIsAddAccountDialogOpen(false)}
+            onSave={handleSaveAccountCard}
+        />
          <AlertDialog open={!!categoryToDelete} onOpenChange={(open) => !open && setCategoryToDelete(null)}>
             <AlertDialogContent>
                 <AlertDialogHeader>
