@@ -20,7 +20,6 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 import { PlusCircle, Moon, Sun, AlertTriangle, Check, Save, Trash2, Edit } from 'lucide-react';
 import { FinanceContext } from '@/contexts/finance-context';
@@ -28,6 +27,7 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { EditAccountCardDialog } from '@/components/settings/edit-account-card-dialog';
+import { EditCategoryDialog } from '@/components/settings/edit-category-dialog';
 import type { Account, Card as CardType } from '@/contexts/finance-context';
 
 
@@ -41,7 +41,8 @@ const pastelColors = [
 ];
 
 type Theme = 'light' | 'dark';
-type ItemToDelete = { type: 'account' | 'card'; id: string; name: string } | { type: 'pantryCategory'; name: string };
+type ItemToDelete = { type: 'account' | 'card'; id: string; name: string } | { type: 'pantryCategory' | 'incomeCategory' | 'expenseCategory'; name: string };
+type ItemToEdit = { type: 'pantryCategory' | 'incomeCategory' | 'expenseCategory'; name: string } | null;
 
 export default function SettingsPage() {
   const { 
@@ -50,6 +51,7 @@ export default function SettingsPage() {
     pantryCategories,
     addPantryCategory,
     deletePantryCategory,
+    updatePantryCategory,
     resetAllData,
     incomeCategories,
     expenseCategories,
@@ -59,6 +61,8 @@ export default function SettingsPage() {
     updateCard,
     deleteAccount,
     deleteCard,
+    updateIncomeCategory,
+    updateExpenseCategory,
   } = useContext(FinanceContext);
   const { toast } = useToast();
   
@@ -75,6 +79,7 @@ export default function SettingsPage() {
   const [editingItem, setEditingItem] = useState<Account | CardType | null>(null);
 
   const [itemToDelete, setItemToDelete] = useState<ItemToDelete | null>(null);
+  const [itemToEdit, setItemToEdit] = useState<ItemToEdit>(null);
 
 
   // Load theme and color from localStorage only on the client
@@ -138,6 +143,8 @@ export default function SettingsPage() {
         deleteAccount(itemToDelete.id);
     } else if (itemToDelete.type === 'card') {
         deleteCard(itemToDelete.id);
+    } else if (itemToDelete.type === 'incomeCategory' || itemToDelete.type === 'expenseCategory') {
+      toast({ variant: 'destructive', title: 'Ação não permitida', description: 'Não é possível excluir categorias padrão.' });
     }
     setItemToDelete(null);
   }
@@ -168,6 +175,23 @@ export default function SettingsPage() {
     }
     setIsAccountCardDialogOpen(false);
   };
+  
+  const handleSaveCategory = (oldName: string, newName: string) => {
+    if (!itemToEdit) return;
+    
+    switch (itemToEdit.type) {
+      case 'pantryCategory':
+        updatePantryCategory(oldName, newName);
+        break;
+      case 'incomeCategory':
+        updateIncomeCategory(oldName, newName);
+        break;
+      case 'expenseCategory':
+        updateExpenseCategory(oldName, newName);
+        break;
+    }
+    setItemToEdit(null);
+  }
 
   return (
     <>
@@ -236,8 +260,8 @@ export default function SettingsPage() {
                                         <li key={cat} className="flex items-center justify-between p-3 rounded-lg border">
                                             <p>{cat}</p>
                                             <div className="flex items-center gap-1">
-                                                <Button variant="ghost" size="icon" disabled><Edit className="h-4 w-4" /></Button>
-                                                <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" disabled><Trash2 className="h-4 w-4" /></Button>
+                                                <Button variant="ghost" size="icon" onClick={() => setItemToEdit({ type: 'incomeCategory', name: cat })}><Edit className="h-4 w-4" /></Button>
+                                                <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={() => setItemToDelete({ type: 'incomeCategory', name: cat })} disabled><Trash2 className="h-4 w-4" /></Button>
                                             </div>
                                         </li>
                                     ))}
@@ -250,8 +274,8 @@ export default function SettingsPage() {
                                         <li key={cat} className="flex items-center justify-between p-3 rounded-lg border">
                                             <p>{cat}</p>
                                             <div className="flex items-center gap-1">
-                                                <Button variant="ghost" size="icon" disabled><Edit className="h-4 w-4" /></Button>
-                                                <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" disabled><Trash2 className="h-4 w-4" /></Button>
+                                                <Button variant="ghost" size="icon" onClick={() => setItemToEdit({ type: 'expenseCategory', name: cat })}><Edit className="h-4 w-4" /></Button>
+                                                <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={() => setItemToDelete({ type: 'expenseCategory', name: cat })} disabled><Trash2 className="h-4 w-4" /></Button>
                                             </div>
                                         </li>
                                     ))}
@@ -279,7 +303,7 @@ export default function SettingsPage() {
                                 <li key={category} className="flex items-center justify-between p-3 rounded-lg border">
                                     <p>{category}</p>
                                     <div className="flex items-center gap-1">
-                                        <Button variant="ghost" size="icon" disabled><Edit className="h-4 w-4" /></Button>
+                                        <Button variant="ghost" size="icon" onClick={() => setItemToEdit({ type: 'pantryCategory', name: category })}><Edit className="h-4 w-4" /></Button>
                                         <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={() => setItemToDelete({ type: 'pantryCategory', name: category })}><Trash2 className="h-4 w-4" /></Button>
                                     </div>
                                 </li>
@@ -390,12 +414,20 @@ export default function SettingsPage() {
             onSave={handleSaveAccountCard}
             item={editingItem}
         />
+        <EditCategoryDialog
+            isOpen={!!itemToEdit}
+            onClose={() => setItemToEdit(null)}
+            onSave={handleSaveCategory}
+            category={itemToEdit}
+        />
          <AlertDialog open={!!itemToDelete} onOpenChange={(open) => !open && setItemToDelete(null)}>
             <AlertDialogContent>
                 <AlertDialogHeader>
-                    <AlertDialogTitle>Excluir {itemToDelete?.type === 'pantryCategory' ? 'categoria' : 'item'}?</AlertDialogTitle>
+                    <AlertDialogTitle>Excluir {itemToDelete?.type.includes('Category') ? 'categoria' : (itemToDelete?.type === 'account' ? 'conta' : 'cartão')}?</AlertDialogTitle>
                     <AlertDialogDescription>
                        {itemToDelete?.type === 'pantryCategory' && `Tem certeza que deseja excluir a categoria "${itemToDelete.name}"? Itens nesta categoria serão movidos para "Outros".`}
+                       {itemToDelete?.type === 'incomeCategory' && `Tem certeza que deseja excluir a categoria de receita "${itemToDelete.name}"? Todas as transações associadas também serão atualizadas.`}
+                       {itemToDelete?.type === 'expenseCategory' && `Tem certeza que deseja excluir a categoria de despesa "${itemToDelete.name}"? Todas as transações associadas também serão atualizadas.`}
                        {itemToDelete?.type === 'account' && `Tem certeza que deseja excluir a conta "${itemToDelete.name}"? Todas as transações associadas também serão excluídas.`}
                        {itemToDelete?.type === 'card' && `Tem certeza que deseja excluir o cartão "${itemToDelete.name}"? Todas as transações associadas também serão excluídas.`}
                         <br/><br/>

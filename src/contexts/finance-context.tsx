@@ -59,6 +59,8 @@ type FinanceContextType = {
   deleteCard: (id: string) => void;
   incomeCategories: string[];
   expenseCategories: string[];
+  updateIncomeCategory: (oldName: string, newName: string) => void;
+  updateExpenseCategory: (oldName: string, newName: string) => void;
   totalIncome: () => number;
   totalExpenses: () => number;
   totalBalance: () => number;
@@ -74,6 +76,7 @@ type FinanceContextType = {
   pantryCategories: PantryCategory[];
   addPantryCategory: (name: string) => void;
   deletePantryCategory: (name: string) => void;
+  updatePantryCategory: (oldName: string, newName: string) => void;
   tasks: Task[];
   addTask: (text: string) => void;
   toggleTask: (id: string) => void;
@@ -346,6 +349,49 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
     update(getDbRef(''), updates);
   };
 
+  const updatePantryCategory = (oldName: string, newName: string) => {
+    if (!user || oldName === newName) return;
+    const updatedCategories = pantryCategories.map(cat => cat === oldName ? newName : cat);
+    set(getDbRef('pantryCategories'), updatedCategories);
+
+    const updates: any = {};
+    pantryItems.forEach(item => {
+        if(item.pantryCategory === oldName) {
+            updates[`pantryItems/${item.id}/pantryCategory`] = newName;
+        }
+    });
+    update(getDbRef(''), updates);
+  };
+
+  const updateIncomeCategory = (oldName: string, newName: string) => {
+    if (!user || oldName === newName) return;
+    const updatedCategories = incomeCategories.map(cat => cat === oldName ? newName : cat);
+    set(getDbRef('incomeCategories'), updatedCategories);
+
+    const updates: any = {};
+    transactions.forEach(t => {
+      if (t.type === 'income' && t.category === oldName) {
+        updates[`transactions/${t.id}/category`] = newName;
+      }
+    });
+    update(getDbRef(''), updates);
+  };
+  
+  const updateExpenseCategory = (oldName: string, newName: string) => {
+    if (!user || oldName === newName) return;
+    const updatedCategories = expenseCategories.map(cat => cat === oldName ? newName : cat);
+    set(getDbRef('expenseCategories'), updatedCategories);
+
+    const updates: any = {};
+    transactions.forEach(t => {
+      if (t.type === 'expense' && t.category === oldName) {
+        updates[`transactions/${t.id}/category`] = newName;
+      }
+    });
+    update(getDbRef(''), updates);
+  };
+
+
   // Task Management
   const addTask = (text: string) => {
     if (!user) return;
@@ -543,12 +589,12 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
     transactions, addTransaction, updateTransaction, deleteTransaction,
     accounts, addAccount, updateAccount, deleteAccount, 
     cards, addCard, updateCard, deleteCard, 
-    incomeCategories, expenseCategories,
+    incomeCategories, expenseCategories, updateIncomeCategory, updateExpenseCategory,
     totalIncome, totalExpenses, totalBalance, countRecurringTransactions,
     isSensitiveDataVisible, toggleSensitiveDataVisibility, formatCurrency,
     resetAllData,
     pantryItems, addItemsToPantry, addItemToPantry, updatePantryItemQuantity,
-    pantryCategories, addPantryCategory, deletePantryCategory,
+    pantryCategories, addPantryCategory, deletePantryCategory, updatePantryCategory,
     tasks, addTask, toggleTask, deleteTask,
     wishes, addWish, updateWish, deleteWish, toggleWishPurchased,
     appointments, appointmentCategories, addAppointment, updateAppointment, deleteAppointment,
