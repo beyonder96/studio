@@ -40,8 +40,8 @@ type ProfileData = {
 const defaultProfileData: ProfileData = {
     names: 'Kenned & Nicoli',
     sinceDate: new Date().toISOString(),
-    birthday1: undefined,
-    birthday2: undefined,
+    birthday1: '',
+    birthday2: '',
     food: 'Pizza',
     movie: 'Interestelar',
     music: 'Bohemian Rhapsody',
@@ -502,3 +502,5 @@ export default function ProfilePage() {
     </Card>
   );
 }
+
+    
