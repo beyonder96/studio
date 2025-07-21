@@ -486,7 +486,7 @@ export default function ProfilePage() {
                     <CardContent>
                         <iframe
                             style={{ borderRadius: '12px' }}
-                            src="https://open.spotify.com/embed/playlist/37i9dQZF1DXcBWIGoYBM5M?utm_source=generator"
+                            src="https://open.spotify.com/embed/playlist/4LHaagezLTAeXpoaIQOHOP?utm_source=generator"
                             width="100%"
                             height="352"
                             frameBorder="0"
