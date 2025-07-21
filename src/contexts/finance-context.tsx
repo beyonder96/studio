@@ -23,6 +23,7 @@ const initialPantryItems: PantryItem[] = [];
 const initialTasks: Task[] = [ { id: 'task1', text: 'Pagar conta de luz', completed: false } ];
 const initialWishes: Wish[] = [ { id: 'wish1', name: 'Viagem para a praia', price: 3500, purchased: false, imageUrl: 'https://placehold.co/600x400.png', link: '' } ];
 const initialAppointments: Appointment[] = [];
+const initialMemories: Memory[] = [];
 const initialShoppingLists: ShoppingList[] = [ { id: 'list1', name: 'Mercado', shared: true, items: [ { id: 'item1', name: 'Leite Integral', quantity: 1, checked: false } ] } ];
 
 export type Account = { id: string; name: string; balance: number; type: 'checking' | 'savings'; }
@@ -34,6 +35,7 @@ export type Task = { id: string; text: string; completed: boolean; };
 export type Wish = { id: string; name: string; price: number; link?: string; imageUrl?: string; purchased: boolean; };
 export type ShoppingListItem = { id: string; name: string; quantity: number; checked: boolean; price?: number; };
 export type ShoppingList = { id: string; name: string; items: ShoppingListItem[]; shared: boolean; };
+export type Memory = { id: string; title: string; description: string; date: string; imageUrl?: string; };
 
 const mapShoppingItemToPantryCategory = (itemName: string): PantryCategory => {
     const lowerCaseName = itemName.toLowerCase();
@@ -107,6 +109,8 @@ type FinanceContextType = {
   handleStartRenameList: (list: ShoppingList) => void;
   handleRenameList: (listId: string, newName: string, callback: () => void) => void;
   handleFinishList: (listId: string) => void;
+  memories: Memory[];
+  addMemory: (memory: Omit<Memory, 'id'>) => void;
 };
 
 export const FinanceContext = createContext<FinanceContextType>({} as FinanceContextType);
@@ -126,6 +130,7 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
   const [wishes, setWishes] = useState<Wish[]>([]);
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [shoppingLists, setShoppingLists] = useState<ShoppingList[]>([]);
+  const [memories, setMemories] = useState<Memory[]>([]);
   
   const [isSensitiveDataVisible, setIsSensitiveDataVisible] = useState(true);
   const [selectedListId, setSelectedListId] = useState<string | null>(null);
@@ -157,6 +162,7 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
                 setTasks(transformData(data.tasks));
                 setWishes(transformData(data.wishes));
                 setAppointments(transformData(data.appointments));
+                setMemories(transformData(data.memories));
                 const dbShoppingLists: ShoppingList[] = transformData(data.shoppingLists).map((list: any) => ({
                     ...list,
                     items: list.items ? Object.keys(list.items).map(key => ({ id: key, ...list.items[key] })) : []
@@ -177,6 +183,7 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
                     tasks: Object.fromEntries(initialTasks.map(t => [t.id, t])),
                     wishes: Object.fromEntries(initialWishes.map(w => [w.id, w])),
                     appointments: {},
+                    memories: {},
                     shoppingLists: Object.fromEntries(initialShoppingLists.map(l => [l.id, l])),
                 };
                 set(userRef, initialData);
@@ -195,6 +202,7 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
         setTasks([]);
         setWishes([]);
         setAppointments([]);
+        setMemories([]);
         setShoppingLists([]);
         setSelectedListId(null);
     }
@@ -278,7 +286,12 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
   const resetAllData = () => {
     if (!user) return;
     const database = getDatabase(firebaseApp);
-    set(ref(database, `users/${user.uid}`), null);
+    const updates: { [key: string]: null } = {};
+    const pathsToDelete = ['transactions', 'accounts', 'cards', 'pantryItems', 'tasks', 'wishes', 'appointments', 'shoppingLists', 'memories'];
+    pathsToDelete.forEach(path => {
+        updates[path] = null;
+    });
+    update(getDbRef(''), updates);
     toast({ title: "Dados Apagados!", description: "Todos os dados foram removidos." });
   };
   
@@ -339,7 +352,6 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
     if (!user) return;
     const updatedCategories = pantryCategories.filter(cat => cat !== name);
     set(getDbRef('pantryCategories'), updatedCategories);
-    // Also update items in that category to 'Outros'
     const updates: any = {};
     pantryItems.forEach(item => {
         if(item.pantryCategory === name) {
@@ -585,6 +597,13 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
      handleClearCompletedItems(listId);
   }
 
+  // Memory Management
+  const addMemory = (memory: Omit<Memory, 'id'>) => {
+    if (!user) return;
+    const newId = push(getDbRef('memories')).key!;
+    set(getDbRef(`memories/${newId}`), memory);
+  };
+
   const value = {
     transactions, addTransaction, updateTransaction, deleteTransaction,
     accounts, addAccount, updateAccount, deleteAccount, 
@@ -602,7 +621,8 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
     shoppingLists, selectedListId, setSelectedListId, selectedList,
     handleSetPrice, handleCheckboxChange, handleDeleteItem, handleUpdateItem,
     handleClearCompletedItems, handleAddItemToList, handleCreateListSave,
-    handleDeleteList, handleStartRenameList, handleRenameList, handleFinishList
+    handleDeleteList, handleStartRenameList, handleRenameList, handleFinishList,
+    memories, addMemory,
   };
 
   return (

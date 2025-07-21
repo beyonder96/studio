@@ -4,9 +4,10 @@
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Sparkles, ArrowUpRight } from "lucide-react";
-import { useContext, useMemo, useState, useEffect } from "react";
+import { useContext, useState, useEffect } from "react";
 import { FinanceContext } from "@/contexts/finance-context";
 import Link from "next/link";
+import { differenceInYears, parseISO } from "date-fns";
 
 type Insight = {
   text: string;
@@ -15,7 +16,7 @@ type Insight = {
 };
 
 export function CopilotCard() {
-  const { pantryItems, tasks, wishes } = useContext(FinanceContext);
+  const { pantryItems, tasks, wishes, memories } = useContext(FinanceContext);
   const [currentInsight, setCurrentInsight] = useState<Insight | null>(null);
 
   useEffect(() => {
@@ -51,6 +52,28 @@ export function CopilotCard() {
         });
     }
     
+    // Memory Insight
+    if (memories.length > 0) {
+        const pastMemories = memories.filter(m => new Date(m.date) < new Date());
+        if (pastMemories.length > 0) {
+            const randomMemory = pastMemories[Math.floor(Math.random() * pastMemories.length)];
+            const yearsAgo = differenceInYears(new Date(), parseISO(randomMemory.date));
+            if (yearsAgo >= 1) {
+                 potentialInsights.push({
+                    text: `Lembram de quando ${randomMemory.title.toLowerCase()} há ${yearsAgo} ano(s) atrás?`,
+                    link: '/timeline',
+                    buttonText: 'Ver Linha do Tempo'
+                });
+            } else {
+                 potentialInsights.push({
+                    text: `Que tal relembrar o dia em que ${randomMemory.title.toLowerCase()}?`,
+                    link: '/timeline',
+                    buttonText: 'Ver Linha do Tempo'
+                });
+            }
+        }
+    }
+    
     // Default Financial Insight
     potentialInsights.push({
       text: "Você gastou 15% a mais em restaurantes este mês. Que tal tentar cozinhar em casa para economizar?",
@@ -62,7 +85,7 @@ export function CopilotCard() {
     const randomIndex = Math.floor(Math.random() * potentialInsights.length);
     setCurrentInsight(potentialInsights[randomIndex]);
 
-  }, [pantryItems, tasks, wishes]);
+  }, [pantryItems, tasks, wishes, memories]);
 
   if (!currentInsight) {
     return (

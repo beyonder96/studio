@@ -4,7 +4,7 @@
 import { useContext, useMemo, useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { FinanceContext } from '@/contexts/finance-context';
+import { FinanceContext, Memory } from '@/contexts/finance-context';
 import { useAuth } from '@/contexts/auth-context';
 import { getDatabase, ref, onValue } from 'firebase/database';
 import { app as firebaseApp } from '@/lib/firebase';
@@ -19,16 +19,22 @@ import {
   Star,
   GalleryVerticalEnd,
   PartyPopper,
-  Flag
+  Flag,
+  Plus,
+  Camera,
 } from 'lucide-react';
+import { AddMemoryDialog } from '@/components/timeline/add-memory-dialog';
+import Image from 'next/image';
+import { Button } from '@/components/ui/button';
 
 type TimelineEvent = {
   date: Date;
   title: string;
   description: string;
-  type: 'relationship' | 'birthday' | 'wish' | 'appointment' | 'anniversary';
+  type: 'relationship' | 'birthday' | 'wish' | 'appointment' | 'anniversary' | 'memory';
   icon: React.ReactNode;
   isFuture: boolean;
+  imageUrl?: string;
 };
 
 type ProfileData = {
@@ -40,8 +46,9 @@ type ProfileData = {
 
 export default function TimelinePage() {
   const { user } = useAuth();
-  const { wishes, appointments } = useContext(FinanceContext);
+  const { wishes, appointments, memories, addMemory } = useContext(FinanceContext);
   const [profileData, setProfileData] = useState<ProfileData>({});
+  const [isMemoryDialogOpen, setIsMemoryDialogOpen] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -81,7 +88,6 @@ export default function TimelinePage() {
         const currentYear = getYear(today);
         const startYear = getYear(since);
         
-        // Past anniversaries
         for (let year = startYear + 1; year < currentYear; year++) {
             const anniversaryDate = new Date(year, since.getMonth(), since.getDate());
              if (anniversaryDate < today) {
@@ -96,7 +102,6 @@ export default function TimelinePage() {
              }
         }
         
-        // Next anniversary
         let nextAnniversary = new Date(currentYear, since.getMonth(), since.getDate());
         if(nextAnniversary < today) {
             nextAnniversary.setFullYear(currentYear + 1);
@@ -111,13 +116,12 @@ export default function TimelinePage() {
         });
     }
 
-    // 3. Birthdays (Past and next ones)
+    // 3. Birthdays
     const addBirthdayEvents = (isoDate?: string, name?: string) => {
         if (!isoDate || !isValid(parseISO(isoDate)) || !name) return;
         const birthDate = parseISO(isoDate);
         const currentYear = getYear(today);
         
-        // Next birthday
         let nextBirthday = new Date(currentYear, birthDate.getMonth(), birthDate.getDate());
         if(nextBirthday < today) {
             nextBirthday.setFullYear(currentYear + 1);
@@ -137,9 +141,6 @@ export default function TimelinePage() {
 
     // 4. Purchased Wishes
     wishes.filter(w => w.purchased).forEach(wish => {
-      // We don't have a purchase date, so let's use a placeholder logic for now.
-      // In a real app, you'd store the purchase date. Here, we'll just distribute them.
-      // This is a mock date for demonstration.
       const mockPurchaseDate = new Date(today.getFullYear(), Math.random() * 12, Math.random() * 28);
       events.push({
         date: mockPurchaseDate,
@@ -163,10 +164,23 @@ export default function TimelinePage() {
         isFuture: date >= today,
       });
     });
+
+    // 6. Custom Memories
+    memories.forEach(memory => {
+        const date = parseISO(memory.date);
+        events.push({
+            date,
+            title: memory.title,
+            description: memory.description,
+            type: 'memory',
+            icon: <Camera className="h-5 w-5" />,
+            isFuture: date >= today,
+            imageUrl: memory.imageUrl
+        });
+    });
     
-    // Sort all events by date
     return events.sort((a, b) => b.date.getTime() - a.date.getTime());
-  }, [profileData, wishes, appointments]);
+  }, [profileData, wishes, appointments, memories]);
   
   const getEventTypeStyles = (type: TimelineEvent['type'], isFuture: boolean) => {
     const futureStyles = isFuture ? 'border-primary/50 bg-primary/5 text-primary' : 'bg-muted';
@@ -177,76 +191,96 @@ export default function TimelinePage() {
       case 'birthday': return cn(baseIcon, isFuture ? 'bg-primary/20 text-primary' : 'bg-pink-500/20 text-pink-500');
       case 'wish': return cn(baseIcon, 'bg-yellow-500/20 text-yellow-500');
       case 'appointment': return cn(baseIcon, isFuture ? 'bg-primary/20 text-primary' : 'bg-cyan-500/20 text-cyan-500');
+      case 'memory': return cn(baseIcon, isFuture ? 'bg-primary/20 text-primary' : 'bg-green-500/20 text-green-500');
       default: return cn(baseIcon, 'bg-gray-500/20 text-gray-500');
     }
   };
 
+  const handleSaveMemory = (data: Omit<Memory, 'id'>) => {
+      addMemory(data);
+      setIsMemoryDialogOpen(false);
+  }
+
   return (
-    <Card className="bg-white/10 dark:bg-black/10 backdrop-blur-3xl border-white/20 dark:border-black/20 rounded-3xl shadow-2xl">
-      <CardContent className="p-4 sm:p-6">
-         <div className="flex flex-col gap-6">
-            <div className="flex items-center justify-between">
-                <div>
-                    <h1 className="text-3xl font-bold">Linha do Tempo</h1>
-                    <p className="text-muted-foreground">A história e o futuro da jornada de vocês.</p>
+    <>
+        <Card className="bg-white/10 dark:bg-black/10 backdrop-blur-3xl border-white/20 dark:border-black/20 rounded-3xl shadow-2xl">
+        <CardContent className="p-4 sm:p-6">
+            <div className="flex flex-col gap-6">
+                <div className="flex items-center justify-between">
+                    <div>
+                        <h1 className="text-3xl font-bold">Linha do Tempo</h1>
+                        <p className="text-muted-foreground">A história e o futuro da jornada de vocês.</p>
+                    </div>
+                    <Button onClick={() => setIsMemoryDialogOpen(true)}>
+                        <Plus className="mr-2 h-4 w-4" />
+                        Adicionar Memória
+                    </Button>
                 </div>
-            </div>
 
-            <div className="relative">
-                {/* Central Line */}
-                <div className="absolute left-5 sm:left-1/2 top-0 h-full w-0.5 bg-border -translate-x-1/2"></div>
-                
-                <div className="space-y-12">
-                {timelineEvents.map((event, index) => (
-                    <div key={index} className="relative flex items-center">
-                        {/* Dot on the line */}
-                        <div className={cn(
-                            "absolute left-5 sm:left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-3 h-3 rounded-full",
-                            event.isFuture ? 'bg-primary' : 'bg-border'
-                        )}></div>
+                <div className="relative">
+                    <div className="absolute left-5 sm:left-1/2 top-0 h-full w-0.5 bg-border -translate-x-1/2"></div>
+                    
+                    <div className="space-y-12">
+                    {timelineEvents.map((event, index) => (
+                        <div key={index} className="relative flex items-center">
+                            <div className={cn(
+                                "absolute left-5 sm:left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-3 h-3 rounded-full",
+                                event.isFuture ? 'bg-primary' : 'bg-border'
+                            )}></div>
 
-                        {/* Event Card */}
-                        <div className={cn(
-                          "flex items-center gap-4 w-full",
-                          index % 2 === 0 ? "sm:flex-row-reverse" : "sm:flex-row"
-                        )}>
-                            <div className="hidden sm:block w-1/2"></div> {/* Spacer */}
-                            <div className="w-full sm:w-1/2">
-                                <Card className={cn(
-                                    "bg-transparent flex items-center gap-4 p-4",
-                                    event.isFuture && 'border-dashed'
-                                )}>
-                                    <div className={cn("hidden sm:flex", getEventTypeStyles(event.type, event.isFuture))}>
-                                        {event.icon}
-                                    </div>
-                                    <div className="flex-1">
-                                        <div className="flex justify-between items-start">
-                                            <div>
-                                                <p className="font-semibold">{event.title}</p>
-                                                <p className="text-sm text-muted-foreground">{event.description}</p>
+                            <div className={cn(
+                            "flex items-center gap-4 w-full",
+                            index % 2 === 0 ? "sm:flex-row-reverse" : "sm:flex-row"
+                            )}>
+                                <div className="hidden sm:block w-1/2"></div>
+                                <div className="w-full sm:w-1/2">
+                                    <Card className={cn(
+                                        "bg-transparent flex flex-col p-0",
+                                        event.isFuture && 'border-dashed'
+                                    )}>
+                                        {event.imageUrl && (
+                                            <div className="relative w-full h-40">
+                                                <Image src={event.imageUrl} alt={event.title} layout="fill" objectFit="cover" className="rounded-t-lg"/>
                                             </div>
-                                            <Badge variant={event.isFuture ? 'default' : 'secondary'} className="whitespace-nowrap ml-2">
-                                              {format(event.date, "dd MMM yyyy", { locale: ptBR })}
-                                            </Badge>
+                                        )}
+                                        <div className="flex items-center gap-4 p-4">
+                                            <div className={cn("hidden sm:flex self-start", getEventTypeStyles(event.type, event.isFuture))}>
+                                                {event.icon}
+                                            </div>
+                                            <div className="flex-1">
+                                                <div className="flex justify-between items-start">
+                                                    <div>
+                                                        <p className="font-semibold">{event.title}</p>
+                                                        <p className="text-sm text-muted-foreground">{event.description}</p>
+                                                    </div>
+                                                    <Badge variant={event.isFuture ? 'default' : 'secondary'} className="whitespace-nowrap ml-2">
+                                                    {format(event.date, "dd MMM yyyy", { locale: ptBR })}
+                                                    </Badge>
+                                                </div>
+                                            </div>
                                         </div>
-                                    </div>
-                                </Card>
+                                    </Card>
+                                </div>
                             </div>
                         </div>
+                    ))}
+                    {timelineEvents.length === 0 && (
+                        <div className="text-center text-muted-foreground py-16">
+                            <GalleryVerticalEnd className="mx-auto h-12 w-12 text-muted-foreground" />
+                            <h3 className="mt-4 text-lg font-medium">Sua linha do tempo está sendo construída.</h3>
+                            <p className="mt-1 text-sm">Adicione memórias e outros eventos para começar.</p>
+                        </div>
+                    )}
                     </div>
-                ))}
-                 {timelineEvents.length === 0 && (
-                    <div className="text-center text-muted-foreground py-16">
-                        <GalleryVerticalEnd className="mx-auto h-12 w-12 text-muted-foreground" />
-                        <h3 className="mt-4 text-lg font-medium">Sua linha do tempo está sendo construída.</h3>
-                        <p className="mt-1 text-sm">Adicione eventos e dados no perfil para começar.</p>
-                    </div>
-                )}
                 </div>
             </div>
-
-         </div>
-      </CardContent>
-    </Card>
+        </CardContent>
+        </Card>
+        <AddMemoryDialog
+            isOpen={isMemoryDialogOpen}
+            onClose={() => setIsMemoryDialogOpen(false)}
+            onSave={handleSaveMemory}
+        />
+    </>
   );
 }
