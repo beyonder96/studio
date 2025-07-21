@@ -19,6 +19,7 @@ import {
   PanelRightOpen,
   X,
   Sparkles,
+  GalleryVerticalEnd,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
@@ -38,6 +39,7 @@ const navItems = [
   { href: '/pantry', icon: Carrot, label: 'Despensa' },
   { href: '/tasks', icon: CheckSquare, label: 'Tarefas' },
   { href: '/calendar', icon: Calendar, label: 'Calendário' },
+  { href: '/timeline', icon: GalleryVerticalEnd, label: 'Linha do Tempo' },
   { href: '/discover', icon: Sparkles, label: 'Descobrir (Em Breve)', disabled: true },
 ];
 
