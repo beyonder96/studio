@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useContext } from 'react';
+import { useState, useContext, useMemo, useEffect } from 'react';
 import ReactMarkdown from 'react-markdown';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
@@ -11,12 +11,17 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Utensils, Plane, Heart, Lightbulb, Loader2, Sparkles, Copy, ShoppingCart } from 'lucide-react';
 import { generateRecipeSuggestion, GenerateRecipeOutput } from '@/ai/flows/generate-recipe-flow';
+import { generateTripPlan, GenerateTripPlanOutput } from '@/ai/flows/generate-trip-plan-flow';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { FinanceContext } from '@/contexts/finance-context';
+import { useAuth } from '@/contexts/auth-context';
+import { getDatabase, ref, onValue } from 'firebase/database';
+import { app as firebaseApp } from '@/lib/firebase';
 
 type SuggestionCategory = 'recipe' | 'trip' | 'date';
 type HistoryItem = { title: string; content: string; };
+type ResultType = GenerateRecipeOutput | GenerateTripPlanOutput;
 
 const suggestionCards = [
   {
@@ -32,7 +37,6 @@ const suggestionCards = [
     description: 'Planeje a próxima escapada de vocês, desde o destino até o roteiro.',
     icon: <Plane className="h-8 w-8 text-primary" />,
     placeholder: 'Ex: "um fim de semana relaxante na praia"',
-    disabled: true,
   },
   {
     id: 'date',
@@ -48,18 +52,31 @@ export default function DiscoverPage() {
   const [activeSuggestion, setActiveSuggestion] = useState<SuggestionCategory | null>(null);
   const [prompt, setPrompt] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [result, setResult] = useState<GenerateRecipeOutput | null>(null);
+  const [result, setResult] = useState<ResultType | null>(null);
   const [usePantry, setUsePantry] = useState(false);
   const [history, setHistory] = useState<HistoryItem[]>([]);
+  const [favoritePlace, setFavoritePlace] = useState<string | undefined>(undefined);
   const { toast } = useToast();
   const { pantryItems, handleAddItemToList } = useContext(FinanceContext);
+  const { user } = useAuth();
+  
+  useEffect(() => {
+    if (user) {
+      const db = getDatabase(firebaseApp);
+      const placeRef = ref(db, `users/${user.uid}/profile/place`);
+      const unsubscribe = onValue(placeRef, (snapshot) => {
+        setFavoritePlace(snapshot.val());
+      });
+      return () => unsubscribe();
+    }
+  }, [user]);
 
   const handleSuggestionClick = (id: SuggestionCategory) => {
     setActiveSuggestion(id);
     setResult(null);
     setPrompt('');
   };
-  
+
   const handleGenerate = async () => {
     if (!prompt || !activeSuggestion) return;
 
@@ -67,21 +84,30 @@ export default function DiscoverPage() {
     setResult(null);
 
     try {
-        if(activeSuggestion === 'recipe') {
-            const recipeResult = await generateRecipeSuggestion({ 
+        let genResult;
+        if (activeSuggestion === 'recipe') {
+            genResult = await generateRecipeSuggestion({
                 prompt,
                 usePantry,
                 pantryItems: usePantry ? pantryItems.map(p => ({ name: p.name, quantity: p.quantity })) : [],
             });
-            setResult(recipeResult);
+        } else if (activeSuggestion === 'trip') {
+            genResult = await generateTripPlan({
+                prompt,
+                favoritePlace,
+            });
+        }
+        setResult(genResult || null);
+        
+        if(genResult){
+            const content = 'recipe' in genResult ? genResult.recipe : genResult.plan;
+            const titleMatch = content.match(/^#+\s*(.*)/);
+            const title = titleMatch ? titleMatch[1] : 'Uma sugestão incrível!';
             
-            const titleMatch = recipeResult.recipe.match(/^#+\s*(.*)/);
-            const title = titleMatch ? titleMatch[1] : 'Uma receita incrível!';
-            
-            // Add to history
-            const newHistoryItem = { title, content: recipeResult.recipe };
+            const newHistoryItem = { title, content };
             setHistory(prev => [newHistoryItem, ...prev].slice(0, 5)); // Keep last 5
         }
+
     } catch (error) {
         console.error("Error generating suggestion:", error);
         toast({
@@ -95,9 +121,8 @@ export default function DiscoverPage() {
   }
 
   const handleAddMissingToCart = () => {
-    if (!result?.missingItems || result.missingItems.length === 0) return;
+    if (!result || !('missingItems' in result) || !result.missingItems || result.missingItems.length === 0) return;
     result.missingItems.forEach(item => {
-        // A simple parser to extract quantity if present, e.g., "2 ovos" -> quantity 2
         const quantityMatch = item.match(/^(\d+)\s+/);
         const quantity = quantityMatch ? parseInt(quantityMatch[1], 10) : 1;
         const name = quantityMatch ? item.replace(quantityMatch[0], '') : item;
@@ -111,18 +136,24 @@ export default function DiscoverPage() {
   
   const copyToClipboard = (textToCopy: string) => {
     if (!textToCopy) return;
-    navigator.clipboard.writeText(textToCopy);
+    const cleanedText = textToCopy.replace(/#+\s*/g, '').replace(/\*/g, '');
+    navigator.clipboard.writeText(cleanedText);
     toast({
         title: 'Copiado!',
         description: 'A sugestão foi copiada para sua área de transferência.',
     });
   };
 
-  const resultTitle = useMemo(() => {
-    if (!result?.recipe) return '';
-    const titleMatch = result.recipe.match(/^#+\s*(.*)/);
-    return titleMatch ? titleMatch[1] : 'Uma receita incrível!';
+  const resultContent = useMemo(() => {
+    if (!result) return '';
+    return 'recipe' in result ? result.recipe : ('plan' in result ? result.plan : '');
   }, [result]);
+
+  const resultTitle = useMemo(() => {
+    if (!resultContent) return '';
+    const titleMatch = resultContent.match(/^#+\s*(.*)/);
+    return titleMatch ? titleMatch[1] : 'Uma sugestão incrível!';
+  }, [resultContent]);
 
   return (
     <Card className="bg-white/10 dark:bg-black/10 backdrop-blur-3xl border-white/20 dark:border-black/20 rounded-3xl shadow-2xl h-full">
@@ -185,7 +216,7 @@ export default function DiscoverPage() {
                         </div>
                     )}
 
-                    {result && result.recipe && (
+                    {result && resultContent && (
                         <Card className="bg-background/50 text-left">
                             <CardHeader>
                                <CardTitle className="text-2xl font-bold">{resultTitle}</CardTitle>
@@ -198,12 +229,12 @@ export default function DiscoverPage() {
                                     h3: ({node, ...props}) => <h4 className="text-lg font-semibold" {...props} />,
                                   }}
                                 >
-                                  {result.recipe}
+                                  {resultContent}
                                 </ReactMarkdown>
 
-                                {result.missingItems && result.missingItems.length > 0 && (
+                                {result && 'missingItems' in result && result.missingItems && result.missingItems.length > 0 && (
                                     <div className="mt-6">
-                                        <h3 className="text-lg font-semibold">Ingredientes Faltando:</h3>
+                                        <h3 className="text-lg font-semibold">Itens para comprar:</h3>
                                         <ul className="list-disc pl-5">
                                             {result.missingItems.map((item, index) => (
                                                 <li key={index}>{item}</li>
@@ -211,7 +242,7 @@ export default function DiscoverPage() {
                                         </ul>
                                         <Button onClick={handleAddMissingToCart} className="w-full mt-4">
                                             <ShoppingCart className="mr-2 h-4 w-4"/>
-                                            Adicionar faltantes ao carrinho
+                                            Adicionar ao carrinho
                                         </Button>
                                     </div>
                                 )}
@@ -219,11 +250,11 @@ export default function DiscoverPage() {
                              <CardFooter>
                                 <Button
                                     variant="outline"
-                                    onClick={() => copyToClipboard(result.recipe)}
+                                    onClick={() => copyToClipboard(resultContent)}
                                     className="w-full"
                                 >
                                     <Copy className="h-4 w-4 mr-2" />
-                                    Copiar Receita
+                                    Copiar Sugestão
                                 </Button>
                             </CardFooter>
                         </Card>
@@ -240,12 +271,14 @@ export default function DiscoverPage() {
                                <AccordionTrigger className="text-left hover:no-underline">
                                   <div className="flex items-center justify-between w-full">
                                     <span>{item.title}</span>
-                                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={(e) => { e.stopPropagation(); copyToClipboard(item.content); }}>
-                                      <Copy className="h-4 w-4"/>
-                                    </Button>
                                   </div>
                                 </AccordionTrigger>
-                               <AccordionContent className="prose dark:prose-invert prose-sm sm:prose-base max-w-none pb-4">
+                               <AccordionContent className="prose dark:prose-invert prose-sm sm:prose-base max-w-none pb-4 text-left">
+                                   <div className="flex justify-end -mt-8 mb-2">
+                                     <Button variant="ghost" size="icon" className="h-8 w-8" onClick={(e) => { e.stopPropagation(); copyToClipboard(item.content); }}>
+                                        <Copy className="h-4 w-4"/>
+                                      </Button>
+                                    </div>
                                    <ReactMarkdown
                                       components={{
                                         h1: ({node, ...props}) => <h2 className="text-2xl font-bold" {...props} />,
