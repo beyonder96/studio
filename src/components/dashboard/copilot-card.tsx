@@ -4,10 +4,10 @@
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Sparkles, ArrowUpRight } from "lucide-react";
-import { useContext, useState, useEffect } from "react";
+import { useContext, useState, useEffect, useMemo } from "react";
 import { FinanceContext } from "@/contexts/finance-context";
 import Link from "next/link";
-import { differenceInYears, parseISO } from "date-fns";
+import { differenceInYears, parseISO, isSameMonth, startOfMonth } from "date-fns";
 
 type Insight = {
   text: string;
@@ -16,8 +16,28 @@ type Insight = {
 };
 
 export function CopilotCard() {
-  const { pantryItems, tasks, goals, memories } = useContext(FinanceContext);
+  const { pantryItems, tasks, goals, memories, transactions } = useContext(FinanceContext);
   const [currentInsight, setCurrentInsight] = useState<Insight | null>(null);
+
+  const highestSpendingCategory = useMemo(() => {
+    const today = new Date();
+    const expensesThisMonth = transactions.filter(t => 
+        t.type === 'expense' && isSameMonth(parseISO(t.date + 'T00:00:00'), today)
+    );
+
+    if (expensesThisMonth.length === 0) {
+        return null;
+    }
+
+    const spendingByCategory = expensesThisMonth.reduce((acc, t) => {
+        const category = t.category || 'Outros';
+        acc[category] = (acc[category] || 0) + Math.abs(t.amount);
+        return acc;
+    }, {} as Record<string, number>);
+
+    return Object.entries(spendingByCategory).sort(([, a], [, b]) => b - a)[0];
+  }, [transactions]);
+
 
   useEffect(() => {
     const potentialInsights: Insight[] = [];
@@ -74,18 +94,27 @@ export function CopilotCard() {
         }
     }
     
-    // Default Financial Insight
-    potentialInsights.push({
-      text: "Você gastou 15% a mais em restaurantes este mês. Que tal tentar cozinhar em casa para economizar?",
-      link: '/finance',
-      buttonText: 'Ver Finanças'
-    });
+    // Real Financial Insight
+    if(highestSpendingCategory) {
+        const [categoryName] = highestSpendingCategory;
+         potentialInsights.push({
+            text: `Este mês, sua maior despesa foi com ${categoryName}. Que tal rever esses gastos?`,
+            link: '/finance',
+            buttonText: 'Ver Finanças'
+        });
+    } else {
+         potentialInsights.push({
+            text: `Nenhuma despesa registrada este mês. Comece a adicionar transações para obter insights!`,
+            link: '/finance',
+            buttonText: 'Adicionar Transação'
+        });
+    }
     
     // Choose one insight randomly to display
     const randomIndex = Math.floor(Math.random() * potentialInsights.length);
     setCurrentInsight(potentialInsights[randomIndex]);
 
-  }, [pantryItems, tasks, goals, memories]);
+  }, [pantryItems, tasks, goals, memories, highestSpendingCategory]);
 
   if (!currentInsight) {
     return (
