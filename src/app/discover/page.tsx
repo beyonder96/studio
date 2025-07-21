@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
-import { Utensils, Plane, Heart, Lightbulb, Loader2, Sparkles, Copy, ShoppingCart, Star, Building, Map } from 'lucide-react';
+import { Utensils, Plane, Heart, Lightbulb, Loader2, Sparkles, Copy, ShoppingCart, Star, Building, Map, MapPin as VenueIcon } from 'lucide-react';
 import { generateRecipeSuggestion, GenerateRecipeOutput } from '@/ai/flows/generate-recipe-flow';
 import { generateTripPlan, GenerateTripPlanOutput } from '@/ai/flows/generate-trip-plan-flow';
 import { generateDateIdea, GenerateDateIdeaOutput } from '@/ai/flows/generate-date-idea-flow';
@@ -212,12 +212,43 @@ export default function DiscoverPage() {
         return <TripPlanResult plan={content} />;
     }
     if ('detailsMarkdown' in content) {
-        return <ReactMarkdown components={{ h1: 'h2', h2: 'h3', h3: 'h4' }}>{content.detailsMarkdown}</ReactMarkdown>;
+        return <DateIdeaResult idea={content} />;
     }
     return null;
   };
 
-
+  const DateIdeaResult = ({ idea }: { idea: GenerateDateIdeaOutput }) => (
+    <div className="space-y-6">
+      <ReactMarkdown components={{ h1: 'h2', h2: 'h3', h3: 'h4' }}>
+        {idea.detailsMarkdown}
+      </ReactMarkdown>
+      {idea.suggestedVenues && idea.suggestedVenues.length > 0 && (
+        <div>
+          <h3 className="text-xl font-semibold flex items-center gap-2 mt-6 mb-4"><VenueIcon className="h-5 w-5"/> Lugares Sugeridos</h3>
+          <div className="space-y-4">
+            {idea.suggestedVenues.map((venue, index) => (
+              <div key={index} className="pl-7">
+                <h4 className="font-semibold">{venue.name}</h4>
+                <p className="text-muted-foreground">{venue.description}</p>
+                {venue.reviews && venue.reviews.length > 0 && (
+                  <div className="mt-2 space-y-2">
+                    {venue.reviews.map((review, r_index) => (
+                      <div key={r_index} className="border-l-2 pl-3">
+                        {renderStars(review.rating)}
+                        <p className="text-sm italic">"{review.comment}"</p>
+                        <p className="text-xs text-right text-muted-foreground">- {review.author}</p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+  
   const TripPlanResult = ({ plan }: { plan: GenerateTripPlanOutput }) => (
     <div className="space-y-6">
       <div>
@@ -282,10 +313,9 @@ export default function DiscoverPage() {
                         key={card.id} 
                         className={cn(
                           'bg-transparent text-left card-hover-effect cursor-pointer transition-all',
-                          activeSuggestion === card.id ? 'border-primary ring-2 ring-primary/50' : 'border-border',
-                          suggestionCards.find(c => c.id === card.id && c.id === 'date' && 'disabled' in c) ? 'opacity-50 cursor-not-allowed' : ''
+                          activeSuggestion === card.id ? 'border-primary ring-2 ring-primary/50' : 'border-border'
                         )}
-                        onClick={() => !(suggestionCards.find(c => c.id === card.id && c.id === 'date' && 'disabled' in c)) && handleSuggestionClick(card.id as SuggestionCategory)}
+                        onClick={() => handleSuggestionClick(card.id as SuggestionCategory)}
                     >
                         <CardHeader className="flex-row items-center gap-4 space-y-0">
                             {card.icon}

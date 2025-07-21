@@ -10,6 +10,7 @@
 
 import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
+import { getReviewsForPlace } from '../tools/location-tools';
 
 const GenerateDateIdeaInputSchema = z.object({
   prompt: z.string().describe('The user prompt, e.g., "a fun and cheap night out" or "a relaxing evening at home".'),
@@ -19,10 +20,23 @@ const GenerateDateIdeaInputSchema = z.object({
 });
 export type GenerateDateIdeaInput = z.infer<typeof GenerateDateIdeaInputSchema>;
 
+const ReviewSchema = z.object({
+    author: z.string().describe('The name of the person who wrote the review.'),
+    rating: z.number().describe('A rating from 1 to 5.'),
+    comment: z.string().describe('The content of the review.'),
+});
+
+const VenueSchema = z.object({
+    name: z.string().describe('The name of the suggested venue (e.g., restaurant, park, cinema).'),
+    description: z.string().describe('A brief description of why this venue is a good fit for the date.'),
+    reviews: z.array(ReviewSchema).optional().describe('A list of reviews for this venue.'),
+});
+
 const GenerateDateIdeaOutputSchema = z.object({
     title: z.string().describe('The catchy title for the date idea.'),
     category: z.string().describe('The category of the date, e.g., "Romântico", "Aventura", "Cultural", "Em Casa", "Gastronômico".'),
     detailsMarkdown: z.string().describe('The full date idea, formatted in Markdown. This should be a user-friendly plan with a description and a step-by-step itinerary.'),
+    suggestedVenues: z.array(VenueSchema).optional().describe('A list of specific, real-world venues suggested for the date. Use the getReviewsForPlace tool to populate this.'),
 });
 export type GenerateDateIdeaOutput = z.infer<typeof GenerateDateIdeaOutputSchema>;
 
@@ -34,9 +48,12 @@ const prompt = ai.definePrompt({
   name: 'generateDateIdeaPrompt',
   input: { schema: GenerateDateIdeaInputSchema },
   output: { schema: GenerateDateIdeaOutputSchema },
+  tools: [getReviewsForPlace],
   prompt: `Você é um especialista em criar ideias de encontros românticos e criativos para casais.
 Responda sempre em português do Brasil.
 Baseado na solicitação do usuário, crie uma ideia de encontro memorável para duas pessoas.
+
+Use a ferramenta 'getReviewsForPlace' para encontrar lugares reais e interessantes (restaurantes, parques, etc.) que se encaixem na ideia do encontro e inclua-os no campo 'suggestedVenues' com suas respectivas avaliações.
 
 O plano deve ser retornado no formato JSON especificado.
 No campo 'detailsMarkdown', crie um roteiro amigável e bem formatado em Markdown, contendo:
@@ -49,11 +66,11 @@ Use emojis para deixar a sugestão mais visual e convidativa. 🥂
 Solicitação do usuário: {{{prompt}}}
 
 {{#if location}}
-O casal está em: {{{location}}}. Considere isso para sugestões de locais.
+O casal está em: {{{location}}}. Use a ferramenta para encontrar locais específicos nessa área.
 {{/if}}
 
 {{#if favoriteFood}}
-A comida favorita deles é: {{{favoriteFood}}}. Use isso para inspirar ideias gastronômicas.
+A comida favorita deles é: {{{favoriteFood}}}. Use isso para inspirar ideias gastronômicas e buscar restaurantes.
 {{/if}}
 
 {{#if favoritePlace}}
