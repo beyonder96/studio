@@ -118,7 +118,7 @@ type FinanceContextType = {
   handleDeleteList: (listId: string) => void;
   handleStartRenameList: (list: ShoppingList) => void;
   handleRenameList: (listId: string, newName: string, callback: () => void) => void;
-  handleFinishList: (listId: string) => void;
+  handleFinishList: (list: ShoppingList, transactionDetails: Omit<Transaction, 'id' | 'amount' | 'description'>) => void;
   memories: Memory[];
   addMemory: (memory: Omit<Memory, 'id'>) => void;
 };
@@ -310,9 +310,9 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
     const updates: { [key: string]: null } = {};
     const pathsToDelete = ['transactions', 'accounts', 'cards', 'pantryItems', 'tasks', 'goals', 'wishes', 'appointments', 'shoppingLists', 'memories'];
     pathsToDelete.forEach(path => {
-        updates[path] = null;
+        updates[`users/${user.uid}/${path}`] = null;
     });
-    update(getDbRef(''), updates);
+    update(ref(database), updates);
     toast({ title: "Dados Apagados!", description: "Todos os dados foram removidos." });
   };
   
@@ -372,8 +372,9 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
   const deletePantryCategory = (name: string) => {
     if (!user) return;
     const updatedCategories = pantryCategories.filter(cat => cat !== name);
-    set(getDbRef('pantryCategories'), updatedCategories);
     const updates: any = {};
+    updates[`pantryCategories`] = updatedCategories;
+
     pantryItems.forEach(item => {
         if(item.pantryCategory === name) {
             updates[`pantryItems/${item.id}/pantryCategory`] = 'Outros';
@@ -385,9 +386,9 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
   const updatePantryCategory = (oldName: string, newName: string) => {
     if (!user || oldName === newName) return;
     const updatedCategories = pantryCategories.map(cat => cat === oldName ? newName : cat);
-    set(getDbRef('pantryCategories'), updatedCategories);
-
     const updates: any = {};
+    updates[`pantryCategories`] = updatedCategories;
+    
     pantryItems.forEach(item => {
         if(item.pantryCategory === oldName) {
             updates[`pantryItems/${item.id}/pantryCategory`] = newName;
@@ -399,9 +400,9 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
   const updateIncomeCategory = (oldName: string, newName: string) => {
     if (!user || oldName === newName) return;
     const updatedCategories = incomeCategories.map(cat => cat === oldName ? newName : cat);
-    set(getDbRef('incomeCategories'), updatedCategories);
-
     const updates: any = {};
+    updates['incomeCategories'] = updatedCategories;
+
     transactions.forEach(t => {
       if (t.type === 'income' && t.category === oldName) {
         updates[`transactions/${t.id}/category`] = newName;
@@ -413,9 +414,9 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
   const updateExpenseCategory = (oldName: string, newName: string) => {
     if (!user || oldName === newName) return;
     const updatedCategories = expenseCategories.map(cat => cat === oldName ? newName : cat);
-    set(getDbRef('expenseCategories'), updatedCategories);
-
     const updates: any = {};
+    updates['expenseCategories'] = updatedCategories;
+
     transactions.forEach(t => {
       if (t.type === 'expense' && t.category === oldName) {
         updates[`transactions/${t.id}/category`] = newName;
@@ -680,18 +681,33 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
   
   const handleStartRenameList = () => {};
 
-  const handleFinishList = useCallback((listId: string) => {
+  const handleFinishList = useCallback((list: ShoppingList, transactionDetails: Omit<Transaction, 'id' | 'amount' | 'description'>) => {
      if (!user) return;
-     const list = shoppingLists.find(l => l.id === listId);
-     if (!list) return;
 
+     // 1. Calculate total cost from checked items
+     const totalCost = list.items.reduce((sum, item) => item.checked && item.price ? sum + item.price : sum, 0);
+
+     if (totalCost > 0) {
+        // 2. Create the transaction
+        const purchaseTransaction: Omit<Transaction, 'id'> = {
+            ...transactionDetails,
+            description: `Compra: ${list.name}`,
+            amount: -totalCost, // as an expense
+            type: 'expense',
+            date: format(new Date(), 'yyyy-MM-dd'),
+        };
+        addTransaction(purchaseTransaction);
+     }
+     
+     // 3. Add checked items to pantry
      const itemsToAdd = list.items.filter(item => item.checked);
      if(itemsToAdd.length > 0) {
         addItemsToPantry(itemsToAdd);
      }
      
-     handleClearCompletedItems(listId);
-  }, [user, shoppingLists, addItemsToPantry, handleClearCompletedItems]);
+     // 4. Clear completed items from the list
+     handleClearCompletedItems(list.id);
+  }, [user, addTransaction, addItemsToPantry, handleClearCompletedItems]);
 
   // Memory Management
   const addMemory = (memory: Omit<Memory, 'id'>) => {

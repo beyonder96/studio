@@ -17,6 +17,7 @@ import { Label } from '@/components/ui/label';
 import { SetPriceDialog } from '@/components/purchases/set-price-dialog';
 import { AddItemDialog } from '@/components/purchases/add-item-dialog';
 import { EditItemDialog } from '@/components/purchases/edit-item-dialog';
+import { FinalizePurchaseDialog } from '@/components/purchases/finalize-purchase-dialog';
 import { 
     Plus, 
     ShoppingCart, 
@@ -50,6 +51,7 @@ import {
 } from "@/components/ui/alert-dialog"
 import { useToast } from '@/hooks/use-toast';
 import { FinanceContext, ShoppingList, ShoppingListItem } from '@/contexts/finance-context';
+import type { Transaction } from '@/components/finance/transactions-table';
 
 
 export default function PurchasesPage() {
@@ -67,13 +69,13 @@ export default function PurchasesPage() {
     handleDeleteList,
     handleRenameList,
     handleFinishList,
-    addItemsToPantry,
    } = useContext(FinanceContext);
    const { toast } = useToast();
 
   const [isPriceDialogOpen, setIsPriceDialogOpen] = useState(false);
   const [isAddItemDialogOpen, setIsAddItemDialogOpen] = useState(false);
   const [isEditItemDialogOpen, setIsEditItemDialogOpen] = useState(false);
+  const [isFinalizeDialogOpen, setIsFinalizeDialogOpen] = useState(false);
   const [itemToPrice, setItemToPrice] = useState<ShoppingListItem | null>(null);
   const [itemToEdit, setItemToEdit] = useState<ShoppingListItem | null>(null);
   const [activeTab, setActiveTab] = useState('all');
@@ -196,20 +198,14 @@ export default function PurchasesPage() {
     });
   }, [editingListId, editingListName, handleRenameList]);
   
-  const onFinishList = useCallback(() => {
-    if (!listToFinish) return;
-
-    const itemsToAdd = listToFinish.items.filter(item => item.checked);
-    addItemsToPantry(itemsToAdd);
-
-    handleFinishList(listToFinish.id);
-    setListToFinish(null);
-
+  const onFinishList = useCallback((list: ShoppingList, transactionDetails: Omit<Transaction, 'id' | 'amount' | 'description'>) => {
+    handleFinishList(list, transactionDetails);
+    setIsFinalizeDialogOpen(false);
     toast({
-        title: 'Despensa Atualizada!',
-        description: `${itemsToAdd.length} itens foram adicionados à sua despensa.`
+        title: 'Compra Finalizada!',
+        description: `A despesa foi registrada e os itens adicionados à despensa.`
     })
-  }, [listToFinish, addItemsToPantry, handleFinishList, toast]);
+  }, [handleFinishList, toast]);
 
   return (
     <Card className="bg-white/10 dark:bg-black/10 backdrop-blur-3xl border-white/20 dark:border-black/20 rounded-3xl shadow-2xl">
@@ -405,7 +401,7 @@ export default function PurchasesPage() {
                         </CardContent>
                         <CardHeader>
                             <Button 
-                                onClick={() => setListToFinish(selectedList)}
+                                onClick={() => setIsFinalizeDialogOpen(true)}
                                 disabled={getCheckedCount(selectedList) === 0}
                                 className="w-full"
                             >
@@ -439,6 +435,15 @@ export default function PurchasesPage() {
                         onClose={() => { setItemToEdit(null); setIsEditItemDialogOpen(false); }}
                         onUpdateItem={onUpdateItem}
                         item={itemToEdit}
+                    />
+                )}
+
+                {selectedList && (
+                    <FinalizePurchaseDialog 
+                        isOpen={isFinalizeDialogOpen}
+                        onClose={() => setIsFinalizeDialogOpen(false)}
+                        onConfirm={onFinishList}
+                        list={selectedList}
                     />
                 )}
                 
@@ -484,24 +489,6 @@ export default function PurchasesPage() {
                         </AlertDialogFooter>
                     </AlertDialogContent>
                 </AlertDialog>
-                
-                <AlertDialog open={!!listToFinish} onOpenChange={(open) => !open && setListToFinish(null)}>
-                    <AlertDialogContent>
-                        <AlertDialogHeader>
-                            <AlertDialogTitle>Finalizar compra e atualizar despensa?</AlertDialogTitle>
-                            <AlertDialogDescription>
-                                Os <span className="font-semibold">{listToFinish ? getCheckedCount(listToFinish) : 0}</span> itens marcados serão movidos para a sua despensa e removidos desta lista.
-                            </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                            <AlertDialogCancel onClick={() => setListToFinish(null)}>Cancelar</AlertDialogCancel>
-                            <AlertDialogAction onClick={onFinishList}>
-                                Sim, finalizar
-                            </AlertDialogAction>
-                        </AlertDialogFooter>
-                    </AlertDialogContent>
-                </AlertDialog>
-
 
             </div>
         </CardContent>
