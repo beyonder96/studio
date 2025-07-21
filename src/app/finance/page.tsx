@@ -37,7 +37,7 @@ const frequencyMap = {
 };
 
 
-export function FinancePageContent() {
+export default function FinancePage() {
   const { 
     transactions, 
     addTransaction,
