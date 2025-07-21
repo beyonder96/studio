@@ -54,6 +54,7 @@ type FinanceContextType = {
   addTransaction: (transaction: Omit<Transaction, 'id'>, installments?: number) => void;
   updateTransaction: (id: string, transaction: Partial<Omit<Transaction, 'id'>>) => void;
   deleteTransaction: (id: string) => void;
+  deleteRecurringTransaction: (id: string) => void;
   accounts: Account[];
   addAccount: (account: Omit<Account, 'id'>) => void;
   updateAccount: (id: string, account: Partial<Omit<Account, 'id'>>) => void;
@@ -275,6 +276,13 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
 
   const deleteTransaction = (id: string) => {
     if (!user) return;
+    remove(getDbRef(`transactions/${id}`));
+  };
+  
+  const deleteRecurringTransaction = (id: string) => {
+    if (!user) return;
+    // For now, recurring transactions are just single entries with a flag.
+    // So deleting it is the same as deleting a normal transaction.
     remove(getDbRef(`transactions/${id}`));
   };
 
@@ -693,7 +701,7 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const value = {
-    transactions, addTransaction, updateTransaction, deleteTransaction,
+    transactions, addTransaction, updateTransaction, deleteTransaction, deleteRecurringTransaction,
     accounts, addAccount, updateAccount, deleteAccount, 
     cards, addCard, updateCard, deleteCard, 
     incomeCategories, expenseCategories, updateIncomeCategory, updateExpenseCategory,
