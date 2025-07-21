@@ -40,7 +40,7 @@ const navItems = [
   { href: '/tasks', icon: CheckSquare, label: 'Tarefas' },
   { href: '/calendar', icon: Calendar, label: 'Calendário' },
   { href: '/timeline', icon: GalleryVerticalEnd, label: 'Linha do Tempo' },
-  { href: '/discover', icon: Sparkles, label: 'Descobrir (Em Breve)', disabled: true },
+  { href: '/discover', icon: Sparkles, label: 'Descobrir' },
 ];
 
 const bottomNavItems = [
