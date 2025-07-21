@@ -89,6 +89,7 @@ type FinanceContextType = {
   addGoal: (goal: Omit<Goal, 'id'>) => void;
   updateGoal: (id: string, goal: Partial<Omit<Goal, 'id'>>) => void;
   deleteGoal: (id: string) => void;
+  addGoalProgress: (id: string, amount: number) => void;
   wishes: Wish[];
   addWish: (wish: Omit<Wish, 'id' | 'purchased'>) => void;
   updateWish: (id: string, wish: Partial<Omit<Wish, 'id'>>) => void;
@@ -452,6 +453,15 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
       remove(getDbRef(`goals/${id}`));
   };
 
+  const addGoalProgress = (id: string, amount: number) => {
+      if (!user) return;
+      const goal = goals.find(g => g.id === id);
+      if (goal) {
+          const newAmount = goal.currentAmount + amount;
+          update(getDbRef(`goals/${id}`), { currentAmount: newAmount });
+      }
+  };
+
   // Wish Management
   const addWish = (wish: Omit<Wish, 'id' | 'purchased'>) => {
     if (!user) return;
@@ -667,7 +677,7 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
     pantryItems, addItemsToPantry, addItemToPantry, updatePantryItemQuantity,
     pantryCategories, addPantryCategory, deletePantryCategory, updatePantryCategory,
     tasks, addTask, toggleTask, deleteTask,
-    goals, addGoal, updateGoal, deleteGoal,
+    goals, addGoal, updateGoal, deleteGoal, addGoalProgress,
     wishes, addWish, updateWish, deleteWish, toggleWishPurchased,
     appointments, appointmentCategories, addAppointment, updateAppointment, deleteAppointment,
     toast,
