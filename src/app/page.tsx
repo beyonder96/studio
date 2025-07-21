@@ -12,7 +12,7 @@ import { CopilotCard } from '@/components/dashboard/copilot-card';
 import { MonthOverview } from '@/components/dashboard/month-overview';
 import { ShoppingListOverview } from '@/components/dashboard/shopping-list-overview';
 import { JourneyCard } from '@/components/dashboard/journey-card';
-import { useContext, useState, useEffect } from 'react';
+import { useContext, useState, useEffect, useMemo } from 'react';
 import { FinanceContext, Appointment } from '@/contexts/finance-context';
 import { AddAppointmentDialog } from '@/components/calendar/add-appointment-dialog';
 import { ptBR } from 'date-fns/locale';
@@ -25,24 +25,30 @@ import { useAuth } from '@/contexts/auth-context';
 export default function Home() {
   const router = useRouter();
   const { user, loading } = useAuth();
+  const { transactions, appointments, addAppointment } = useContext(FinanceContext);
+
+  const [isAppointmentDialogOpen, setIsAppointmentDialogOpen] = useState(false);
+  const [selectedDateForAppointment, setSelectedDateForAppointment] = useState<Date | undefined>();
+  const [clientReady, setClientReady] = useState(false);
+
+  useEffect(() => {
+    // This effect runs only on the client, ensuring `new Date()` doesn't cause a hydration mismatch.
+    setClientReady(true);
+  }, []);
 
   useEffect(() => {
     if (!loading && !user) {
       router.replace('/login');
     }
   }, [user, loading, router]);
+  
+  const today = clientReady ? new Date() : undefined;
+  
+  const eventDates = useMemo(() => {
+      const allEvents = [...transactions, ...appointments];
+      return allEvents.map(event => new Date(event.date + 'T00:00:00'));
+  }, [transactions, appointments]);
 
-  const { transactions, addAppointment } = useContext(FinanceContext);
-  const eventDates = transactions.map(t => new Date(t.date + 'T00:00:00'));
-
-  const [isAppointmentDialogOpen, setIsAppointmentDialogOpen] = useState(false);
-  const [selectedDateForAppointment, setSelectedDateForAppointment] = useState<Date | undefined>();
-  const [today, setToday] = useState<Date | null>(null);
-
-  useEffect(() => {
-    // Set the date only on the client-side to avoid hydration mismatch
-    setToday(new Date());
-  }, []);
 
   const handleDateSelect = (date: Date | undefined) => {
     setSelectedDateForAppointment(date);
@@ -92,7 +98,7 @@ export default function Home() {
                     }}
                     modifiers={{ 
                         events: eventDates,
-                        today: today ?? undefined,
+                        today: today,
                     }}
                     modifiersClassNames={{
                         events: "bg-primary/20 rounded-full",

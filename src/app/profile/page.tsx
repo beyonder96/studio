@@ -248,7 +248,7 @@ export default function ProfilePage() {
             <PopoverTrigger asChild>
                 <Button variant="outline" className={cn("w-full justify-start text-left font-normal", !date && "text-muted-foreground")}>
                     <CalendarIcon className="mr-2 h-4 w-4" />
-                    {selectedDate ? format(selectedDate, "d 'de' MMMM", { locale: ptBR }) : <span>{label}</span>}
+                    {selectedDate ? format(selectedDate, "dd 'de' MMMM", { locale: ptBR }) : <span>{label}</span>}
                 </Button>
             </PopoverTrigger>
             <PopoverContent className="w-auto p-0" align="start">
@@ -271,7 +271,9 @@ export default function ProfilePage() {
     );
 };
 
-  const [name1, name2] = (profileData.names || 'Pessoa 1 & Pessoa 2').split(' & ');
+  const [name1, name2] = (profileData.names || '').split(' & ').map(name => name.trim());
+  const person1Name = name1 || 'Pessoa 1';
+  const person2Name = name2 || 'Pessoa 2';
 
   return (
     <Card className="bg-white/10 dark:bg-black/10 backdrop-blur-3xl border-white/20 dark:border-black/20 rounded-3xl shadow-2xl overflow-hidden">
@@ -400,18 +402,18 @@ export default function ProfilePage() {
                                 <DateSelector
                                     date={tempData.birthday1}
                                     onSelect={(d) => handleDateSelect(d, 'birthday1')}
-                                    label={`Aniversário de ${name1}`}
+                                    label={`Aniversário de ${person1Name}`}
                                 />
                                 <DateSelector
                                     date={tempData.birthday2}
                                     onSelect={(d) => handleDateSelect(d, 'birthday2')}
-                                    label={`Aniversário de ${name2}`}
+                                    label={`Aniversário de ${person2Name}`}
                                 />
                             </div>
                         ) : (
                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <p className="text-muted-foreground">{name1}: {profileData.birthday1 && isValid(parseISO(profileData.birthday1)) ? format(parseISO(profileData.birthday1), "d 'de' MMMM", { locale: ptBR }) : 'Não definido'}</p>
-                                <p className="text-muted-foreground">{name2}: {profileData.birthday2 && isValid(parseISO(profileData.birthday2)) ? format(parseISO(profileData.birthday2), "d 'de' MMMM", { locale: ptBR }) : 'Não definido'}</p>
+                                <p className="text-muted-foreground">{person1Name}: {profileData.birthday1 && isValid(parseISO(profileData.birthday1)) ? format(parseISO(profileData.birthday1), "d 'de' MMMM", { locale: ptBR }) : 'Não definido'}</p>
+                                <p className="text-muted-foreground">{person2Name}: {profileData.birthday2 && isValid(parseISO(profileData.birthday2)) ? format(parseISO(profileData.birthday2), "d 'de' MMMM", { locale: ptBR }) : 'Não definido'}</p>
                              </div>
                         )}
                     </CardContent>
@@ -427,7 +429,7 @@ export default function ProfilePage() {
                     <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
                         {/* Person 1 Health Info */}
                         <div className="space-y-4">
-                            <h4 className="font-semibold text-center md:text-left">{name1}</h4>
+                            <h4 className="font-semibold text-center md:text-left">{person1Name}</h4>
                             <div className="space-y-2">
                                 <Label>Tipo Sanguíneo</Label>
                                 {isEditing ? (
@@ -464,7 +466,7 @@ export default function ProfilePage() {
 
                         {/* Person 2 Health Info */}
                          <div className="space-y-4">
-                            <h4 className="font-semibold text-center md:text-left">{name2}</h4>
+                            <h4 className="font-semibold text-center md:text-left">{person2Name}</h4>
                             <div className="space-y-2">
                                 <Label>Tipo Sanguíneo</Label>
                                 {isEditing ? (
@@ -611,5 +613,3 @@ export default function ProfilePage() {
     </Card>
   );
 }
-
-    

@@ -482,9 +482,21 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
   }
 
   const deleteAccount = (id: string) => {
-    if(!user) return;
-    remove(getDbRef(`accounts/${id}`));
-  }
+    if (!user) return;
+    const accountToDelete = accounts.find(acc => acc.id === id);
+    if (!accountToDelete) return;
+  
+    const updates: { [key: string]: null } = {};
+    updates[`accounts/${id}`] = null;
+  
+    transactions.forEach(t => {
+      if (t.account === accountToDelete.name) {
+        updates[`transactions/${t.id}`] = null;
+      }
+    });
+  
+    update(getDbRef(''), updates);
+  };
 
   const addCard = (card: Omit<Card, 'id'>) => {
     if(!user) return;
@@ -498,9 +510,22 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
   }
 
   const deleteCard = (id: string) => {
-    if(!user) return;
-    remove(getDbRef(`cards/${id}`));
-  }
+    if (!user) return;
+    const cardToDelete = cards.find(c => c.id === id);
+    if (!cardToDelete) return;
+  
+    const updates: { [key: string]: null } = {};
+    updates[`cards/${id}`] = null;
+  
+    transactions.forEach(t => {
+      if (t.account === cardToDelete.name) {
+        updates[`transactions/${t.id}`] = null;
+      }
+    });
+  
+    update(getDbRef(''), updates);
+  };
+
 
   // Shopping List Management
   const getListRef = (listId: string, path?: string) => {

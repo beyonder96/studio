@@ -75,8 +75,10 @@ export function SpecialDayAnimation() {
         const checkDate = (isoDate?: string) => {
             if (!isoDate) return false;
             try {
+                // Use UTC to avoid timezone issues with `parseISO`
                 const date = parseISO(isoDate);
-                return getMonth(date) === todayMonth && getDate(date) === todayDay;
+                const dateUTC = new Date(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate());
+                return getMonth(dateUTC) === todayMonth && getDate(dateUTC) === todayDay;
             } catch (e) {
                 return false;
             }

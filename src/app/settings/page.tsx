@@ -426,8 +426,7 @@ export default function SettingsPage() {
                     <AlertDialogTitle>Excluir {itemToDelete?.type.includes('Category') ? 'categoria' : (itemToDelete?.type === 'account' ? 'conta' : 'cartão')}?</AlertDialogTitle>
                     <AlertDialogDescription>
                        {itemToDelete?.type === 'pantryCategory' && `Tem certeza que deseja excluir a categoria "${itemToDelete.name}"? Itens nesta categoria serão movidos para "Outros".`}
-                       {itemToDelete?.type === 'incomeCategory' && `Tem certeza que deseja excluir a categoria de receita "${itemToDelete.name}"? Todas as transações associadas também serão atualizadas.`}
-                       {itemToDelete?.type === 'expenseCategory' && `Tem certeza que deseja excluir a categoria de despesa "${itemToDelete.name}"? Todas as transações associadas também serão atualizadas.`}
+                       {(itemToDelete?.type === 'incomeCategory' || itemToDelete?.type === 'expenseCategory') && `Categorias padrão não podem ser excluídas.`}
                        {itemToDelete?.type === 'account' && `Tem certeza que deseja excluir a conta "${itemToDelete.name}"? Todas as transações associadas também serão excluídas.`}
                        {itemToDelete?.type === 'card' && `Tem certeza que deseja excluir o cartão "${itemToDelete.name}"? Todas as transações associadas também serão excluídas.`}
                         <br/><br/>
@@ -436,7 +435,7 @@ export default function SettingsPage() {
                 </AlertDialogHeader>
                 <AlertDialogFooter>
                     <AlertDialogCancel onClick={() => setItemToDelete(null)}>Cancelar</AlertDialogCancel>
-                    <AlertDialogAction onClick={handleDeleteConfirm} className="bg-destructive hover:bg-destructive/90">
+                    <AlertDialogAction onClick={handleDeleteConfirm} className="bg-destructive hover:bg-destructive/90" disabled={itemToDelete?.type === 'incomeCategory' || itemToDelete?.type === 'expenseCategory'}>
                         Sim, excluir
                     </AlertDialogAction>
                 </AlertDialogFooter>
