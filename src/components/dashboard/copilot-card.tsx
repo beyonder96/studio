@@ -16,7 +16,7 @@ type Insight = {
 };
 
 export function CopilotCard() {
-  const { pantryItems, tasks, wishes, memories } = useContext(FinanceContext);
+  const { pantryItems, tasks, goals, memories } = useContext(FinanceContext);
   const [currentInsight, setCurrentInsight] = useState<Insight | null>(null);
 
   useEffect(() => {
@@ -42,13 +42,13 @@ export function CopilotCard() {
         });
     }
 
-    // Wishes Insight
-    const nextWish = wishes.find(wish => !wish.purchased);
-    if (nextWish) {
+    // Goals Insight
+    const nextGoal = goals.find(goal => goal.currentAmount < goal.targetAmount);
+    if (nextGoal) {
         potentialInsights.push({
-            text: `Continuem economizando para a próxima meta de vocês: ${nextWish.name}!`,
-            link: '/wishes',
-            buttonText: 'Ver Desejos'
+            text: `Continuem economizando para a próxima meta de vocês: ${nextGoal.name}!`,
+            link: '/goals',
+            buttonText: 'Ver Metas'
         });
     }
     
@@ -85,7 +85,7 @@ export function CopilotCard() {
     const randomIndex = Math.floor(Math.random() * potentialInsights.length);
     setCurrentInsight(potentialInsights[randomIndex]);
 
-  }, [pantryItems, tasks, wishes, memories]);
+  }, [pantryItems, tasks, goals, memories]);
 
   if (!currentInsight) {
     return (

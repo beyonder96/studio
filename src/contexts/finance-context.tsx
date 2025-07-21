@@ -21,7 +21,8 @@ const initialExpenseCategories = ['Alimentação', 'Moradia', 'Transporte', 'Laz
 const initialPantryCategories: PantryCategory[] = [ 'Laticínios', 'Carnes', 'Peixes', 'Frutas e Vegetais', 'Grãos e Cereais', 'Enlatados e Conservas', 'Bebidas', 'Higiene e Limpeza', 'Outros' ];
 const initialPantryItems: PantryItem[] = [];
 const initialTasks: Task[] = [ { id: 'task1', text: 'Pagar conta de luz', completed: false } ];
-const initialWishes: Wish[] = [ { id: 'wish1', name: 'Viagem para a praia', price: 3500, purchased: false, imageUrl: 'https://placehold.co/600x400.png', link: '' } ];
+const initialGoals: Goal[] = [ { id: 'goal1', name: 'Viagem para a praia', targetAmount: 3500, currentAmount: 1200, imageUrl: 'https://placehold.co/600x400.png' } ];
+const initialWishes: Wish[] = [ { id: 'wish1', name: 'Liquidificador Novo', price: 250, purchased: false, imageUrl: 'https://placehold.co/600x400.png', link: '' } ];
 const initialAppointments: Appointment[] = [];
 const initialMemories: Memory[] = [];
 const initialShoppingLists: ShoppingList[] = [ { id: 'list1', name: 'Mercado', shared: true, items: [ { id: 'item1', name: 'Leite Integral', quantity: 1, checked: false } ] } ];
@@ -32,6 +33,7 @@ export type Appointment = { id: string; title: string; date: string; time?: stri
 export type PantryCategory = string;
 export type PantryItem = { id: string; name: string; quantity: number; pantryCategory: PantryCategory; }
 export type Task = { id: string; text: string; completed: boolean; };
+export type Goal = { id: string; name: string; targetAmount: number; currentAmount: number; imageUrl?: string; };
 export type Wish = { id: string; name: string; price: number; link?: string; imageUrl?: string; purchased: boolean; };
 export type ShoppingListItem = { id: string; name: string; quantity: number; checked: boolean; price?: number; };
 export type ShoppingList = { id: string; name: string; items: ShoppingListItem[]; shared: boolean; };
@@ -83,6 +85,10 @@ type FinanceContextType = {
   addTask: (text: string) => void;
   toggleTask: (id: string) => void;
   deleteTask: (id: string) => void;
+  goals: Goal[];
+  addGoal: (goal: Omit<Goal, 'id'>) => void;
+  updateGoal: (id: string, goal: Partial<Omit<Goal, 'id'>>) => void;
+  deleteGoal: (id: string) => void;
   wishes: Wish[];
   addWish: (wish: Omit<Wish, 'id' | 'purchased'>) => void;
   updateWish: (id: string, wish: Partial<Omit<Wish, 'id'>>) => void;
@@ -127,6 +133,7 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
   const [pantryItems, setPantryItems] = useState<PantryItem[]>([]);
   const [pantryCategories, setPantryCategories] = useState<PantryCategory[]>(initialPantryCategories);
   const [tasks, setTasks] = useState<Task[]>([]);
+  const [goals, setGoals] = useState<Goal[]>([]);
   const [wishes, setWishes] = useState<Wish[]>([]);
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [shoppingLists, setShoppingLists] = useState<ShoppingList[]>([]);
@@ -160,6 +167,7 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
                 setPantryItems(transformData(data.pantryItems));
                 setPantryCategories(data.pantryCategories || initialPantryCategories);
                 setTasks(transformData(data.tasks));
+                setGoals(transformData(data.goals));
                 setWishes(transformData(data.wishes));
                 setAppointments(transformData(data.appointments));
                 setMemories(transformData(data.memories));
@@ -181,6 +189,7 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
                     pantryCategories: initialPantryCategories,
                     pantryItems: {},
                     tasks: Object.fromEntries(initialTasks.map(t => [t.id, t])),
+                    goals: Object.fromEntries(initialGoals.map(g => [g.id, g])),
                     wishes: Object.fromEntries(initialWishes.map(w => [w.id, w])),
                     appointments: {},
                     memories: {},
@@ -200,6 +209,7 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
         setPantryCategories(initialPantryCategories);
         setPantryItems([]);
         setTasks([]);
+        setGoals([]);
         setWishes([]);
         setAppointments([]);
         setMemories([]);
@@ -287,7 +297,7 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
     if (!user) return;
     const database = getDatabase(firebaseApp);
     const updates: { [key: string]: null } = {};
-    const pathsToDelete = ['transactions', 'accounts', 'cards', 'pantryItems', 'tasks', 'wishes', 'appointments', 'shoppingLists', 'memories'];
+    const pathsToDelete = ['transactions', 'accounts', 'cards', 'pantryItems', 'tasks', 'goals', 'wishes', 'appointments', 'shoppingLists', 'memories'];
     pathsToDelete.forEach(path => {
         updates[path] = null;
     });
@@ -423,6 +433,23 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
   const deleteTask = (id: string) => {
     if (!user) return;
     remove(getDbRef(`tasks/${id}`));
+  };
+  
+  // Goal Management
+  const addGoal = (goal: Omit<Goal, 'id'>) => {
+    if (!user) return;
+    const newId = push(getDbRef('goals')).key!;
+    set(getDbRef(`goals/${newId}`), goal);
+  };
+
+  const updateGoal = (id: string, updatedGoal: Partial<Omit<Goal, 'id'>>) => {
+      if (!user) return;
+      update(getDbRef(`goals/${id}`), updatedGoal);
+  };
+
+  const deleteGoal = (id: string) => {
+      if (!user) return;
+      remove(getDbRef(`goals/${id}`));
   };
 
   // Wish Management
@@ -640,6 +667,7 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
     pantryItems, addItemsToPantry, addItemToPantry, updatePantryItemQuantity,
     pantryCategories, addPantryCategory, deletePantryCategory, updatePantryCategory,
     tasks, addTask, toggleTask, deleteTask,
+    goals, addGoal, updateGoal, deleteGoal,
     wishes, addWish, updateWish, deleteWish, toggleWishPurchased,
     appointments, appointmentCategories, addAppointment, updateAppointment, deleteAppointment,
     toast,

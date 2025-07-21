@@ -6,7 +6,6 @@ import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
 import { Plus, Trash2, Edit, CheckCircle2, Gift, Link as LinkIcon, MoreVertical } from 'lucide-react';
 import { FinanceContext, Wish } from '@/contexts/finance-context';
 import { AddWishDialog } from '@/components/wishes/add-wish-dialog';
@@ -72,7 +71,7 @@ export default function WishesPage() {
             <div className="flex items-center justify-between">
                 <div>
                 <h1 className="text-3xl font-bold">Lista de Desejos</h1>
-                <p className="text-muted-foreground">Planejem e conquistem seus sonhos juntos.</p>
+                <p className="text-muted-foreground">Itens que vocês gostariam de comprar.</p>
                 </div>
                 <Button onClick={openAddDialog}>
                 <Plus className="mr-2 h-4 w-4" />

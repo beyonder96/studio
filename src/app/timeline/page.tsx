@@ -4,7 +4,7 @@
 import { useContext, useMemo, useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { FinanceContext, Memory } from '@/contexts/finance-context';
+import { FinanceContext, Memory, Goal } from '@/contexts/finance-context';
 import { useAuth } from '@/contexts/auth-context';
 import { getDatabase, ref, onValue } from 'firebase/database';
 import { app as firebaseApp } from '@/lib/firebase';
@@ -14,7 +14,7 @@ import { cn } from '@/lib/utils';
 import {
   Heart,
   Cake,
-  Gift,
+  Target,
   CalendarCheck,
   Star,
   GalleryVerticalEnd,
@@ -31,7 +31,7 @@ type TimelineEvent = {
   date: Date;
   title: string;
   description: string;
-  type: 'relationship' | 'birthday' | 'wish' | 'appointment' | 'anniversary' | 'memory';
+  type: 'relationship' | 'birthday' | 'goal' | 'appointment' | 'anniversary' | 'memory';
   icon: React.ReactNode;
   isFuture: boolean;
   imageUrl?: string;
@@ -46,7 +46,7 @@ type ProfileData = {
 
 export default function TimelinePage() {
   const { user } = useAuth();
-  const { wishes, appointments, memories, addMemory } = useContext(FinanceContext);
+  const { goals, appointments, memories, addMemory } = useContext(FinanceContext);
   const [profileData, setProfileData] = useState<ProfileData>({});
   const [isMemoryDialogOpen, setIsMemoryDialogOpen] = useState(false);
 
@@ -139,14 +139,14 @@ export default function TimelinePage() {
     addBirthdayEvents(profileData.birthday2, name2);
 
 
-    // 4. Purchased Wishes
-    wishes.filter(w => w.purchased).forEach(wish => {
+    // 4. Achieved Goals
+    goals.filter(g => g.currentAmount >= g.targetAmount).forEach(goal => {
       const mockPurchaseDate = new Date(today.getFullYear(), Math.random() * 12, Math.random() * 28);
       events.push({
         date: mockPurchaseDate,
-        title: 'Desejo Realizado!',
-        description: `Conquistamos: ${wish.name}.`,
-        type: 'wish',
+        title: 'Meta Alcançada!',
+        description: `Conquistamos: ${goal.name}.`,
+        type: 'goal',
         icon: <Star className="h-5 w-5" />,
         isFuture: false,
       });
@@ -180,7 +180,7 @@ export default function TimelinePage() {
     });
     
     return events.sort((a, b) => b.date.getTime() - a.date.getTime());
-  }, [profileData, wishes, appointments, memories]);
+  }, [profileData, goals, appointments, memories]);
   
   const getEventTypeStyles = (type: TimelineEvent['type'], isFuture: boolean) => {
     const futureStyles = isFuture ? 'border-primary/50 bg-primary/5 text-primary' : 'bg-muted';
@@ -189,7 +189,7 @@ export default function TimelinePage() {
       case 'relationship': return cn(baseIcon, 'bg-rose-500/20 text-rose-500');
       case 'anniversary': return cn(baseIcon, isFuture ? 'bg-primary/20 text-primary' : 'bg-amber-500/20 text-amber-500');
       case 'birthday': return cn(baseIcon, isFuture ? 'bg-primary/20 text-primary' : 'bg-pink-500/20 text-pink-500');
-      case 'wish': return cn(baseIcon, 'bg-yellow-500/20 text-yellow-500');
+      case 'goal': return cn(baseIcon, 'bg-yellow-500/20 text-yellow-500');
       case 'appointment': return cn(baseIcon, isFuture ? 'bg-primary/20 text-primary' : 'bg-cyan-500/20 text-cyan-500');
       case 'memory': return cn(baseIcon, isFuture ? 'bg-primary/20 text-primary' : 'bg-green-500/20 text-green-500');
       default: return cn(baseIcon, 'bg-gray-500/20 text-gray-500');
