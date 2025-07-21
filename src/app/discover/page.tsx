@@ -12,6 +12,7 @@ import { Label } from '@/components/ui/label';
 import { Utensils, Plane, Heart, Lightbulb, Loader2, Sparkles, Copy, ShoppingCart, Star, Building, Map } from 'lucide-react';
 import { generateRecipeSuggestion, GenerateRecipeOutput } from '@/ai/flows/generate-recipe-flow';
 import { generateTripPlan, GenerateTripPlanOutput } from '@/ai/flows/generate-trip-plan-flow';
+import { generateDateIdea, GenerateDateIdeaOutput } from '@/ai/flows/generate-date-idea-flow';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { FinanceContext } from '@/contexts/finance-context';
@@ -22,8 +23,8 @@ import { CurrencyInput } from '@/components/finance/currency-input';
 import { Badge } from '@/components/ui/badge';
 
 type SuggestionCategory = 'recipe' | 'trip' | 'date';
-type HistoryItem = { title: string; content: string | ResultType; };
-type ResultType = GenerateRecipeOutput | GenerateTripPlanOutput;
+type ResultType = GenerateRecipeOutput | GenerateTripPlanOutput | GenerateDateIdeaOutput;
+type HistoryItem = { title: string; content: ResultType; };
 
 const suggestionCards = [
   {
@@ -46,7 +47,6 @@ const suggestionCards = [
     description: 'Receba sugestões criativas para o próximo encontro do casal.',
     icon: <Heart className="h-8 w-8 text-primary" />,
     placeholder: 'Ex: "uma noite divertida e barata"',
-    disabled: true,
   },
 ];
 
@@ -58,7 +58,7 @@ export default function DiscoverPage() {
   const [usePantry, setUsePantry] = useState(false);
   const [tripBudget, setTripBudget] = useState<number | undefined>(undefined);
   const [history, setHistory] = useState<HistoryItem[]>([]);
-  const [profileData, setProfileData] = useState<{ favoritePlace?: string, location?: string }>({});
+  const [profileData, setProfileData] = useState<{ favoritePlace?: string, location?: string, favoriteFood?: string }>({});
   const { toast } = useToast();
   const { pantryItems, handleAddItemToList } = useContext(FinanceContext);
   const { user } = useAuth();
@@ -73,6 +73,7 @@ export default function DiscoverPage() {
           setProfileData({
             favoritePlace: data.place,
             location: data.location,
+            favoriteFood: data.food,
           });
         }
       });
@@ -107,15 +108,29 @@ export default function DiscoverPage() {
                 location: profileData.location,
                 budget: tripBudget,
             });
+        } else if (activeSuggestion === 'date') {
+            genResult = await generateDateIdea({
+                prompt,
+                favoritePlace: profileData.favoritePlace,
+                favoriteFood: profileData.favoriteFood,
+                location: profileData.location,
+            });
         }
+        
         setResult(genResult || null);
         
         if(genResult){
-            const content = 'recipe' in genResult ? genResult.recipe : genResult;
-            const titleMatch = 'recipe' in genResult ? genResult.recipe.match(/^#+\s*(.*)/) : `Viagem para ${genResult.destination}`;
-            const title = typeof titleMatch === 'string' ? titleMatch : (titleMatch ? titleMatch[1] : 'Uma sugestão incrível!');
-            
-            const newHistoryItem = { title, content };
+            let title = "Uma sugestão incrível!";
+            if ('recipe' in genResult) {
+                const titleMatch = genResult.recipe.match(/^#+\s*(.*)/);
+                if (titleMatch) title = titleMatch[1];
+            } else if ('destination' in genResult) {
+                title = `Viagem para ${genResult.destination}`;
+            } else if ('title' in genResult) {
+                title = genResult.title;
+            }
+
+            const newHistoryItem = { title, content: genResult };
             setHistory(prev => [newHistoryItem, ...prev].slice(0, 5)); // Keep last 5
         }
 
@@ -134,10 +149,7 @@ export default function DiscoverPage() {
   const handleAddMissingToCart = () => {
     if (!result || !('missingItems' in result) || !result.missingItems || result.missingItems.length === 0) return;
     result.missingItems.forEach(item => {
-        const quantityMatch = item.match(/^(\d+)\s+/);
-        const quantity = quantityMatch ? parseInt(quantityMatch[1], 10) : 1;
-        const name = quantityMatch ? item.replace(quantityMatch[0], '') : item;
-        handleAddItemToList(name, quantity);
+        handleAddItemToList(item, 1);
     });
     toast({
         title: "Itens Adicionados!",
@@ -148,15 +160,18 @@ export default function DiscoverPage() {
   const copyToClipboard = (textToCopy: string | ResultType) => {
     if (!textToCopy) return;
     
-    let cleanedText = '';
+    let rawText = '';
     if (typeof textToCopy === 'string') {
-        cleanedText = textToCopy.replace(/#+\s*/g, '').replace(/\*/g, '');
+        rawText = textToCopy;
     } else if ('planMarkdown' in textToCopy) {
-        cleanedText = textToCopy.planMarkdown.replace(/#+\s*/g, '').replace(/\*/g, '');
+        rawText = textToCopy.planMarkdown;
     } else if ('recipe' in textToCopy) {
-        cleanedText = textToCopy.recipe.replace(/#+\s*/g, '').replace(/\*/g, '');
+        rawText = textToCopy.recipe;
+    } else if ('detailsMarkdown' in textToCopy) {
+        rawText = textToCopy.detailsMarkdown;
     }
 
+    const cleanedText = rawText.replace(/#+\s*/g, '').replace(/\*/g, '');
     navigator.clipboard.writeText(cleanedText);
     toast({
         title: 'Copiado!',
@@ -164,21 +179,17 @@ export default function DiscoverPage() {
     });
   };
 
-  const resultContent = useMemo(() => {
-    if (!result) return '';
-    if ('recipe' in result) return result.recipe;
-    if ('planMarkdown' in result) return result.planMarkdown;
-    return '';
-  }, [result]);
-
   const resultTitle = useMemo(() => {
     if (!result) return 'Uma sugestão incrível!';
     if ('recipe' in result) {
       const titleMatch = result.recipe.match(/^#+\s*(.*)/);
-      return titleMatch ? titleMatch[1] : 'Uma sugestão incrível!';
+      return titleMatch ? titleMatch[1] : 'Uma receita incrível!';
     }
     if ('destination' in result) {
       return `Viagem para ${result.destination}`;
+    }
+    if ('title' in result) {
+        return result.title;
     }
     return 'Uma sugestão incrível!';
   }, [result]);
@@ -192,6 +203,20 @@ export default function DiscoverPage() {
         </div>
     );
   }
+  
+  const ResultContent = ({ content }: { content: ResultType }) => {
+    if ('recipe' in content) {
+        return <ReactMarkdown components={{ h1: 'h2', h2: 'h3', h3: 'h4' }}>{content.recipe}</ReactMarkdown>;
+    }
+    if ('destination' in content) {
+        return <TripPlanResult plan={content} />;
+    }
+    if ('detailsMarkdown' in content) {
+        return <ReactMarkdown components={{ h1: 'h2', h2: 'h3', h3: 'h4' }}>{content.detailsMarkdown}</ReactMarkdown>;
+    }
+    return null;
+  };
+
 
   const TripPlanResult = ({ plan }: { plan: GenerateTripPlanOutput }) => (
     <div className="space-y-6">
@@ -258,9 +283,9 @@ export default function DiscoverPage() {
                         className={cn(
                           'bg-transparent text-left card-hover-effect cursor-pointer transition-all',
                           activeSuggestion === card.id ? 'border-primary ring-2 ring-primary/50' : 'border-border',
-                          card.disabled ? 'opacity-50 cursor-not-allowed' : ''
+                          suggestionCards.find(c => c.id === card.id && c.id === 'date' && 'disabled' in c) ? 'opacity-50 cursor-not-allowed' : ''
                         )}
-                        onClick={() => !card.disabled && handleSuggestionClick(card.id as SuggestionCategory)}
+                        onClick={() => !(suggestionCards.find(c => c.id === card.id && c.id === 'date' && 'disabled' in c)) && handleSuggestionClick(card.id as SuggestionCategory)}
                     >
                         <CardHeader className="flex-row items-center gap-4 space-y-0">
                             {card.icon}
@@ -318,25 +343,12 @@ export default function DiscoverPage() {
                         <Card className="bg-background/50 text-left">
                             <CardHeader>
                                <CardTitle className="text-2xl font-bold">{resultTitle}</CardTitle>
+                               {'category' in result && <Badge variant="secondary" className="w-fit">{result.category}</Badge>}
                             </CardHeader>
                             <CardContent className="prose dark:prose-invert prose-sm sm:prose-base max-w-none">
-                                {activeSuggestion === 'recipe' && 'recipe' in result && (
-                                    <ReactMarkdown
-                                    components={{
-                                        h1: ({node, ...props}) => <h2 className="text-2xl font-bold" {...props} />,
-                                        h2: ({node, ...props}) => <h3 className="text-xl font-semibold" {...props} />,
-                                        h3: ({node, ...props}) => <h4 className="text-lg font-semibold" {...props} />,
-                                    }}
-                                    >
-                                    {result.recipe}
-                                    </ReactMarkdown>
-                                )}
+                                <ResultContent content={result} />
 
-                                {activeSuggestion === 'trip' && 'destination' in result && (
-                                    <TripPlanResult plan={result} />
-                                )}
-
-                                {result && 'missingItems' in result && result.missingItems && result.missingItems.length > 0 && (
+                                {'missingItems' in result && result.missingItems && result.missingItems.length > 0 && (
                                     <div className="mt-6">
                                         <h3 className="text-lg font-semibold">Itens para comprar:</h3>
                                         <ul className="list-disc pl-5">
@@ -381,19 +393,7 @@ export default function DiscoverPage() {
                                   </Button>
                                 </div>
                                <AccordionContent className="prose dark:prose-invert prose-sm sm:prose-base max-w-none pb-4 text-left">
-                                   {typeof item.content === 'string' ? (
-                                     <ReactMarkdown
-                                        components={{
-                                            h1: ({node, ...props}) => <h2 className="text-2xl font-bold" {...props} />,
-                                            h2: ({node, ...props}) => <h3 className="text-xl font-semibold" {...props} />,
-                                            h3: ({node, ...props}) => <h4 className="text-lg font-semibold" {...props} />,
-                                        }}
-                                        >
-                                        {item.content}
-                                        </ReactMarkdown>
-                                   ) : 'destination' in item.content ? (
-                                        <TripPlanResult plan={item.content} />
-                                   ) : null}
+                                   <ResultContent content={item.content} />
                                </AccordionContent>
                             </AccordionItem>
                          ))}
