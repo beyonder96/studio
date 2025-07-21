@@ -3,14 +3,17 @@
 
 import { useState } from 'react';
 import ReactMarkdown from 'react-markdown';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Utensils, Plane, Heart, Lightbulb, Loader2, Sparkles, Share2 } from 'lucide-react';
+import { Utensils, Plane, Heart, Lightbulb, Loader2, Sparkles, Copy } from 'lucide-react';
 import { generateRecipeSuggestion } from '@/ai/flows/generate-recipe-flow';
 import { useToast } from '@/hooks/use-toast';
+import { cn } from '@/lib/utils';
 
 type SuggestionCategory = 'recipe' | 'trip' | 'date';
+type HistoryItem = { title: string; content: string; };
 
 const suggestionCards = [
   {
@@ -44,6 +47,7 @@ export default function DiscoverPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [result, setResult] = useState<string | null>(null);
   const [resultTitle, setResultTitle] = useState('');
+  const [history, setHistory] = useState<HistoryItem[]>([]);
   const { toast } = useToast();
 
   const handleSuggestionClick = (id: SuggestionCategory) => {
@@ -62,9 +66,13 @@ export default function DiscoverPage() {
         if(activeSuggestion === 'recipe') {
             const recipeResult = await generateRecipeSuggestion({ prompt });
             setResult(recipeResult.recipe);
-            // Extract title for sharing
             const titleMatch = recipeResult.recipe.match(/^#+\s*(.*)/);
-            setResultTitle(titleMatch ? titleMatch[1] : 'Uma receita incrível!');
+            const title = titleMatch ? titleMatch[1] : 'Uma receita incrível!';
+            setResultTitle(title);
+            
+            // Add to history
+            const newHistoryItem = { title, content: recipeResult.recipe };
+            setHistory(prev => [newHistoryItem, ...prev].slice(0, 5)); // Keep last 5
         }
     } catch (error) {
         console.error("Error generating suggestion:", error);
@@ -74,42 +82,13 @@ export default function DiscoverPage() {
     }
   }
   
-  const copyToClipboard = () => {
-    if (!result) return;
-    navigator.clipboard.writeText(result);
+  const copyToClipboard = (textToCopy: string) => {
+    if (!textToCopy) return;
+    navigator.clipboard.writeText(textToCopy);
     toast({
         title: 'Copiado!',
-        description: 'A receita foi copiada para sua área de transferência.',
+        description: 'A sugestão foi copiada para sua área de transferência.',
     });
-  };
-  
-  const handleShare = async () => {
-    if (!result) return;
-    
-    if (navigator.share) {
-        try {
-            await navigator.share({
-                title: resultTitle,
-                text: `Olha essa receita que eu gerei com o Vida a 2: ${resultTitle}`,
-                // You could share a URL to the app here as well
-            });
-        } catch (error: any) {
-            // If sharing fails (e.g., permission denied), fall back to clipboard
-            if (error.name === 'AbortError' || error.name === 'NotAllowedError') {
-              copyToClipboard();
-            } else {
-              console.error('Error sharing:', error);
-              toast({
-                  variant: 'destructive',
-                  title: 'Erro ao compartilhar',
-                  description: 'Não foi possível compartilhar o conteúdo.',
-              });
-            }
-        }
-    } else {
-        // Fallback for browsers that don't support the Web Share API
-        copyToClipboard();
-    }
   };
 
   return (
@@ -126,7 +105,11 @@ export default function DiscoverPage() {
                 {suggestionCards.map((card) => (
                     <Card 
                         key={card.id} 
-                        className={`bg-transparent text-left card-hover-effect cursor-pointer ${activeSuggestion === card.id ? 'border-primary' : ''} ${card.disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+                        className={cn(
+                          'bg-transparent text-left card-hover-effect cursor-pointer transition-all',
+                          activeSuggestion === card.id ? 'border-primary ring-2 ring-primary/50' : 'border-border',
+                          card.disabled ? 'opacity-50 cursor-not-allowed' : ''
+                        )}
                         onClick={() => !card.disabled && handleSuggestionClick(card.id as SuggestionCategory)}
                     >
                         <CardHeader className="flex-row items-center gap-4 space-y-0">
@@ -163,8 +146,11 @@ export default function DiscoverPage() {
                     )}
 
                     {result && (
-                        <Card className="bg-background/50 text-left relative">
-                            <CardContent className="p-6 prose dark:prose-invert prose-sm sm:prose-base max-w-none">
+                        <Card className="bg-background/50 text-left">
+                            <CardHeader>
+                               <CardTitle className="text-2xl font-bold">{resultTitle}</CardTitle>
+                            </CardHeader>
+                            <CardContent className="prose dark:prose-invert prose-sm sm:prose-base max-w-none">
                                 <ReactMarkdown
                                   components={{
                                     h1: ({node, ...props}) => <h2 className="text-2xl font-bold" {...props} />,
@@ -175,18 +161,52 @@ export default function DiscoverPage() {
                                   {result}
                                 </ReactMarkdown>
                             </CardContent>
-                            <Button
-                                variant="ghost"
-                                size="icon"
-                                className="absolute top-2 right-2"
-                                onClick={handleShare}
-                            >
-                                <Share2 className="h-5 w-5" />
-                            </Button>
+                             <CardFooter>
+                                <Button
+                                    variant="outline"
+                                    onClick={() => copyToClipboard(result)}
+                                    className="w-full"
+                                >
+                                    <Copy className="h-4 w-4 mr-2" />
+                                    Copiar Receita
+                                </Button>
+                            </CardFooter>
                         </Card>
                     )}
                  </div>
             )}
+            
+            {history.length > 0 && (
+                 <div className="w-full max-w-2xl mt-12">
+                    <h2 className="text-2xl font-bold mb-4">Seu Histórico</h2>
+                    <Accordion type="single" collapsible className="w-full space-y-2">
+                         {history.map((item, index) => (
+                            <AccordionItem key={index} value={`item-${index}`} className="bg-background/50 rounded-lg border px-4">
+                               <AccordionTrigger className="text-left hover:no-underline">
+                                  <div className="flex items-center justify-between w-full">
+                                    <span>{item.title}</span>
+                                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={(e) => { e.stopPropagation(); copyToClipboard(item.content); }}>
+                                      <Copy className="h-4 w-4"/>
+                                    </Button>
+                                  </div>
+                                </AccordionTrigger>
+                               <AccordionContent className="prose dark:prose-invert prose-sm sm:prose-base max-w-none pb-4">
+                                   <ReactMarkdown
+                                      components={{
+                                        h1: ({node, ...props}) => <h2 className="text-2xl font-bold" {...props} />,
+                                        h2: ({node, ...props}) => <h3 className="text-xl font-semibold" {...props} />,
+                                        h3: ({node, ...props}) => <h4 className="text-lg font-semibold" {...props} />,
+                                      }}
+                                    >
+                                      {item.content}
+                                    </ReactMarkdown>
+                               </AccordionContent>
+                            </AccordionItem>
+                         ))}
+                    </Accordion>
+                 </div>
+            )}
+
         </div>
       </CardContent>
     </Card>
