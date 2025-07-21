@@ -5,7 +5,7 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Confetti from 'react-confetti';
 import { Heart } from 'lucide-react';
-import { isSameDay, parseISO, getMonth, getDate } from 'date-fns';
+import { getMonth, getDate, parseISO } from 'date-fns';
 import { useAuth } from '@/contexts/auth-context';
 import { getDatabase, ref, onValue } from 'firebase/database';
 import { app as firebaseApp } from '@/lib/firebase';
@@ -72,25 +72,23 @@ export function SpecialDayAnimation() {
         const todayMonth = getMonth(today);
         const todayDay = getDate(today);
 
-        if (sinceDate) {
-          const anniversaryDate = parseISO(sinceDate);
-          if (getMonth(anniversaryDate) === todayMonth && getDate(anniversaryDate) === todayDay) {
+        const checkDate = (isoDate?: string) => {
+            if (!isoDate) return false;
+            try {
+                // Use UTC to avoid timezone issues with `parseISO`
+                const date = parseISO(isoDate);
+                const dateUTC = new Date(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate());
+                return getMonth(dateUTC) === todayMonth && getDate(dateUTC) === todayDay;
+            } catch (e) {
+                return false;
+            }
+        };
+
+        if (checkDate(sinceDate)) {
             type = 'anniversary';
-          }
         }
-
-        if (!type && birthday1) {
-          const b1 = parseISO(birthday1);
-          if (getMonth(b1) === todayMonth && getDate(b1) === todayDay) {
+        if (!type && (checkDate(birthday1) || checkDate(birthday2))) {
             type = 'birthday';
-          }
-        }
-
-        if (!type && birthday2) {
-          const b2 = parseISO(birthday2);
-          if (getMonth(b2) === todayMonth && getDate(b2) === todayDay) {
-            type = 'birthday';
-          }
         }
 
         if (type) {
