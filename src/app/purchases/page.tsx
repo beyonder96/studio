@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useMemo, useEffect, useContext } from 'react';
+import { useState, useMemo, useEffect, useContext, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -54,7 +54,6 @@ import { FinanceContext, ShoppingList, ShoppingListItem } from '@/contexts/finan
 
 export default function PurchasesPage() {
   const { 
-    toast,
     shoppingLists,
     setSelectedListId,
     selectedList,
@@ -66,11 +65,11 @@ export default function PurchasesPage() {
     handleAddItemToList,
     handleCreateListSave,
     handleDeleteList,
-    handleStartRenameList,
     handleRenameList,
     handleFinishList,
     addItemsToPantry,
    } = useContext(FinanceContext);
+   const { toast } = useToast();
 
   const [isPriceDialogOpen, setIsPriceDialogOpen] = useState(false);
   const [isAddItemDialogOpen, setIsAddItemDialogOpen] = useState(false);
@@ -87,52 +86,52 @@ export default function PurchasesPage() {
   const [editingListId, setEditingListId] = useState<string | null>(null);
   const [editingListName, setEditingListName] = useState('');
 
-  const onSetPrice = (itemId: string, price: number) => {
+  const onSetPrice = useCallback((itemId: string, price: number) => {
     handleSetPrice(itemId, price);
     setItemToPrice(null);
     setIsPriceDialogOpen(false);
-  };
+  }, [handleSetPrice]);
   
-  const onCheckboxChange = (item: ShoppingListItem) => {
+  const onCheckboxChange = useCallback((item: ShoppingListItem) => {
     if (item.checked) {
       handleCheckboxChange(item);
     } else {
       setItemToPrice(item);
       setIsPriceDialogOpen(true);
     }
-  };
+  }, [handleCheckboxChange]);
 
-  const onDeleteItem = (itemId: string) => {
+  const onDeleteItem = useCallback((itemId: string) => {
     handleDeleteItem(itemId);
-  };
+  }, [handleDeleteItem]);
   
-  const onEditItem = (item: ShoppingListItem) => {
+  const onEditItem = useCallback((item: ShoppingListItem) => {
     setItemToEdit(item);
     setIsEditItemDialogOpen(true);
-  };
+  }, []);
 
-  const onUpdateItem = (itemId: string, name: string, quantity: number) => {
+  const onUpdateItem = useCallback((itemId: string, name: string, quantity: number) => {
     handleUpdateItem(itemId, name, quantity);
     setIsEditItemDialogOpen(false);
     setItemToEdit(null);
-  };
+  }, [handleUpdateItem]);
   
-  const onClearCompletedItems = () => {
+  const onClearCompletedItems = useCallback(() => {
     if (!listToClear) return;
     handleClearCompletedItems(listToClear.id);
     setListToClear(null);
-  }
+  }, [listToClear, handleClearCompletedItems]);
 
-  const getProgress = (list: ShoppingList | null) => {
+  const getProgress = useMemo(() => (list: ShoppingList | null) => {
     if (!list || list.items.length === 0) return 0;
     const checkedItems = list.items.filter(item => item.checked).length;
     return Math.round((checkedItems / list.items.length) * 100);
-  }
+  }, []);
   
-  const getCheckedCount = (list: ShoppingList | null) => {
+  const getCheckedCount = useMemo(() => (list: ShoppingList | null) => {
       if (!list || !list.items) return 0;
       return list.items.filter(item => item.checked).length;
-  }
+  }, []);
   
   const filteredItems = useMemo(() => {
     if (!selectedList) return [];
@@ -159,45 +158,45 @@ export default function PurchasesPage() {
     return selectedList.items.reduce((total, item) => {
       return item.checked && item.price ? total + item.price : total;
     }, 0);
-  }, [shoppingLists, selectedList]);
+  }, [selectedList]);
     
-  const onAddItem = (name: string, quantity: number) => {
+  const onAddItem = useCallback((name: string, quantity: number) => {
     handleAddItemToList(name, quantity);
     setIsAddItemDialogOpen(false);
-  };
+  }, [handleAddItemToList]);
 
-  const onCreateListSave = () => {
+  const onCreateListSave = useCallback(() => {
     handleCreateListSave(newListName, (newList) => {
       setNewListName('');
       setIsCreatingList(false);
       setSelectedListId(newList.id);
     });
-  };
+  }, [newListName, handleCreateListSave, setSelectedListId]);
 
   const handleCreateListCancel = () => {
     setNewListName('');
     setIsCreatingList(false);
   };
 
-  const onDeleteList = () => {
+  const onDeleteList = useCallback(() => {
     if (!listToDelete) return;
     handleDeleteList(listToDelete.id);
     setListToDelete(null);
-  }
+  }, [listToDelete, handleDeleteList]);
 
   const onStartRenameList = (list: ShoppingList) => {
     setEditingListId(list.id);
     setEditingListName(list.name);
   };
 
-  const onRenameList = () => {
+  const onRenameList = useCallback(() => {
     if (!editingListId) return;
     handleRenameList(editingListId, editingListName, () => {
       setEditingListId(null);
     });
-  };
+  }, [editingListId, editingListName, handleRenameList]);
   
-  const onFinishList = () => {
+  const onFinishList = useCallback(() => {
     if (!listToFinish) return;
 
     const itemsToAdd = listToFinish.items.filter(item => item.checked);
@@ -210,7 +209,7 @@ export default function PurchasesPage() {
         title: 'Despensa Atualizada!',
         description: `${itemsToAdd.length} itens foram adicionados à sua despensa.`
     })
-  };
+  }, [listToFinish, addItemsToPantry, handleFinishList, toast]);
 
   return (
     <Card className="bg-white/10 dark:bg-black/10 backdrop-blur-3xl border-white/20 dark:border-black/20 rounded-3xl shadow-2xl">

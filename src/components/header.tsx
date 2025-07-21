@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useContext } from 'react';
@@ -7,7 +8,7 @@ import { FinanceContext } from '@/contexts/finance-context';
 import { UserNav } from '@/components/user-nav';
 import { Eye, EyeOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Logo } from './logo';
+import { Logo } from '@/components/dashboard/logo';
 
 export default function Header() {
   const pathname = usePathname();
@@ -64,3 +65,4 @@ export default function Header() {
     </header>
   );
 }
+

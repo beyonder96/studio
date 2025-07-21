@@ -4,7 +4,7 @@
 import { Calendar } from '@/components/ui/calendar';
 import { Card, CardContent } from '@/components/ui/card';
 import { UserNav } from '@/components/user-nav';
-import { DashboardHeader } from '@/components/logo';
+import { DashboardHeader } from '@/components/dashboard/logo';
 import { TransactionsOverview } from '@/components/dashboard/transactions-overview';
 import { GoalsOverview } from '@/components/dashboard/goals-overview';
 import { TasksOverview } from '@/components/dashboard/tasks-overview';

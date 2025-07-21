@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { createContext, useState, ReactNode, useEffect, useCallback } from 'react';
@@ -146,11 +147,11 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
 
   const selectedList = shoppingLists.find(l => l.id === selectedListId) || null;
   
-  const getDbRef = (path: string) => {
+  const getDbRef = useCallback((path: string) => {
     if (!user) throw new Error("User not authenticated to get DB ref.");
     const db = getDatabase(firebaseApp);
     return ref(db, `users/${user.uid}/${path}`);
-  }
+  }, [user]);
   
   useEffect(() => {
     if (user) {
@@ -553,10 +554,10 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
     const updates: { [key: string]: null } = {};
     updates[`accounts/${id}`] = null;
   
-    transactions.forEach(t => {
-      if (t.account === accountToDelete.name) {
+    // Using account name is fragile, but it's what we have. A better approach would be an accountId on transactions.
+    const transactionsToDelete = transactions.filter(t => t.account === accountToDelete.name);
+    transactionsToDelete.forEach(t => {
         updates[`transactions/${t.id}`] = null;
-      }
     });
   
     update(getDbRef(''), updates);
@@ -581,10 +582,10 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
     const updates: { [key: string]: null } = {};
     updates[`cards/${id}`] = null;
   
-    transactions.forEach(t => {
-      if (t.account === cardToDelete.name) {
+    // Using card name is fragile
+    const transactionsToDelete = transactions.filter(t => t.account === cardToDelete.name);
+    transactionsToDelete.forEach(t => {
         updates[`transactions/${t.id}`] = null;
-      }
     });
   
     update(getDbRef(''), updates);
@@ -592,40 +593,39 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
 
 
   // Shopping List Management
-  const getListRef = (listId: string, path?: string) => {
-    if (!user) throw new Error("User not authenticated to get list ref.");
+  const getListRef = useCallback((listId: string, path?: string) => {
     let fullPath = `shoppingLists/${listId}`;
     if (path) {
       fullPath += `/${path}`;
     }
     return getDbRef(fullPath);
-  };
+  }, [getDbRef]);
 
-  const handleSetPrice = (itemId: string, price: number) => {
+  const handleSetPrice = useCallback((itemId: string, price: number) => {
     if (!user || !selectedListId) return;
     const itemRef = getListRef(selectedListId, `items/${itemId}`);
     update(itemRef, { price, checked: true });
-  };
+  }, [user, selectedListId, getListRef]);
   
-  const handleCheckboxChange = (item: ShoppingListItem) => {
+  const handleCheckboxChange = useCallback((item: ShoppingListItem) => {
     if (!user || !selectedListId) return;
     const itemRef = getListRef(selectedListId, `items/${item.id}`);
     update(itemRef, { checked: !item.checked, price: item.checked ? null : item.price });
-  };
+  }, [user, selectedListId, getListRef]);
 
-  const handleDeleteItem = (itemId: string) => {
+  const handleDeleteItem = useCallback((itemId: string) => {
     if (!user || !selectedListId) return;
     const itemRef = getListRef(selectedListId, `items/${itemId}`);
     remove(itemRef);
-  };
+  }, [user, selectedListId, getListRef]);
   
-  const handleUpdateItem = (itemId: string, name: string, quantity: number) => {
+  const handleUpdateItem = useCallback((itemId: string, name: string, quantity: number) => {
     if (!user || !selectedListId) return;
     const itemRef = getListRef(selectedListId, `items/${itemId}`);
     update(itemRef, { name, quantity });
-  };
+  }, [user, selectedListId, getListRef]);
   
-  const handleClearCompletedItems = (listId: string) => {
+  const handleClearCompletedItems = useCallback((listId: string) => {
     if (!user) return;
     const list = shoppingLists.find(l => l.id === listId);
     if (!list || !list.items) return;
@@ -635,45 +635,44 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
         updates[`shoppingLists/${listId}/items/${item.id}`] = null;
       }
     });
-    const db = getDatabase(firebaseApp);
-    update(ref(db, `users/${user.uid}`), updates);
-  };
+    update(getDbRef(''), updates);
+  }, [user, shoppingLists, getDbRef]);
 
-  const handleAddItemToList = (name: string, quantity: number) => {
+  const handleAddItemToList = useCallback((name: string, quantity: number) => {
     if (!user || !selectedListId) return;
     const itemsRef = getListRef(selectedListId, 'items');
     const newId = push(itemsRef).key!;
     const newItem: Omit<ShoppingListItem, 'id'> = { name, quantity, checked: false };
     set(ref(itemsRef, newId), newItem);
-  };
+  }, [user, selectedListId, getListRef]);
 
-  const handleCreateListSave = (name: string, callback: (newList: ShoppingList) => void) => {
+  const handleCreateListSave = useCallback((name: string, callback: (newList: ShoppingList) => void) => {
     if (!user || !name.trim()) return;
     const listsRef = getDbRef('shoppingLists');
     const newId = push(listsRef).key!;
     const newList: Omit<ShoppingList, 'id'> = { name: name.trim(), shared: false, items: [] };
     set(ref(listsRef, newId), newList);
     callback({ ...newList, id: newId });
-  };
+  }, [user, getDbRef]);
   
-  const handleDeleteList = (listId: string) => {
+  const handleDeleteList = useCallback((listId: string) => {
     if (!user) return;
     remove(getDbRef(`shoppingLists/${listId}`));
     if (selectedListId === listId) {
       const remainingLists = shoppingLists.filter(l => l.id !== listId);
       setSelectedListId(remainingLists[0]?.id || null);
     }
-  };
+  }, [user, getDbRef, selectedListId, shoppingLists]);
   
-  const handleRenameList = (listId: string, newName: string, callback: () => void) => {
+  const handleRenameList = useCallback((listId: string, newName: string, callback: () => void) => {
      if (!user || !newName.trim()) return;
      update(getDbRef(`shoppingLists/${listId}`), { name: newName.trim() });
      callback();
-  };
+  }, [user, getDbRef]);
   
   const handleStartRenameList = () => {};
 
-  const handleFinishList = (listId: string) => {
+  const handleFinishList = useCallback((listId: string) => {
      if (!user) return;
      const list = shoppingLists.find(l => l.id === listId);
      if (!list) return;
@@ -684,7 +683,7 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
      }
      
      handleClearCompletedItems(listId);
-  }
+  }, [user, shoppingLists, addItemsToPantry, handleClearCompletedItems]);
 
   // Memory Management
   const addMemory = (memory: Omit<Memory, 'id'>) => {

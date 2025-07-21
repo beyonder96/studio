@@ -1,8 +1,8 @@
 
+
 'use client';
 
 import { Heart } from "lucide-react";
-import { cn } from "@/lib/utils";
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/auth-context";
 import { getDatabase, ref, onValue } from "firebase/database";
@@ -59,3 +59,4 @@ export function Logo() {
     </div>
   );
 }
+
