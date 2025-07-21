@@ -31,6 +31,7 @@ type ProfileData = {
   movie?: string;
   music?: string;
   place?: string;
+  location?: string;
   email?: string;
   partnerEmail?: string;
   details?: string;
@@ -62,6 +63,7 @@ const defaultProfileData: ProfileData = {
     movie: 'Interestelar',
     music: 'Bohemian Rhapsody',
     place: 'A praia ao entardecer',
+    location: '',
     email: '',
     partnerEmail: '',
     details: 'Amamos viajar, descobrir novos restaurantes e assistir a séries juntos nos fins de semana. Sonhamos em conhecer o mundo, começando pela Itália!',
@@ -374,9 +376,13 @@ export default function ProfilePage() {
                 {isEditing && (
                     <Card className="bg-transparent">
                         <CardHeader>
-                            <CardTitle>Informações de Contato</CardTitle>
+                            <CardTitle>Informações de Contato e Localização</CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-4">
+                             <div className="space-y-2">
+                                <Label htmlFor="location">Sua Localização (Cidade/Estado)</Label>
+                                <Input id="location" type="text" value={tempData.location} onChange={e => handleInputChange('location', e.target.value)} placeholder="Ex: São Paulo, SP"/>
+                            </div>
                             <div className="space-y-2">
                                 <Label htmlFor="email">Seu E-mail</Label>
                                 <Input id="email" type="email" value={tempData.email} onChange={e => handleInputChange('email', e.target.value)} />

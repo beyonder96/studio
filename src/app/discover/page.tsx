@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
-import { Utensils, Plane, Heart, Lightbulb, Loader2, Sparkles, Copy, ShoppingCart } from 'lucide-react';
+import { Utensils, Plane, Heart, Lightbulb, Loader2, Sparkles, Copy, ShoppingCart, Star } from 'lucide-react';
 import { generateRecipeSuggestion, GenerateRecipeOutput } from '@/ai/flows/generate-recipe-flow';
 import { generateTripPlan, GenerateTripPlanOutput } from '@/ai/flows/generate-trip-plan-flow';
 import { useToast } from '@/hooks/use-toast';
@@ -18,6 +18,8 @@ import { FinanceContext } from '@/contexts/finance-context';
 import { useAuth } from '@/contexts/auth-context';
 import { getDatabase, ref, onValue } from 'firebase/database';
 import { app as firebaseApp } from '@/lib/firebase';
+import { CurrencyInput } from '@/components/finance/currency-input';
+import { Badge } from '@/components/ui/badge';
 
 type SuggestionCategory = 'recipe' | 'trip' | 'date';
 type HistoryItem = { title: string; content: string; };
@@ -54,8 +56,9 @@ export default function DiscoverPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [result, setResult] = useState<ResultType | null>(null);
   const [usePantry, setUsePantry] = useState(false);
+  const [tripBudget, setTripBudget] = useState<number | undefined>(undefined);
   const [history, setHistory] = useState<HistoryItem[]>([]);
-  const [favoritePlace, setFavoritePlace] = useState<string | undefined>(undefined);
+  const [profileData, setProfileData] = useState<{ favoritePlace?: string, location?: string }>({});
   const { toast } = useToast();
   const { pantryItems, handleAddItemToList } = useContext(FinanceContext);
   const { user } = useAuth();
@@ -63,9 +66,15 @@ export default function DiscoverPage() {
   useEffect(() => {
     if (user) {
       const db = getDatabase(firebaseApp);
-      const placeRef = ref(db, `users/${user.uid}/profile/place`);
-      const unsubscribe = onValue(placeRef, (snapshot) => {
-        setFavoritePlace(snapshot.val());
+      const profileRef = ref(db, `users/${user.uid}/profile`);
+      const unsubscribe = onValue(profileRef, (snapshot) => {
+        const data = snapshot.val();
+        if (data) {
+          setProfileData({
+            favoritePlace: data.place,
+            location: data.location,
+          });
+        }
       });
       return () => unsubscribe();
     }
@@ -94,13 +103,15 @@ export default function DiscoverPage() {
         } else if (activeSuggestion === 'trip') {
             genResult = await generateTripPlan({
                 prompt,
-                favoritePlace,
+                favoritePlace: profileData.favoritePlace,
+                location: profileData.location,
+                budget: tripBudget,
             });
         }
         setResult(genResult || null);
         
         if(genResult){
-            const content = 'recipe' in genResult ? genResult.recipe : genResult.plan;
+            const content = 'recipe' in genResult ? genResult.recipe : genResult.planMarkdown;
             const titleMatch = content.match(/^#+\s*(.*)/);
             const title = titleMatch ? titleMatch[1] : 'Uma sugestão incrível!';
             
@@ -146,7 +157,7 @@ export default function DiscoverPage() {
 
   const resultContent = useMemo(() => {
     if (!result) return '';
-    return 'recipe' in result ? result.recipe : ('plan' in result ? result.plan : '');
+    return 'recipe' in result ? result.recipe : ('planMarkdown' in result ? result.planMarkdown : '');
   }, [result]);
 
   const resultTitle = useMemo(() => {
@@ -154,6 +165,16 @@ export default function DiscoverPage() {
     const titleMatch = resultContent.match(/^#+\s*(.*)/);
     return titleMatch ? titleMatch[1] : 'Uma sugestão incrível!';
   }, [resultContent]);
+  
+  const renderStars = (rating: number) => {
+    return (
+        <div className="flex items-center">
+            {[...Array(5)].map((_, i) => (
+                <Star key={i} className={cn("h-4 w-4", i < rating ? "text-yellow-500 fill-yellow-500" : "text-muted-foreground")} />
+            ))}
+        </div>
+    );
+  }
 
   return (
     <Card className="bg-white/10 dark:bg-black/10 backdrop-blur-3xl border-white/20 dark:border-black/20 rounded-3xl shadow-2xl h-full">
@@ -202,11 +223,23 @@ export default function DiscoverPage() {
                             <span className="hidden sm:inline ml-2">{isLoading ? 'Gerando...' : 'Gerar'}</span>
                         </Button>
                     </div>
-
+                    
                     {activeSuggestion === 'recipe' && (
                         <div className="flex items-center space-x-2 justify-center pt-2">
                             <Checkbox id="use-pantry" checked={usePantry} onCheckedChange={(checked) => setUsePantry(checked as boolean)}/>
                             <Label htmlFor="use-pantry" className="text-sm font-medium text-muted-foreground">Usar itens da despensa?</Label>
+                        </div>
+                    )}
+                    
+                    {activeSuggestion === 'trip' && (
+                        <div className="flex flex-col items-center space-y-2 justify-center pt-2">
+                            <Label htmlFor="trip-budget" className="text-sm font-medium text-muted-foreground">Orçamento da Viagem (opcional)</Label>
+                            <CurrencyInput
+                                id="trip-budget"
+                                value={tripBudget || 0}
+                                onValueChange={(value) => setTripBudget(value)}
+                                className="max-w-xs mx-auto"
+                            />
                         </div>
                     )}
 
@@ -268,17 +301,15 @@ export default function DiscoverPage() {
                     <Accordion type="single" collapsible className="w-full space-y-2">
                          {history.map((item, index) => (
                             <AccordionItem key={index} value={`item-${index}`} className="bg-background/50 rounded-lg border px-4">
-                               <AccordionTrigger className="text-left hover:no-underline">
-                                  <div className="flex items-center justify-between w-full">
-                                    <span>{item.title}</span>
-                                  </div>
-                                </AccordionTrigger>
+                                <div className="flex items-center justify-between w-full pr-2">
+                                  <AccordionTrigger className="text-left hover:no-underline flex-1 py-4">
+                                      <span>{item.title}</span>
+                                  </AccordionTrigger>
+                                  <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={(e) => { e.stopPropagation(); copyToClipboard(item.content); }}>
+                                    <Copy className="h-4 w-4"/>
+                                  </Button>
+                                </div>
                                <AccordionContent className="prose dark:prose-invert prose-sm sm:prose-base max-w-none pb-4 text-left">
-                                   <div className="flex justify-end -mt-8 mb-2">
-                                     <Button variant="ghost" size="icon" className="h-8 w-8" onClick={(e) => { e.stopPropagation(); copyToClipboard(item.content); }}>
-                                        <Copy className="h-4 w-4"/>
-                                      </Button>
-                                    </div>
                                    <ReactMarkdown
                                       components={{
                                         h1: ({node, ...props}) => <h2 className="text-2xl font-bold" {...props} />,
