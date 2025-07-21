@@ -243,6 +243,7 @@ export default function ProfilePage() {
     );
 };
 
+  const [name1, name2] = (profileData.names || 'Pessoa 1 & Pessoa 2').split(' & ');
 
   return (
     <Card className="bg-white/10 dark:bg-black/10 backdrop-blur-3xl border-white/20 dark:border-black/20 rounded-3xl shadow-2xl overflow-hidden">
@@ -370,23 +371,23 @@ export default function ProfilePage() {
                                 <DateSelector
                                     date={tempData.birthday1}
                                     onSelect={(d) => handleDateSelect(d, 'birthday1')}
-                                    label="Aniversário de..."
+                                    label={`Aniversário de ${name1}`}
                                 />
                                 <DateSelector
                                     date={tempData.birthday2}
                                     onSelect={(d) => handleDateSelect(d, 'birthday2')}
-                                    label="Aniversário de..."
+                                    label={`Aniversário de ${name2}`}
                                 />
                             </>
                         ) : (
                              <>
                                 {profileData.birthday1 && isValid(parseISO(profileData.birthday1)) ? (
-                                    <p className="text-muted-foreground">Aniversário 1: {format(parseISO(profileData.birthday1), "PPP", { locale: ptBR })}</p>
+                                    <p className="text-muted-foreground">Aniversário de {name1}: {format(parseISO(profileData.birthday1), "PPP", { locale: ptBR })}</p>
                                 ) : (
                                     <p className="text-muted-foreground">Defina as datas de aniversário no modo de edição.</p>
                                 )}
                                 {profileData.birthday2 && isValid(parseISO(profileData.birthday2)) && (
-                                     <p className="text-muted-foreground">Aniversário 2: {format(parseISO(profileData.birthday2), "PPP", { locale: ptBR })}</p>
+                                     <p className="text-muted-foreground">Aniversário de {name2}: {format(parseISO(profileData.birthday2), "PPP", { locale: ptBR })}</p>
                                 )}
                              </>
                         )}
