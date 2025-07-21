@@ -209,10 +209,10 @@ export default function SettingsPage() {
                     <div>
                         <Label className="block mb-2 font-medium">Tema</Label>
                         <div className="flex gap-2">
-                        <Button variant={tempTheme === 'light' ? 'default' : 'outline'} onClick={() => setTempTheme('light')}>
+                        <Button variant={tempTheme === 'light' ? 'secondary' : 'outline'} onClick={() => setTempTheme('light')}>
                             <Sun className="mr-2 h-4 w-4" /> Claro
                         </Button>
-                        <Button variant={tempTheme === 'dark' ? 'default' : 'outline'} onClick={() => setTempTheme('dark')}>
+                        <Button variant={tempTheme === 'dark' ? 'secondary' : 'outline'} onClick={() => setTempTheme('dark')}>
                             <Moon className="mr-2 h-4 w-4" /> Escuro
                         </Button>
                         </div>
@@ -238,7 +238,7 @@ export default function SettingsPage() {
                     </CardContent>
                      {isAppearanceDirty && (
                         <CardFooter>
-                            <Button onClick={handleSaveAppearance}>
+                            <Button onClick={handleSaveAppearance} variant="secondary">
                                 <Save className="mr-2 h-4 w-4" />
                                 Salvar Alterações de Aparência
                             </Button>
