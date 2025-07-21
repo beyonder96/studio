@@ -29,12 +29,14 @@ const prompt = ai.definePrompt({
   name: 'generateRecipePrompt',
   input: { schema: GenerateRecipeInputSchema },
   output: { schema: GenerateRecipeOutputSchema },
-  prompt: `You are a creative chef who helps couples decide what to cook.
-Based on the user's prompt, create a simple and delicious recipe for two people.
-Include a catchy title, a list of ingredients, and clear, step-by-step instructions.
-Format the entire response in Markdown.
+  prompt: `Você é um chef criativo que ajuda casais a decidir o que cozinhar.
+Responda sempre em português do Brasil.
+Baseado na solicitação do usuário, crie uma receita simples e deliciosa para duas pessoas.
+Inclua um título cativante, uma lista de ingredientes e instruções claras, passo a passo.
+Formate toda a resposta em Markdown, usando títulos (##), negrito (**) e listas.
+Seja amigável e use alguns emojis para deixar a receita mais divertida e convidativa. 🧑‍🍳🍽️
 
-User's request: {{{prompt}}}
+Solicitação do usuário: {{{prompt}}}
 `,
 });
 

@@ -2,11 +2,13 @@
 'use client';
 
 import { useState } from 'react';
+import ReactMarkdown from 'react-markdown';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Utensils, Plane, Heart, Lightbulb, Loader2, Sparkles } from 'lucide-react';
+import { Utensils, Plane, Heart, Lightbulb, Loader2, Sparkles, Share2 } from 'lucide-react';
 import { generateRecipeSuggestion } from '@/ai/flows/generate-recipe-flow';
+import { useToast } from '@/hooks/use-toast';
 
 type SuggestionCategory = 'recipe' | 'trip' | 'date';
 
@@ -41,6 +43,8 @@ export default function DiscoverPage() {
   const [prompt, setPrompt] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [result, setResult] = useState<string | null>(null);
+  const [resultTitle, setResultTitle] = useState('');
+  const { toast } = useToast();
 
   const handleSuggestionClick = (id: SuggestionCategory) => {
     setActiveSuggestion(id);
@@ -58,6 +62,9 @@ export default function DiscoverPage() {
         if(activeSuggestion === 'recipe') {
             const recipeResult = await generateRecipeSuggestion({ prompt });
             setResult(recipeResult.recipe);
+            // Extract title for sharing
+            const titleMatch = recipeResult.recipe.match(/^#+\s*(.*)/);
+            setResultTitle(titleMatch ? titleMatch[1] : 'Uma receita incrível!');
         }
     } catch (error) {
         console.error("Error generating suggestion:", error);
@@ -66,6 +73,34 @@ export default function DiscoverPage() {
         setIsLoading(false);
     }
   }
+  
+  const handleShare = async () => {
+    if (!result) return;
+    
+    if (navigator.share) {
+        try {
+            await navigator.share({
+                title: resultTitle,
+                text: `Olha essa receita que eu gerei com o Vida a 2: ${resultTitle}`,
+                // You could share a URL to the app here as well
+            });
+        } catch (error) {
+            console.error('Error sharing:', error);
+            toast({
+                variant: 'destructive',
+                title: 'Erro ao compartilhar',
+                description: 'Não foi possível compartilhar o conteúdo.',
+            });
+        }
+    } else {
+        // Fallback for browsers that don't support the Web Share API
+        navigator.clipboard.writeText(result);
+        toast({
+            title: 'Copiado!',
+            description: 'A receita foi copiada para sua área de transferência.',
+        });
+    }
+  };
 
   return (
     <Card className="bg-white/10 dark:bg-black/10 backdrop-blur-3xl border-white/20 dark:border-black/20 rounded-3xl shadow-2xl h-full">
@@ -118,10 +153,26 @@ export default function DiscoverPage() {
                     )}
 
                     {result && (
-                        <Card className="bg-background/50 text-left">
-                            <CardContent className="p-6">
-                                <pre className="whitespace-pre-wrap font-sans text-sm">{result}</pre>
+                        <Card className="bg-background/50 text-left relative">
+                            <CardContent className="p-6 prose dark:prose-invert prose-sm sm:prose-base max-w-none">
+                                <ReactMarkdown
+                                  components={{
+                                    h1: ({node, ...props}) => <h2 className="text-2xl font-bold" {...props} />,
+                                    h2: ({node, ...props}) => <h3 className="text-xl font-semibold" {...props} />,
+                                    h3: ({node, ...props}) => <h4 className="text-lg font-semibold" {...props} />,
+                                  }}
+                                >
+                                  {result}
+                                </ReactMarkdown>
                             </CardContent>
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                className="absolute top-2 right-2"
+                                onClick={handleShare}
+                            >
+                                <Share2 className="h-5 w-5" />
+                            </Button>
                         </Card>
                     )}
                  </div>
