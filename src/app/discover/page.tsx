@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
-import { Utensils, Plane, Heart, Lightbulb, Loader2, Sparkles, Copy, ShoppingCart, Star } from 'lucide-react';
+import { Utensils, Plane, Heart, Lightbulb, Loader2, Sparkles, Copy, ShoppingCart, Star, Building, Map } from 'lucide-react';
 import { generateRecipeSuggestion, GenerateRecipeOutput } from '@/ai/flows/generate-recipe-flow';
 import { generateTripPlan, GenerateTripPlanOutput } from '@/ai/flows/generate-trip-plan-flow';
 import { useToast } from '@/hooks/use-toast';
@@ -22,7 +22,7 @@ import { CurrencyInput } from '@/components/finance/currency-input';
 import { Badge } from '@/components/ui/badge';
 
 type SuggestionCategory = 'recipe' | 'trip' | 'date';
-type HistoryItem = { title: string; content: string; };
+type HistoryItem = { title: string; content: string | ResultType; };
 type ResultType = GenerateRecipeOutput | GenerateTripPlanOutput;
 
 const suggestionCards = [
@@ -111,9 +111,9 @@ export default function DiscoverPage() {
         setResult(genResult || null);
         
         if(genResult){
-            const content = 'recipe' in genResult ? genResult.recipe : genResult.planMarkdown;
-            const titleMatch = content.match(/^#+\s*(.*)/);
-            const title = titleMatch ? titleMatch[1] : 'Uma sugestão incrível!';
+            const content = 'recipe' in genResult ? genResult.recipe : genResult;
+            const titleMatch = 'recipe' in genResult ? genResult.recipe.match(/^#+\s*(.*)/) : `Viagem para ${genResult.destination}`;
+            const title = typeof titleMatch === 'string' ? titleMatch : (titleMatch ? titleMatch[1] : 'Uma sugestão incrível!');
             
             const newHistoryItem = { title, content };
             setHistory(prev => [newHistoryItem, ...prev].slice(0, 5)); // Keep last 5
@@ -145,9 +145,18 @@ export default function DiscoverPage() {
     });
   }
   
-  const copyToClipboard = (textToCopy: string) => {
+  const copyToClipboard = (textToCopy: string | ResultType) => {
     if (!textToCopy) return;
-    const cleanedText = textToCopy.replace(/#+\s*/g, '').replace(/\*/g, '');
+    
+    let cleanedText = '';
+    if (typeof textToCopy === 'string') {
+        cleanedText = textToCopy.replace(/#+\s*/g, '').replace(/\*/g, '');
+    } else if ('planMarkdown' in textToCopy) {
+        cleanedText = textToCopy.planMarkdown.replace(/#+\s*/g, '').replace(/\*/g, '');
+    } else if ('recipe' in textToCopy) {
+        cleanedText = textToCopy.recipe.replace(/#+\s*/g, '').replace(/\*/g, '');
+    }
+
     navigator.clipboard.writeText(cleanedText);
     toast({
         title: 'Copiado!',
@@ -157,24 +166,80 @@ export default function DiscoverPage() {
 
   const resultContent = useMemo(() => {
     if (!result) return '';
-    return 'recipe' in result ? result.recipe : ('planMarkdown' in result ? result.planMarkdown : '');
+    if ('recipe' in result) return result.recipe;
+    if ('planMarkdown' in result) return result.planMarkdown;
+    return '';
   }, [result]);
 
   const resultTitle = useMemo(() => {
-    if (!resultContent) return '';
-    const titleMatch = resultContent.match(/^#+\s*(.*)/);
-    return titleMatch ? titleMatch[1] : 'Uma sugestão incrível!';
-  }, [resultContent]);
+    if (!result) return 'Uma sugestão incrível!';
+    if ('recipe' in result) {
+      const titleMatch = result.recipe.match(/^#+\s*(.*)/);
+      return titleMatch ? titleMatch[1] : 'Uma sugestão incrível!';
+    }
+    if ('destination' in result) {
+      return `Viagem para ${result.destination}`;
+    }
+    return 'Uma sugestão incrível!';
+  }, [result]);
   
   const renderStars = (rating: number) => {
     return (
         <div className="flex items-center">
             {[...Array(5)].map((_, i) => (
-                <Star key={i} className={cn("h-4 w-4", i < rating ? "text-yellow-500 fill-yellow-500" : "text-muted-foreground")} />
+                <Star key={i} className={cn("h-4 w-4", i < Math.round(rating) ? "text-yellow-400 fill-yellow-400" : "text-muted-foreground/50")} />
             ))}
         </div>
     );
   }
+
+  const TripPlanResult = ({ plan }: { plan: GenerateTripPlanOutput }) => (
+    <div className="space-y-6">
+      <div>
+        <h3 className="text-xl font-semibold flex items-center gap-2"><Building className="h-5 w-5"/> Acomodação: {plan.accommodation.name}</h3>
+        <p className="text-muted-foreground pl-7">{plan.accommodation.description}</p>
+        {plan.accommodation.reviews && plan.accommodation.reviews.length > 0 && (
+          <div className="pl-7 mt-2 space-y-2">
+            {plan.accommodation.reviews.map((review, index) => (
+              <div key={index} className="border-l-2 pl-3">
+                {renderStars(review.rating)}
+                <p className="text-sm italic">"{review.comment}"</p>
+                <p className="text-xs text-right text-muted-foreground">- {review.author}</p>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+       <div>
+        <h3 className="text-xl font-semibold flex items-center gap-2"><Map className="h-5 w-5"/> Atividades</h3>
+        <div className="space-y-4 mt-2">
+          {plan.activities.map((activity, index) => (
+            <div key={index} className="pl-7">
+              <h4 className="font-semibold">{activity.name}</h4>
+              <p className="text-muted-foreground">{activity.description}</p>
+              {activity.reviews && activity.reviews.length > 0 && (
+                <div className="mt-2 space-y-2">
+                  {activity.reviews.map((review, r_index) => (
+                    <div key={r_index} className="border-l-2 pl-3">
+                      {renderStars(review.rating)}
+                      <p className="text-sm italic">"{review.comment}"</p>
+                      <p className="text-xs text-right text-muted-foreground">- {review.author}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+      <div>
+        <h3 className="text-xl font-semibold">O que levar na mala 🎒</h3>
+        <ul className="list-disc list-inside columns-2 gap-4 pl-2 mt-2">
+            {plan.packingList.map((item, index) => <li key={index}>{item}</li>)}
+        </ul>
+      </div>
+    </div>
+  );
 
   return (
     <Card className="bg-white/10 dark:bg-black/10 backdrop-blur-3xl border-white/20 dark:border-black/20 rounded-3xl shadow-2xl h-full">
@@ -249,21 +314,27 @@ export default function DiscoverPage() {
                         </div>
                     )}
 
-                    {result && resultContent && (
+                    {result && (
                         <Card className="bg-background/50 text-left">
                             <CardHeader>
                                <CardTitle className="text-2xl font-bold">{resultTitle}</CardTitle>
                             </CardHeader>
                             <CardContent className="prose dark:prose-invert prose-sm sm:prose-base max-w-none">
-                                <ReactMarkdown
-                                  components={{
-                                    h1: ({node, ...props}) => <h2 className="text-2xl font-bold" {...props} />,
-                                    h2: ({node, ...props}) => <h3 className="text-xl font-semibold" {...props} />,
-                                    h3: ({node, ...props}) => <h4 className="text-lg font-semibold" {...props} />,
-                                  }}
-                                >
-                                  {resultContent}
-                                </ReactMarkdown>
+                                {activeSuggestion === 'recipe' && 'recipe' in result && (
+                                    <ReactMarkdown
+                                    components={{
+                                        h1: ({node, ...props}) => <h2 className="text-2xl font-bold" {...props} />,
+                                        h2: ({node, ...props}) => <h3 className="text-xl font-semibold" {...props} />,
+                                        h3: ({node, ...props}) => <h4 className="text-lg font-semibold" {...props} />,
+                                    }}
+                                    >
+                                    {result.recipe}
+                                    </ReactMarkdown>
+                                )}
+
+                                {activeSuggestion === 'trip' && 'destination' in result && (
+                                    <TripPlanResult plan={result} />
+                                )}
 
                                 {result && 'missingItems' in result && result.missingItems && result.missingItems.length > 0 && (
                                     <div className="mt-6">
@@ -283,7 +354,7 @@ export default function DiscoverPage() {
                              <CardFooter>
                                 <Button
                                     variant="outline"
-                                    onClick={() => copyToClipboard(resultContent)}
+                                    onClick={() => copyToClipboard(result)}
                                     className="w-full"
                                 >
                                     <Copy className="h-4 w-4 mr-2" />
@@ -310,15 +381,19 @@ export default function DiscoverPage() {
                                   </Button>
                                 </div>
                                <AccordionContent className="prose dark:prose-invert prose-sm sm:prose-base max-w-none pb-4 text-left">
-                                   <ReactMarkdown
-                                      components={{
-                                        h1: ({node, ...props}) => <h2 className="text-2xl font-bold" {...props} />,
-                                        h2: ({node, ...props}) => <h3 className="text-xl font-semibold" {...props} />,
-                                        h3: ({node, ...props}) => <h4 className="text-lg font-semibold" {...props} />,
-                                      }}
-                                    >
-                                      {item.content}
-                                    </ReactMarkdown>
+                                   {typeof item.content === 'string' ? (
+                                     <ReactMarkdown
+                                        components={{
+                                            h1: ({node, ...props}) => <h2 className="text-2xl font-bold" {...props} />,
+                                            h2: ({node, ...props}) => <h3 className="text-xl font-semibold" {...props} />,
+                                            h3: ({node, ...props}) => <h4 className="text-lg font-semibold" {...props} />,
+                                        }}
+                                        >
+                                        {item.content}
+                                        </ReactMarkdown>
+                                   ) : 'destination' in item.content ? (
+                                        <TripPlanResult plan={item.content} />
+                                   ) : null}
                                </AccordionContent>
                             </AccordionItem>
                          ))}
