@@ -1,16 +1,19 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useContext } from 'react';
 import ReactMarkdown from 'react-markdown';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Utensils, Plane, Heart, Lightbulb, Loader2, Sparkles, Copy } from 'lucide-react';
-import { generateRecipeSuggestion } from '@/ai/flows/generate-recipe-flow';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Label } from '@/components/ui/label';
+import { Utensils, Plane, Heart, Lightbulb, Loader2, Sparkles, Copy, ShoppingCart } from 'lucide-react';
+import { generateRecipeSuggestion, GenerateRecipeOutput } from '@/ai/flows/generate-recipe-flow';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
+import { FinanceContext } from '@/contexts/finance-context';
 
 type SuggestionCategory = 'recipe' | 'trip' | 'date';
 type HistoryItem = { title: string; content: string; };
@@ -45,10 +48,11 @@ export default function DiscoverPage() {
   const [activeSuggestion, setActiveSuggestion] = useState<SuggestionCategory | null>(null);
   const [prompt, setPrompt] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [result, setResult] = useState<string | null>(null);
-  const [resultTitle, setResultTitle] = useState('');
+  const [result, setResult] = useState<GenerateRecipeOutput | null>(null);
+  const [usePantry, setUsePantry] = useState(false);
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const { toast } = useToast();
+  const { pantryItems, handleAddItemToList } = useContext(FinanceContext);
 
   const handleSuggestionClick = (id: SuggestionCategory) => {
     setActiveSuggestion(id);
@@ -64,11 +68,15 @@ export default function DiscoverPage() {
 
     try {
         if(activeSuggestion === 'recipe') {
-            const recipeResult = await generateRecipeSuggestion({ prompt });
-            setResult(recipeResult.recipe);
+            const recipeResult = await generateRecipeSuggestion({ 
+                prompt,
+                usePantry,
+                pantryItems: usePantry ? pantryItems.map(p => ({ name: p.name, quantity: p.quantity })) : [],
+            });
+            setResult(recipeResult);
+            
             const titleMatch = recipeResult.recipe.match(/^#+\s*(.*)/);
             const title = titleMatch ? titleMatch[1] : 'Uma receita incrível!';
-            setResultTitle(title);
             
             // Add to history
             const newHistoryItem = { title, content: recipeResult.recipe };
@@ -76,10 +84,29 @@ export default function DiscoverPage() {
         }
     } catch (error) {
         console.error("Error generating suggestion:", error);
-        setResult("Desculpe, não foi possível gerar uma sugestão no momento. Tente novamente.");
+        toast({
+            variant: "destructive",
+            title: "Erro ao gerar sugestão",
+            description: "Desculpe, não foi possível gerar uma sugestão no momento. Tente novamente.",
+        });
     } finally {
         setIsLoading(false);
     }
+  }
+
+  const handleAddMissingToCart = () => {
+    if (!result?.missingItems || result.missingItems.length === 0) return;
+    result.missingItems.forEach(item => {
+        // A simple parser to extract quantity if present, e.g., "2 ovos" -> quantity 2
+        const quantityMatch = item.match(/^(\d+)\s+/);
+        const quantity = quantityMatch ? parseInt(quantityMatch[1], 10) : 1;
+        const name = quantityMatch ? item.replace(quantityMatch[0], '') : item;
+        handleAddItemToList(name, quantity);
+    });
+    toast({
+        title: "Itens Adicionados!",
+        description: "Os ingredientes faltantes foram adicionados à sua lista de compras principal."
+    });
   }
   
   const copyToClipboard = (textToCopy: string) => {
@@ -90,6 +117,12 @@ export default function DiscoverPage() {
         description: 'A sugestão foi copiada para sua área de transferência.',
     });
   };
+
+  const resultTitle = useMemo(() => {
+    if (!result?.recipe) return '';
+    const titleMatch = result.recipe.match(/^#+\s*(.*)/);
+    return titleMatch ? titleMatch[1] : 'Uma receita incrível!';
+  }, [result]);
 
   return (
     <Card className="bg-white/10 dark:bg-black/10 backdrop-blur-3xl border-white/20 dark:border-black/20 rounded-3xl shadow-2xl h-full">
@@ -139,13 +172,20 @@ export default function DiscoverPage() {
                         </Button>
                     </div>
 
+                    {activeSuggestion === 'recipe' && (
+                        <div className="flex items-center space-x-2 justify-center pt-2">
+                            <Checkbox id="use-pantry" checked={usePantry} onCheckedChange={(checked) => setUsePantry(checked as boolean)}/>
+                            <Label htmlFor="use-pantry" className="text-sm font-medium text-muted-foreground">Usar itens da despensa?</Label>
+                        </div>
+                    )}
+
                     {isLoading && (
                         <div className="text-muted-foreground">
                             <p>Aguarde, estamos preparando algo especial...</p>
                         </div>
                     )}
 
-                    {result && (
+                    {result && result.recipe && (
                         <Card className="bg-background/50 text-left">
                             <CardHeader>
                                <CardTitle className="text-2xl font-bold">{resultTitle}</CardTitle>
@@ -158,13 +198,28 @@ export default function DiscoverPage() {
                                     h3: ({node, ...props}) => <h4 className="text-lg font-semibold" {...props} />,
                                   }}
                                 >
-                                  {result}
+                                  {result.recipe}
                                 </ReactMarkdown>
+
+                                {result.missingItems && result.missingItems.length > 0 && (
+                                    <div className="mt-6">
+                                        <h3 className="text-lg font-semibold">Ingredientes Faltando:</h3>
+                                        <ul className="list-disc pl-5">
+                                            {result.missingItems.map((item, index) => (
+                                                <li key={index}>{item}</li>
+                                            ))}
+                                        </ul>
+                                        <Button onClick={handleAddMissingToCart} className="w-full mt-4">
+                                            <ShoppingCart className="mr-2 h-4 w-4"/>
+                                            Adicionar faltantes ao carrinho
+                                        </Button>
+                                    </div>
+                                )}
                             </CardContent>
                              <CardFooter>
                                 <Button
                                     variant="outline"
-                                    onClick={() => copyToClipboard(result)}
+                                    onClick={() => copyToClipboard(result.recipe)}
                                     className="w-full"
                                 >
                                     <Copy className="h-4 w-4 mr-2" />
