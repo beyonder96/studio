@@ -20,6 +20,7 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
+  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 import { PlusCircle, Moon, Sun, AlertTriangle, Check, Save, Trash2, Edit } from 'lucide-react';
 import { FinanceContext } from '@/contexts/finance-context';
