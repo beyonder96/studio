@@ -34,7 +34,8 @@ export function FinancePageContent() {
     updateTransaction,
     deleteTransaction,
     totalIncome,
-    totalExpenses
+    totalExpenses,
+    formatCurrency,
   } = useContext(FinanceContext);
 
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -116,7 +117,7 @@ export function FinancePageContent() {
                         </CardHeader>
                         <CardContent>
                             <div className="text-2xl font-bold text-green-500">
-                                {monthlyIncome.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                                {formatCurrency(monthlyIncome)}
                             </div>
                         </CardContent>
                     </Card>
@@ -127,7 +128,7 @@ export function FinancePageContent() {
                         </CardHeader>
                         <CardContent>
                             <div className="text-2xl font-bold text-red-500">
-                                {monthlyExpenses.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                                {formatCurrency(monthlyExpenses)}
                             </div>
                         </CardContent>
                     </Card>
@@ -137,7 +138,7 @@ export function FinancePageContent() {
                         </CardHeader>
                         <CardContent>
                             <div className="text-2xl font-bold">
-                                {(monthlyIncome + monthlyExpenses).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                                {formatCurrency(monthlyIncome + monthlyExpenses)}
                             </div>
                         </CardContent>
                     </Card>
@@ -200,10 +201,7 @@ export function FinancePageContent() {
                                     transaction.type === 'income' ? 'text-green-500' : 'text-red-500'
                                 }`}
                                 >
-                                {transaction.amount.toLocaleString('pt-BR', {
-                                    style: 'currency',
-                                    currency: 'BRL',
-                                })}
+                                {formatCurrency(transaction.amount)}
                                 </TableCell>
                                 <TableCell>
                                 <div className="flex items-center justify-end gap-2">

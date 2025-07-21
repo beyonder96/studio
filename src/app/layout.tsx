@@ -11,6 +11,7 @@ import { SideNav } from '@/components/side-nav';
 import { AnimatePresence, motion } from 'framer-motion';
 import { SpecialDayAnimation } from '@/components/special-day-animation';
 import { AuthProvider } from '@/contexts/auth-context';
+import { useEffect } from 'react';
 
 export default function RootLayout({
   children,
@@ -20,6 +21,22 @@ export default function RootLayout({
   const pathname = usePathname();
 
   const isAuthPage = pathname === '/login' || pathname === '/signup';
+
+  useEffect(() => {
+    // Apply theme and color on initial load
+    const storedTheme = localStorage.getItem('app-theme') || 'light';
+    const storedColor = localStorage.getItem('app-color');
+
+    document.documentElement.classList.remove('light', 'dark');
+    document.documentElement.classList.add(storedTheme);
+    
+    if (storedColor) {
+        document.documentElement.style.setProperty('--primary', `hsl(${storedColor})`);
+        const [h, s, l] = storedColor.split(' ').map(v => parseInt(v.replace('%', '')));
+        document.documentElement.style.setProperty('--accent', `hsl(${h} ${s}% ${l + (l < 50 ? 15 : -15)}% / 0.2)`);
+        document.documentElement.style.setProperty('--ring', `hsl(${storedColor})`);
+    }
+  }, []);
 
   return (
     <html lang="en" suppressHydrationWarning>
