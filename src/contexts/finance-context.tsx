@@ -21,7 +21,7 @@ const initialExpenseCategories = ['Alimentação', 'Moradia', 'Transporte', 'Laz
 const initialPantryCategories: PantryCategory[] = [ 'Laticínios', 'Carnes', 'Peixes', 'Frutas e Vegetais', 'Grãos e Cereais', 'Enlatados e Conservas', 'Bebidas', 'Higiene e Limpeza', 'Outros' ];
 const initialPantryItems: PantryItem[] = [];
 const initialTasks: Task[] = [ { id: 'task1', text: 'Pagar conta de luz', completed: false } ];
-const initialGoals: Goal[] = [ { id: 'goal1', name: 'Viagem para a praia', targetAmount: 3500, currentAmount: 1200, imageUrl: 'https://placehold.co/600x400.png' } ];
+const initialGoals: Goal[] = [ { id: 'goal1', name: 'Viagem para a praia', targetAmount: 3500, currentAmount: 1200, imageUrl: 'https://placehold.co/600x400.png', completed: false } ];
 const initialWishes: Wish[] = [ { id: 'wish1', name: 'Liquidificador Novo', price: 250, purchased: false, imageUrl: 'https://placehold.co/600x400.png', link: '' } ];
 const initialAppointments: Appointment[] = [];
 const initialMemories: Memory[] = [];
@@ -33,7 +33,7 @@ export type Appointment = { id: string; title: string; date: string; time?: stri
 export type PantryCategory = string;
 export type PantryItem = { id: string; name: string; quantity: number; pantryCategory: PantryCategory; }
 export type Task = { id: string; text: string; completed: boolean; };
-export type Goal = { id: string; name: string; targetAmount: number; currentAmount: number; imageUrl?: string; };
+export type Goal = { id: string; name: string; targetAmount: number; currentAmount: number; imageUrl?: string; completed: boolean; };
 export type Wish = { id: string; name: string; price: number; link?: string; imageUrl?: string; purchased: boolean; };
 export type ShoppingListItem = { id: string; name: string; quantity: number; checked: boolean; price?: number; };
 export type ShoppingList = { id: string; name: string; items: ShoppingListItem[]; shared: boolean; };
@@ -86,10 +86,11 @@ type FinanceContextType = {
   toggleTask: (id: string) => void;
   deleteTask: (id: string) => void;
   goals: Goal[];
-  addGoal: (goal: Omit<Goal, 'id'>) => void;
+  addGoal: (goal: Omit<Goal, 'id' | 'completed'>) => void;
   updateGoal: (id: string, goal: Partial<Omit<Goal, 'id'>>) => void;
   deleteGoal: (id: string) => void;
-  addGoalProgress: (id: string, amount: number) => void;
+  addGoalProgress: (id: string, amount: number, accountId: string) => void;
+  toggleGoalCompleted: (id: string) => void;
   wishes: Wish[];
   addWish: (wish: Omit<Wish, 'id' | 'purchased'>) => void;
   updateWish: (id: string, wish: Partial<Omit<Wish, 'id'>>) => void;
@@ -437,10 +438,11 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
   };
   
   // Goal Management
-  const addGoal = (goal: Omit<Goal, 'id'>) => {
+  const addGoal = (goal: Omit<Goal, 'id' | 'completed'>) => {
     if (!user) return;
     const newId = push(getDbRef('goals')).key!;
-    set(getDbRef(`goals/${newId}`), goal);
+    const newGoal = { ...goal, completed: false };
+    set(getDbRef(`goals/${newId}`), newGoal);
   };
 
   const updateGoal = (id: string, updatedGoal: Partial<Omit<Goal, 'id'>>) => {
@@ -453,13 +455,38 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
       remove(getDbRef(`goals/${id}`));
   };
 
-  const addGoalProgress = (id: string, amount: number) => {
+  const addGoalProgress = (goalId: string, amount: number, accountId: string) => {
       if (!user) return;
-      const goal = goals.find(g => g.id === id);
-      if (goal) {
-          const newAmount = goal.currentAmount + amount;
-          update(getDbRef(`goals/${id}`), { currentAmount: newAmount });
+      const goal = goals.find(g => g.id === goalId);
+      const account = accounts.find(a => a.id === accountId);
+
+      if (goal && account) {
+          if (account.balance < amount) {
+              toast({ variant: 'destructive', title: 'Saldo Insuficiente', description: `A conta ${account.name} não tem saldo suficiente.` });
+              return;
+          }
+
+          const newGoalAmount = goal.currentAmount + amount;
+          const newAccountBalance = account.balance - amount;
+
+          const updates: { [key: string]: any } = {};
+          updates[`goals/${goalId}/currentAmount`] = newGoalAmount;
+          updates[`accounts/${accountId}/balance`] = newAccountBalance;
+          
+          update(getDbRef(''), updates);
+          
+          toast({ title: 'Progresso Adicionado!', description: `${formatCurrency(amount)} adicionado à meta "${goal.name}".`});
       }
+  };
+
+  const toggleGoalCompleted = (id: string) => {
+    if (!user) return;
+    const goal = goals.find(g => g.id === id);
+    if (goal) {
+        const isCompleted = !goal.completed;
+        update(getDbRef(`goals/${id}`), { completed: isCompleted });
+        toast({ title: `Meta ${isCompleted ? 'concluída' : 'reativada'}!`, description: `A meta "${goal.name}" foi atualizada.` });
+    }
   };
 
   // Wish Management
@@ -677,7 +704,7 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
     pantryItems, addItemsToPantry, addItemToPantry, updatePantryItemQuantity,
     pantryCategories, addPantryCategory, deletePantryCategory, updatePantryCategory,
     tasks, addTask, toggleTask, deleteTask,
-    goals, addGoal, updateGoal, deleteGoal, addGoalProgress,
+    goals, addGoal, updateGoal, deleteGoal, addGoalProgress, toggleGoalCompleted,
     wishes, addWish, updateWish, deleteWish, toggleWishPurchased,
     appointments, appointmentCategories, addAppointment, updateAppointment, deleteAppointment,
     toast,

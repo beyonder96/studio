@@ -25,15 +25,15 @@ export function GoalsOverview() {
     setIsDialogOpen(true);
   };
   
-  const handleSaveProgress = (amount: number) => {
+  const handleSaveProgress = (amount: number, accountId: string) => {
     if(selectedGoal) {
-        addGoalProgress(selectedGoal.id, amount);
+        addGoalProgress(selectedGoal.id, amount, accountId);
     }
     setIsDialogOpen(false);
     setSelectedGoal(null);
   }
 
-  const pendingGoals = goals.filter(g => g.currentAmount < g.targetAmount).slice(0, 3);
+  const pendingGoals = goals.filter(g => !g.completed && g.currentAmount < g.targetAmount).slice(0, 3);
 
   const getProgress = (goal: Goal) => {
     if (!goal.targetAmount || goal.targetAmount === 0) return 0;

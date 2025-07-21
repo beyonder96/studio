@@ -32,7 +32,7 @@ type GoalFormData = z.infer<typeof goalSchema>;
 type AddGoalDialogProps = {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (data: Omit<Goal, 'id'>) => void;
+  onSave: (data: Omit<Goal, 'id' | 'completed'>) => void;
   goal: Goal | null;
 };
 
@@ -119,7 +119,7 @@ export function AddGoalDialog({ isOpen, onClose, onSave, goal }: AddGoalDialogPr
 
             <div className="space-y-2">
               <Label htmlFor="imageUrl">URL da Imagem (opcional)</Label>
-              <Input id="imageUrl" {...register('imageUrl')} placeholder="https://imagem.com/foto.png" />
+              <Input id="imageUrl" {...register('imageUrl')} placeholder="https://placehold.co/600x400.png" />
               {errors.imageUrl && <p className="text-red-500 text-xs">{errors.imageUrl.message}</p>}
             </div>
           </div>

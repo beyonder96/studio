@@ -1,12 +1,12 @@
 
 'use client';
 
-import { useState, useContext } from 'react';
+import { useState, useContext, useMemo } from 'react';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
-import { Plus, Trash2, Edit, CheckCircle2, Target, MoreVertical, Star } from 'lucide-react';
+import { Plus, Trash2, Edit, CheckCircle2, Target, MoreVertical, Star, Trophy } from 'lucide-react';
 import { FinanceContext, Goal } from '@/contexts/finance-context';
 import { AddGoalDialog } from '@/components/goals/add-goal-dialog';
 import {
@@ -28,7 +28,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 
 export default function GoalsPage() {
-  const { goals, addGoal, updateGoal, deleteGoal, formatCurrency } = useContext(FinanceContext);
+  const { goals, addGoal, updateGoal, deleteGoal, formatCurrency, toggleGoalCompleted } = useContext(FinanceContext);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingGoal, setEditingGoal] = useState<Goal | null>(null);
   const [goalToDelete, setGoalToDelete] = useState<Goal | null>(null);
@@ -43,7 +43,7 @@ export default function GoalsPage() {
     setIsDialogOpen(true);
   };
 
-  const handleSaveGoal = (data: Omit<Goal, 'id'>) => {
+  const handleSaveGoal = (data: Omit<Goal, 'id' | 'completed'>) => {
     if (editingGoal) {
       updateGoal(editingGoal.id, data);
     } else {
@@ -61,9 +61,13 @@ export default function GoalsPage() {
   };
   
   const getProgressPercentage = (goal: Goal) => {
+    if (goal.completed) return 100;
     if (!goal.targetAmount || goal.targetAmount === 0) return 0;
     return (goal.currentAmount / goal.targetAmount) * 100;
   }
+  
+  const pendingGoals = useMemo(() => goals.filter(g => !g.completed), [goals]);
+  const completedGoals = useMemo(() => goals.filter(g => g.completed), [goals]);
 
   return (
     <Card className="bg-white/10 dark:bg-black/10 backdrop-blur-3xl border-white/20 dark:border-black/20 rounded-3xl shadow-2xl">
@@ -85,9 +89,9 @@ export default function GoalsPage() {
               <Target className="h-6 w-6 text-primary" />
               Metas Atuais
             </h2>
-            {goals.length > 0 ? (
+            {pendingGoals.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {goals.map(goal => (
+                {pendingGoals.map(goal => (
                   <Card key={goal.id} className="flex flex-col card-hover-effect bg-transparent">
                     <CardHeader className="relative p-0">
                       <Image
@@ -109,6 +113,10 @@ export default function GoalsPage() {
                             <DropdownMenuItem onClick={() => openEditDialog(goal)}>
                               <Edit className="mr-2 h-4 w-4" />
                               Editar
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => toggleGoalCompleted(goal.id)}>
+                              <CheckCircle2 className="mr-2 h-4 w-4" />
+                              Marcar como concluída
                             </DropdownMenuItem>
                             <DropdownMenuItem className="text-destructive" onClick={() => setGoalToDelete(goal)}>
                               <Trash2 className="mr-2 h-4 w-4" />
@@ -140,6 +148,48 @@ export default function GoalsPage() {
               <div className="text-center text-muted-foreground py-16 border-2 border-dashed rounded-lg">
                 <h3 className="mt-4 text-lg font-medium">Nenhuma meta definida.</h3>
                 <p className="mt-1 text-sm">Adicione um novo objetivo que vocês gostariam de alcançar!</p>
+              </div>
+            )}
+          </div>
+          
+          <div>
+            <h2 className="text-2xl font-semibold mb-4 flex items-center gap-2">
+              <Trophy className="h-6 w-6 text-yellow-500" />
+              Metas Concluídas
+            </h2>
+            {completedGoals.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {completedGoals.map(goal => (
+                   <Card key={goal.id} className="relative bg-transparent overflow-hidden">
+                        <Image
+                            src={goal.imageUrl || "https://placehold.co/600x400.png"}
+                            alt={goal.name}
+                            width={600}
+                            height={400}
+                            className="w-full h-48 object-cover rounded-lg brightness-50"
+                            data-ai-hint="celebration achievement"
+                        />
+                        <div className="absolute inset-0 flex flex-col justify-between p-4 text-white">
+                            <div>
+                                <h3 className="text-lg font-bold">{goal.name}</h3>
+                                <p className="font-mono text-sm">{formatCurrency(goal.targetAmount)}</p>
+                            </div>
+                            <Badge variant="secondary" className="w-fit bg-green-500/80 text-white border-0">
+                                Concluído!
+                            </Badge>
+                        </div>
+                        <div className="absolute top-2 right-2">
+                            <Button variant="ghost" size="icon" onClick={() => setGoalToDelete(goal)} className="text-white hover:bg-black/50 hover:text-white">
+                                <Trash2 className="h-4 w-4" />
+                            </Button>
+                        </div>
+                    </Card>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center text-muted-foreground py-16 border-2 border-dashed rounded-lg">
+                <h3 className="mt-4 text-lg font-medium">Nenhuma meta concluída ainda.</h3>
+                <p className="mt-1 text-sm">Quando finalizarem uma meta, ela aparecerá aqui.</p>
               </div>
             )}
           </div>
