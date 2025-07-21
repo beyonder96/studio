@@ -74,6 +74,15 @@ export default function DiscoverPage() {
     }
   }
   
+  const copyToClipboard = () => {
+    if (!result) return;
+    navigator.clipboard.writeText(result);
+    toast({
+        title: 'Copiado!',
+        description: 'A receita foi copiada para sua área de transferência.',
+    });
+  };
+  
   const handleShare = async () => {
     if (!result) return;
     
@@ -84,21 +93,22 @@ export default function DiscoverPage() {
                 text: `Olha essa receita que eu gerei com o Vida a 2: ${resultTitle}`,
                 // You could share a URL to the app here as well
             });
-        } catch (error) {
-            console.error('Error sharing:', error);
-            toast({
-                variant: 'destructive',
-                title: 'Erro ao compartilhar',
-                description: 'Não foi possível compartilhar o conteúdo.',
-            });
+        } catch (error: any) {
+            // If sharing fails (e.g., permission denied), fall back to clipboard
+            if (error.name === 'AbortError' || error.name === 'NotAllowedError') {
+              copyToClipboard();
+            } else {
+              console.error('Error sharing:', error);
+              toast({
+                  variant: 'destructive',
+                  title: 'Erro ao compartilhar',
+                  description: 'Não foi possível compartilhar o conteúdo.',
+              });
+            }
         }
     } else {
         // Fallback for browsers that don't support the Web Share API
-        navigator.clipboard.writeText(result);
-        toast({
-            title: 'Copiado!',
-            description: 'A receita foi copiada para sua área de transferência.',
-        });
+        copyToClipboard();
     }
   };
 
