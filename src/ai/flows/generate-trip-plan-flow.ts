@@ -59,7 +59,8 @@ Responda sempre em português do Brasil.
 Baseado na solicitação do usuário, crie um plano de viagem inesquecível para duas pessoas.
 
 IMPORTANTE: Para encontrar acomodações e atividades, use a ferramenta 'getReviewsForPlace'. Em vez de inventar um nome de lugar, descreva o que você procura no parâmetro 'placeName'.
-Por exemplo, para encontrar um hotel, chame a ferramenta assim: getReviewsForPlace(placeName: "hotel em {nome_do_destino}"). Para um ponto turístico, chame: getReviewsForPlace(placeName: "ponto turístico em {nome_do_destino}").
+Priorize a localização mencionada na solicitação do usuário. Se não houver, use a localização do perfil.
+Por exemplo, se o usuário pedir "uma viagem para Gramado", chame a ferramenta assim: getReviewsForPlace(placeName: "hotel em Gramado").
 Use a ferramenta para DESCOBRIR lugares reais. NÃO invente nomes de lugares.
 Apenas os lugares retornados pela ferramenta devem ser incluídos na resposta final.
 
@@ -75,7 +76,7 @@ Use emojis para deixar o roteiro mais visual e convidativo. ✈️❤️
 Solicitação do usuário: {{{prompt}}}
 
 {{#if location}}
-O casal está partindo de: {{{location}}}. Leve isso em consideração para a logística da viagem.
+A localização base do casal é: {{{location}}}. Leve isso em consideração para a logística da viagem se um destino específico não for solicitado.
 {{/if}}
 
 {{#if budget}}
@@ -83,7 +84,7 @@ O orçamento para a viagem é de aproximadamente R$ {{{budget}}}. Tente se mante
 {{/if}}
 
 {{#if favoritePlace}}
-Leve em consideração que o lugar favorito do casal é: {{{favoritePlace}}}. Use isso como INSPIRAÇÃO, mas sinta-se à vontade para sugerir outros tipos de lugares e experiências.
+INSPIRAÇÃO: O lugar favorito do casal é: {{{favoritePlace}}}. Use isso como INSPIRAÇÃO, mas sinta-se à vontade para sugerir outros tipos de lugares e experiências.
 {{/if}}
 `,
 });

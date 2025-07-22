@@ -55,7 +55,8 @@ Responda sempre em português do Brasil.
 Baseado na solicitação do usuário, crie uma ideia de encontro memorável para duas pessoas.
 
 IMPORTANTE: Para encontrar lugares, use a ferramenta 'getReviewsForPlace'. Em vez de inventar um nome de lugar, descreva o que você procura no parâmetro 'placeName'.
-Por exemplo, para encontrar um restaurante italiano, chame a ferramenta assim: getReviewsForPlace(placeName: "restaurante italiano em {{{location}}}"). Para um parque, chame: getReviewsForPlace(placeName: "parque em {{{location}}}").
+Priorize a localização mencionada na solicitação do usuário. Se não houver, use a localização do perfil.
+Por exemplo, se o usuário pedir "restaurante italiano no Tatuapé", chame a ferramenta assim: getReviewsForPlace(placeName: "restaurante italiano em Tatuapé"). Se o usuário pedir apenas "um parque" e a localização do perfil for "São Paulo", chame: getReviewsForPlace(placeName: "parque em São Paulo").
 Use a ferramenta para DESCOBRIR lugares reais. NÃO invente nomes de lugares.
 Apenas os lugares retornados pela ferramenta devem ser incluídos na resposta final, no campo 'suggestedVenues'.
 Sugira múltiplos lugares se possível, fazendo uma chamada à ferramenta para cada tipo de lugar.
@@ -77,15 +78,15 @@ O orçamento para o encontro é de aproximadamente R$ {{{budget}}}. Tente se man
 {{/if}}
 
 {{#if location}}
-O casal está em: {{{location}}}. Use essa informação para encontrar locais específicos nessa área.
+A localização base do casal é: {{{location}}}. Use essa informação para encontrar locais caso nenhuma localização seja especificada na solicitação.
 {{/if}}
 
 {{#if favoriteFood}}
-Leve em consideração que a comida favorita deles é: {{{favoriteFood}}}. Use isso como INSPIRAÇÃO, mas sinta-se à vontade para sugerir outras coisas também.
+INSPIRAÇÃO: A comida favorita deles é: {{{favoriteFood}}}. Use isso como INSPIRAÇÃO, mas sinta-se à vontade para sugerir outras coisas também.
 {{/if}}
 
 {{#if favoritePlace}}
-Leve em consideração que o lugar favorito deles é: {{{favoritePlace}}}. Use isso como INSPIRAÇÃO para o tipo de ambiente, mas explore novas possibilidades.
+INSPIRAÇÃO: O lugar favorito deles é: {{{favoritePlace}}}. Use isso como INSPIRAÇÃO para o tipo de ambiente, mas explore novas possibilidades.
 {{/if}}
 `,
 });
