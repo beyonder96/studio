@@ -37,7 +37,7 @@ const GenerateDateIdeaOutputSchema = z.object({
     title: z.string().describe('The catchy title for the date idea.'),
     category: z.string().describe('The category of the date, e.g., "Romântico", "Aventura", "Cultural", "Em Casa", "Gastronômico".'),
     detailsMarkdown: z.string().describe('The full date idea, formatted in Markdown. This should be a user-friendly plan with a description and a step-by-step itinerary. If the date involves food, suggest multiple recipes here.'),
-    suggestedVenues: z.array(VenueSchema).optional().describe('A list of specific, real-world venues suggested for the date. Use the getReviewsForPlace tool to populate this. Suggest multiple venues if possible.'),
+    suggestedVenues: z.array(VenueSchema).optional().describe('A list of specific, real-world venues suggested for the date. Only include venues returned by the getReviewsForPlace tool. Suggest multiple venues if possible.'),
 });
 export type GenerateDateIdeaOutput = z.infer<typeof GenerateDateIdeaOutputSchema>;
 
@@ -54,9 +54,11 @@ const prompt = ai.definePrompt({
 Responda sempre em português do Brasil.
 Baseado na solicitação do usuário, crie uma ideia de encontro memorável para duas pessoas.
 
-Para CADA lugar que você sugerir, use a ferramenta 'getReviewsForPlace' para encontrar lugares reais e interessantes.
-IMPORTANTE: Ao chamar a ferramenta, no parâmetro 'placeName', sempre inclua a localização do casal para garantir a precisão. Por exemplo: "Nome do Restaurante, {{{location}}}".
-Inclua os lugares encontrados no campo 'suggestedVenues' com suas respectivas avaliações. Sugira múltiplos lugares se possível.
+IMPORTANTE: Para encontrar lugares, use a ferramenta 'getReviewsForPlace'. Em vez de inventar um nome de lugar, descreva o que você procura no parâmetro 'placeName'.
+Por exemplo, para encontrar um restaurante italiano, chame a ferramenta assim: getReviewsForPlace(placeName: "restaurante italiano em {{{location}}}"). Para um parque, chame: getReviewsForPlace(placeName: "parque em {{{location}}}").
+Use a ferramenta para DESCOBRIR lugares reais. NÃO invente nomes de lugares.
+Apenas os lugares retornados pela ferramenta devem ser incluídos na resposta final, no campo 'suggestedVenues'.
+Sugira múltiplos lugares se possível, fazendo uma chamada à ferramenta para cada tipo de lugar.
 
 Se o encontro for gastronômico ou em casa, sugira mais de uma receita no campo 'detailsMarkdown'.
 

@@ -58,8 +58,10 @@ const prompt = ai.definePrompt({
 Responda sempre em português do Brasil.
 Baseado na solicitação do usuário, crie um plano de viagem inesquecível para duas pessoas.
 
-Para cada sugestão de acomodação ou atividade, busque por avaliações usando a ferramenta 'getReviewsForPlace' para dar mais credibilidade.
-IMPORTANTE: Ao chamar a ferramenta, no parâmetro 'placeName', sempre inclua a cidade/região do destino para garantir a precisão. Por exemplo: "Hotel Copacabana Palace, Rio de Janeiro".
+IMPORTANTE: Para encontrar acomodações e atividades, use a ferramenta 'getReviewsForPlace'. Em vez de inventar um nome de lugar, descreva o que você procura no parâmetro 'placeName'.
+Por exemplo, para encontrar um hotel, chame a ferramenta assim: getReviewsForPlace(placeName: "hotel em {nome_do_destino}"). Para um ponto turístico, chame: getReviewsForPlace(placeName: "ponto turístico em {nome_do_destino}").
+Use a ferramenta para DESCOBRIR lugares reais. NÃO invente nomes de lugares.
+Apenas os lugares retornados pela ferramenta devem ser incluídos na resposta final.
 
 O plano deve ser retornado no formato JSON especificado.
 Além disso, crie um resumo amigável e bem formatado em Markdown no campo 'planMarkdown', contendo as seguintes seções:
