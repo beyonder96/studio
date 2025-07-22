@@ -58,7 +58,8 @@ const prompt = ai.definePrompt({
 Responda sempre em português do Brasil.
 Baseado na solicitação do usuário, crie um plano de viagem inesquecível para duas pessoas.
 
-Use as ferramentas disponíveis para enriquecer a sua resposta. Para cada sugestão de acomodação ou atividade, busque por avaliações para dar mais credibilidade.
+Para cada sugestão de acomodação ou atividade, busque por avaliações usando a ferramenta 'getReviewsForPlace' para dar mais credibilidade.
+IMPORTANTE: Ao chamar a ferramenta, no parâmetro 'placeName', sempre inclua a cidade/região do destino para garantir a precisão. Por exemplo: "Hotel Copacabana Palace, Rio de Janeiro".
 
 O plano deve ser retornado no formato JSON especificado.
 Além disso, crie um resumo amigável e bem formatado em Markdown no campo 'planMarkdown', contendo as seguintes seções:
@@ -80,7 +81,7 @@ O orçamento para a viagem é de aproximadamente R$ {{{budget}}}. Tente se mante
 {{/if}}
 
 {{#if favoritePlace}}
-Leve em consideração que o lugar favorito do casal é: {{{favoritePlace}}}. Use isso como inspiração extra se fizer sentido.
+Leve em consideração que o lugar favorito do casal é: {{{favoritePlace}}}. Use isso como INSPIRAÇÃO, mas sinta-se à vontade para sugerir outros tipos de lugares e experiências.
 {{/if}}
 `,
 });

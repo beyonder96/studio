@@ -54,7 +54,11 @@ const prompt = ai.definePrompt({
 Responda sempre em português do Brasil.
 Baseado na solicitação do usuário, crie uma ideia de encontro memorável para duas pessoas.
 
-Use a ferramenta 'getReviewsForPlace' para encontrar múltiplos lugares reais e interessantes (restaurantes, parques, etc.) que se encaixem na ideia do encontro e inclua-os no campo 'suggestedVenues' com suas respectivas avaliações. Se o encontro for gastronômico ou em casa, sugira mais de uma receita no campo 'detailsMarkdown'.
+Para CADA lugar que você sugerir, use a ferramenta 'getReviewsForPlace' para encontrar lugares reais e interessantes.
+IMPORTANTE: Ao chamar a ferramenta, no parâmetro 'placeName', sempre inclua a localização do casal para garantir a precisão. Por exemplo: "Nome do Restaurante, {{{location}}}".
+Inclua os lugares encontrados no campo 'suggestedVenues' com suas respectivas avaliações. Sugira múltiplos lugares se possível.
+
+Se o encontro for gastronômico ou em casa, sugira mais de uma receita no campo 'detailsMarkdown'.
 
 O plano deve ser retornado no formato JSON especificado.
 No campo 'detailsMarkdown', crie um roteiro amigável e bem formatado em Markdown, contendo:
@@ -71,15 +75,15 @@ O orçamento para o encontro é de aproximadamente R$ {{{budget}}}. Tente se man
 {{/if}}
 
 {{#if location}}
-O casal está em: {{{location}}}. Use a ferramenta para encontrar locais específicos nessa área.
+O casal está em: {{{location}}}. Use essa informação para encontrar locais específicos nessa área.
 {{/if}}
 
 {{#if favoriteFood}}
-A comida favorita deles é: {{{favoriteFood}}}. Use isso para inspirar ideias gastronômicas e buscar restaurantes.
+Leve em consideração que a comida favorita deles é: {{{favoriteFood}}}. Use isso como INSPIRAÇÃO, mas sinta-se à vontade para sugerir outras coisas também.
 {{/if}}
 
 {{#if favoritePlace}}
-O lugar favorito deles é: {{{favoritePlace}}}. Tente incorporar esse tipo de ambiente na sua sugestão.
+Leve em consideração que o lugar favorito deles é: {{{favoritePlace}}}. Use isso como INSPIRAÇÃO para o tipo de ambiente, mas explore novas possibilidades.
 {{/if}}
 `,
 });
