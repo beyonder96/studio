@@ -17,6 +17,7 @@ const GenerateDateIdeaInputSchema = z.object({
   favoriteFood: z.string().optional().describe("The couple's favorite food, from their profile."),
   favoritePlace: z.string().optional().describe("The couple's favorite place, from their profile."),
   location: z.string().optional().describe("The couple's current location (city/state), from their profile."),
+  budget: z.number().optional().describe("The estimated budget for the date."),
 });
 export type GenerateDateIdeaInput = z.infer<typeof GenerateDateIdeaInputSchema>;
 
@@ -35,8 +36,8 @@ const VenueSchema = z.object({
 const GenerateDateIdeaOutputSchema = z.object({
     title: z.string().describe('The catchy title for the date idea.'),
     category: z.string().describe('The category of the date, e.g., "Romântico", "Aventura", "Cultural", "Em Casa", "Gastronômico".'),
-    detailsMarkdown: z.string().describe('The full date idea, formatted in Markdown. This should be a user-friendly plan with a description and a step-by-step itinerary.'),
-    suggestedVenues: z.array(VenueSchema).optional().describe('A list of specific, real-world venues suggested for the date. Use the getReviewsForPlace tool to populate this.'),
+    detailsMarkdown: z.string().describe('The full date idea, formatted in Markdown. This should be a user-friendly plan with a description and a step-by-step itinerary. If the date involves food, suggest multiple recipes here.'),
+    suggestedVenues: z.array(VenueSchema).optional().describe('A list of specific, real-world venues suggested for the date. Use the getReviewsForPlace tool to populate this. Suggest multiple venues if possible.'),
 });
 export type GenerateDateIdeaOutput = z.infer<typeof GenerateDateIdeaOutputSchema>;
 
@@ -53,17 +54,21 @@ const prompt = ai.definePrompt({
 Responda sempre em português do Brasil.
 Baseado na solicitação do usuário, crie uma ideia de encontro memorável para duas pessoas.
 
-Use a ferramenta 'getReviewsForPlace' para encontrar lugares reais e interessantes (restaurantes, parques, etc.) que se encaixem na ideia do encontro e inclua-os no campo 'suggestedVenues' com suas respectivas avaliações.
+Use a ferramenta 'getReviewsForPlace' para encontrar múltiplos lugares reais e interessantes (restaurantes, parques, etc.) que se encaixem na ideia do encontro e inclua-os no campo 'suggestedVenues' com suas respectivas avaliações. Se o encontro for gastronômico ou em casa, sugira mais de uma receita no campo 'detailsMarkdown'.
 
 O plano deve ser retornado no formato JSON especificado.
 No campo 'detailsMarkdown', crie um roteiro amigável e bem formatado em Markdown, contendo:
 - ## 💖 Descrição
-- ## 🗺️ O Roteiro
+- ## 🗺️ O Roteiro (ou Opções de Receita)
 - ## ✨ Dica Extra
 
 Use emojis para deixar a sugestão mais visual e convidativa. 🥂
 
 Solicitação do usuário: {{{prompt}}}
+
+{{#if budget}}
+O orçamento para o encontro é de aproximadamente R$ {{{budget}}}. Tente se manter dentro deste valor.
+{{/if}}
 
 {{#if location}}
 O casal está em: {{{location}}}. Use a ferramenta para encontrar locais específicos nessa área.

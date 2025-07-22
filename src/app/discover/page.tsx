@@ -57,6 +57,7 @@ export default function DiscoverPage() {
   const [result, setResult] = useState<ResultType | null>(null);
   const [usePantry, setUsePantry] = useState(false);
   const [tripBudget, setTripBudget] = useState<number | undefined>(undefined);
+  const [dateBudget, setDateBudget] = useState<number | undefined>(undefined);
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const [profileData, setProfileData] = useState<{ favoritePlace?: string, location?: string, favoriteFood?: string }>({});
   const { toast } = useToast();
@@ -114,6 +115,7 @@ export default function DiscoverPage() {
                 favoritePlace: profileData.favoritePlace,
                 favoriteFood: profileData.favoriteFood,
                 location: profileData.location,
+                budget: dateBudget,
             });
         }
         
@@ -358,6 +360,18 @@ export default function DiscoverPage() {
                                 id="trip-budget"
                                 value={tripBudget || 0}
                                 onValueChange={(value) => setTripBudget(value)}
+                                className="max-w-xs mx-auto"
+                            />
+                        </div>
+                    )}
+                    
+                    {activeSuggestion === 'date' && (
+                        <div className="flex flex-col items-center space-y-2 justify-center pt-2">
+                            <Label htmlFor="date-budget" className="text-sm font-medium text-muted-foreground">Orçamento do Encontro (opcional)</Label>
+                            <CurrencyInput
+                                id="date-budget"
+                                value={dateBudget || 0}
+                                onValueChange={(value) => setDateBudget(value)}
                                 className="max-w-xs mx-auto"
                             />
                         </div>
