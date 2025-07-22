@@ -25,7 +25,7 @@ export const getReviewsForPlace = ai.defineTool(
     outputSchema: z.array(ReviewSchema),
   },
   async (input) => {
-    console.log(`[getReviewsForPlace] Fetching reviews for: ${input.placeName}`);
+    console.log(`[getReviewsForPlace] Fetching reviews for: ${input.placeName} using Places API (New)`);
     const apiKey = process.env.GOOGLE_PLACES_API_KEY;
 
     if (!apiKey) {
@@ -34,33 +34,36 @@ export const getReviewsForPlace = ai.defineTool(
     }
 
     try {
-      // 1. Find the Place ID using Text Search
-      const searchUrl = `https://maps.googleapis.com/maps/api/place/textsearch/json?query=${encodeURIComponent(input.placeName)}&key=${apiKey}`;
-      const searchResponse = await fetch(searchUrl);
-      const searchData = await searchResponse.json();
-
-      if (searchData.status !== 'OK' || !searchData.results || searchData.results.length === 0) {
-        console.log(`[getReviewsForPlace] Place not found for: ${input.placeName}`);
-        return [];
-      }
-
-      const placeId = searchData.results[0].place_id;
-
-      // 2. Get Place Details, including reviews
-      const detailsUrl = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${placeId}&fields=name,rating,reviews&key=${apiKey}&language=pt-BR`;
-      const detailsResponse = await fetch(detailsUrl);
-      const detailsData = await detailsResponse.json();
+      const searchUrl = 'https://places.googleapis.com/v1/places:searchText';
       
-      if (detailsData.status !== 'OK' || !detailsData.result || !detailsData.result.reviews) {
-        console.log(`[getReviewsForPlace] No reviews found for placeId: ${placeId}`);
+      const response = await fetch(searchUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Goog-Api-Key': apiKey,
+          // Request reviews, display name, and rating
+          'X-Goog-FieldMask': 'places.reviews,places.displayName,places.rating', 
+        },
+        body: JSON.stringify({
+          textQuery: input.placeName,
+          languageCode: 'pt-BR',
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!data.places || data.places.length === 0 || !data.places[0].reviews) {
+        console.log(`[getReviewsForPlace] No places or reviews found for: ${input.placeName}`);
         return [];
       }
+      
+      const place = data.places[0];
 
-      // 3. Format and return the reviews
-      const reviews = detailsData.result.reviews.map((review: any) => ({
-        author: review.author_name,
+      // Format and return the reviews from the new API response structure
+      const reviews = place.reviews.map((review: any) => ({
+        author: review.authorAttribution?.displayName || 'Anônimo',
         rating: review.rating,
-        comment: review.text,
+        comment: review.text?.text || '',
       }));
       
       return reviews;
