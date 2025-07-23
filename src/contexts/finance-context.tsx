@@ -118,7 +118,7 @@ type FinanceContextType = {
   selectedListId: string | null;
   setSelectedListId: React.Dispatch<React.SetStateAction<string | null>>;
   selectedList: ShoppingList | null;
-  handleSetPrice: (itemId: string, price: number) => void;
+  handleSetPrice: (itemId: string, price: number, quantity: number) => void;
   handleCheckboxChange: (item: ShoppingListItem) => void;
   handleDeleteItem: (itemId: string) => void;
   handleUpdateItem: (itemId: string, name: string, quantity: number) => void;
@@ -655,10 +655,10 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
     return getDbRef(fullPath);
   }, [getDbRef]);
 
-  const handleSetPrice = useCallback((itemId: string, price: number) => {
+  const handleSetPrice = useCallback((itemId: string, price: number, quantity: number) => {
     if (!user || !selectedListId) return;
     const itemRef = getListRef(selectedListId, `items/${itemId}`);
-    update(itemRef, { price, checked: true });
+    update(itemRef, { price, quantity, checked: true });
   }, [user, selectedListId, getListRef]);
   
   const handleCheckboxChange = useCallback((item: ShoppingListItem) => {

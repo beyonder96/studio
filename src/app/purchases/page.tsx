@@ -90,8 +90,8 @@ export default function PurchasesPage() {
   const [editingListId, setEditingListId] = useState<string | null>(null);
   const [editingListName, setEditingListName] = useState('');
 
-  const onSetPrice = useCallback((itemId: string, price: number) => {
-    handleSetPrice(itemId, price);
+  const onSetPrice = useCallback((itemId: string, price: number, quantity: number) => {
+    handleSetPrice(itemId, price, quantity);
     setItemToPrice(null);
     setIsPriceDialogOpen(false);
   }, [handleSetPrice]);
@@ -169,6 +169,11 @@ export default function PurchasesPage() {
     setIsAddItemDialogOpen(false);
   }, [handleAddItemToList]);
 
+  const handleCreateListCancel = () => {
+    setNewListName('');
+    setIsCreatingList(false);
+  };
+
   const onCreateListSave = useCallback(() => {
     handleCreateListSave(newListName, (newList) => {
       setNewListName('');
@@ -176,11 +181,6 @@ export default function PurchasesPage() {
       setSelectedListId(newList.id);
     });
   }, [newListName, handleCreateListSave, setSelectedListId]);
-
-  const handleCreateListCancel = () => {
-    setNewListName('');
-    setIsCreatingList(false);
-  };
 
   const onDeleteList = useCallback(() => {
     if (!listToDelete) return;
@@ -499,3 +499,4 @@ export default function PurchasesPage() {
     </Card>
   );
 }
+
