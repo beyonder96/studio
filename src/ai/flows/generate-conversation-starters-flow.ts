@@ -11,8 +11,10 @@ import { z } from 'genkit';
 const GenerateConversationStartersOutputSchema = z.object({
     starters: z.array(z.string().describe('A single conversation starter question or topic.')),
 });
+export type GenerateConversationStartersOutput = z.infer<typeof GenerateConversationStartersOutputSchema>;
 
-export async function generateConversationStarters(): Promise<{ starters: string[] }> {
+
+export async function generateConversationStarters(): Promise<GenerateConversationStartersOutput> {
   const { output } = await generateConversationStartersFlow();
   return output || { starters: [] };
 }

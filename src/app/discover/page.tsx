@@ -94,11 +94,6 @@ export default function DiscoverPage() {
     setActiveSuggestion(id);
     setResult(null);
     setPrompt('');
-
-    // If it's a promptless suggestion, generate immediately
-    if (id === 'conversation') {
-        handleGenerate(id);
-    }
   };
 
   const handleGenerate = async (suggestionType?: SuggestionCategory) => {
