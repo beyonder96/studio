@@ -7,7 +7,7 @@ import { Sparkles, ArrowUpRight, Loader2 } from "lucide-react";
 import { useContext, useState, useEffect, useMemo } from "react";
 import { FinanceContext, Wish } from "@/contexts/finance-context";
 import Link from "next/link";
-import { differenceInDays, parseISO, startOfToday, addDays, getMonth, getDate, differenceInYears } from "date-fns";
+import { differenceInDays, parseISO, startOfToday, addDays, getMonth, getDate, differenceInYears, format } from "date-fns";
 import { useAuth } from "@/contexts/auth-context";
 import { getDatabase, ref, onValue } from 'firebase/database';
 import { app as firebaseApp } from '@/lib/firebase';
