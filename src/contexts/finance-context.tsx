@@ -697,7 +697,7 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
     const itemsRef = getListRef(selectedListId, 'items');
     const newId = push(itemsRef).key!;
     const newItem: Omit<ShoppingListItem, 'id'> = { name, quantity, checked: false };
-    set(ref(itemsRef, newId), newItem);
+    set(child(itemsRef, newId), newItem);
   }, [user, selectedListId, getListRef]);
 
   const handleCreateListSave = useCallback((name: string, callback: (newList: ShoppingList) => void) => {
