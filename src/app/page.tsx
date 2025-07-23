@@ -1,7 +1,6 @@
 
 'use client';
 
-import { Calendar } from '@/components/ui/calendar';
 import { Card, CardContent } from '@/components/ui/card';
 import { UserNav } from '@/components/user-nav';
 import { DashboardHeader } from '@/components/dashboard/logo';
@@ -20,6 +19,33 @@ import { format } from 'date-fns';
 import { useRouter } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
 import { useAuth } from '@/contexts/auth-context';
+
+
+const DateDisplay = () => {
+  const [clientReady, setClientReady] = useState(false);
+  useEffect(() => {
+    setClientReady(true);
+  }, []);
+
+  if (!clientReady) {
+    return (
+      <Card className="bg-white/10 dark:bg-black/10 border-none shadow-none text-center p-6">
+        <Loader2 className="h-6 w-6 animate-spin mx-auto" />
+      </Card>
+    )
+  }
+
+  const today = new Date();
+  
+  return (
+      <Card className="bg-white/10 dark:bg-black/10 border-none shadow-none text-center p-6">
+          <p className="text-sm text-muted-foreground">Hoje é</p>
+          <p className="text-2xl font-bold text-foreground capitalize">
+              {format(today, "eeee, dd 'de' MMMM", { locale: ptBR })}
+          </p>
+      </Card>
+  );
+};
 
 
 export default function Home() {
@@ -82,35 +108,7 @@ export default function Home() {
                   <UserNav />
                 </div>
                 <TransactionsOverview />
-                <Card className="bg-white/10 dark:bg-black/10 border-none shadow-none">
-                  <Calendar
-                    mode="single"
-                    onSelect={handleDateSelect}
-                    className="p-0 [&_td]:w-full"
-                    locale={ptBR}
-                    classNames={{
-                        head_cell: "text-muted-foreground rounded-md w-full font-normal text-[0.8rem]",
-                        cell: "text-center text-sm p-0 relative focus-within:relative focus-within:z-20",
-                        day: "h-9 w-9 p-0 font-normal aria-selected:opacity-100 rounded-full cursor-pointer",
-                        day_selected: "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground",
-                        day_today: "bg-accent text-accent-foreground rounded-full",
-                        day_range_middle: "aria-selected:bg-accent/50 aria-selected:text-accent-foreground",
-                    }}
-                    modifiers={{ 
-                        events: eventDates,
-                        today: today,
-                    }}
-                    modifiersClassNames={{
-                        events: "bg-primary/20 rounded-full",
-                        today: "bg-accent text-accent-foreground"
-                    }}
-                    footer={
-                        <p className="text-xs text-muted-foreground mt-2">
-                           {today ? `Hoje é ${format(today, "PPP", { locale: ptBR })}.` : 'Carregando...'}
-                        </p>
-                    }
-                  />
-                </Card>
+                <DateDisplay />
                 <MonthOverview />
               </div>
 
