@@ -10,19 +10,26 @@ const MonthlySpendingSchema = z.object({
   categories: z.record(z.number()),
 });
 
+const GoalProgressSchema = z.object({
+    name: z.string(),
+    progress: z.number().describe('The completion percentage of the goal.'),
+});
+
 export const GenerateFinancialInsightInputSchema = z.object({
-  financialHistory: z.array(MonthlySpendingSchema).describe('An array of the last 3 months of spending data.'),
-  goals: z.array(z.string()).describe('A list of the couple\'s active financial goals.'),
+  financialHistory: z.array(MonthlySpendingSchema).describe('An array of the last 2-3 months of spending data.'),
+  goals: z.array(GoalProgressSchema).describe('A list of the couple\'s active financial goals and their progress.'),
 });
 export type GenerateFinancialInsightInput = z.infer<typeof GenerateFinancialInsightInputSchema>;
 
 export const GenerateFinancialInsightOutputSchema = z.object({
   title: z.string().describe('A catchy title for the financial insight.'),
-  insight: z.string().describe('The detailed insight and suggestion for the user. It should be actionable.'),
+  insight: z.string().describe('The detailed insight and suggestion for the user. It should be actionable and encouraging.'),
   suggestedAction: z.object({
-    text: z.string(),
-    goalToContribute: z.string().optional(),
-    amountToContribute: z.number().optional(),
+    text: z.string().describe('A specific, actionable suggestion for the user.'),
+    goalToContribute: z.string().optional().describe('The name of the goal to contribute to, if applicable.'),
+    amountToContribute: z.number().optional().describe('The amount to contribute to the goal, if applicable.'),
   }).optional().describe('A specific action the user can take.'),
 });
 export type GenerateFinancialInsightOutput = z.infer<typeof GenerateFinancialInsightOutputSchema>;
+
+    

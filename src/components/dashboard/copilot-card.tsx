@@ -5,7 +5,7 @@ import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/componen
 import { Button } from "@/components/ui/button";
 import { Sparkles, ArrowUpRight, Loader2 } from "lucide-react";
 import { useContext, useState, useEffect, useMemo } from "react";
-import { FinanceContext, Wish } from "@/contexts/finance-context";
+import { FinanceContext, Wish, Goal } from "@/contexts/finance-context";
 import Link from "next/link";
 import { differenceInDays, parseISO, startOfToday, addDays, getMonth, getDate, differenceInYears, format } from "date-fns";
 import { useAuth } from "@/contexts/auth-context";
@@ -103,11 +103,11 @@ export function CopilotCard() {
             }
         }
         
-        // 2. Financial Insight
+        // 2. Financial Insight (Check-up mensal)
         potentialInsights.push({
-            text: 'Analisando suas finanças para encontrar oportunidades de economia...',
+            text: 'Que tal um check-up financeiro deste mês?',
             link: '/finance',
-            buttonText: 'Ver Finanças',
+            buttonText: 'Analisar Finanças',
             source: 'finance'
         });
 
@@ -147,29 +147,45 @@ export function CopilotCard() {
   
   const handleButtonClick = async () => {
     if (!currentInsight || !profileData) return;
-
-    if (currentInsight.source === 'celebration' && !celebrationPlan) {
-        setIsLoading(true);
-        const plan = await generateCelebrationPlan({
-            dateType: currentInsight.data.dateType,
-            personName: currentInsight.data.personName,
-            wishList: wishes.map(w => ({ name: w.name, price: w.price })),
-            couplePreferences: {
-                favoriteFood: profileData.food || '',
-                favoritePlace: profileData.place || '',
-            }
-        });
-        setCelebrationPlan(plan);
-        setIsLoading(false);
-    }
     
-    if (currentInsight.source === 'finance' && !financialInsight) {
-        setIsLoading(true);
-        const insight = await generateFinancialInsight({
-            financialHistory,
-            goals: goals.filter(g => !g.completed).map(g => g.name),
+    setCelebrationPlan(null);
+    setFinancialInsight(null);
+    setIsLoading(true);
+
+    try {
+        if (currentInsight.source === 'celebration') {
+            const plan = await generateCelebrationPlan({
+                dateType: currentInsight.data.dateType,
+                personName: currentInsight.data.personName,
+                wishList: wishes.map(w => ({ name: w.name, price: w.price })),
+                couplePreferences: {
+                    favoriteFood: profileData.food || '',
+                    favoritePlace: profileData.place || '',
+                }
+            });
+            setCelebrationPlan(plan);
+        }
+        
+        if (currentInsight.source === 'finance') {
+            const getGoalProgress = (goal: Goal) => {
+                if (!goal.targetAmount || goal.targetAmount === 0) return 0;
+                return Math.round((goal.currentAmount / goal.targetAmount) * 100);
+            };
+
+            const insight = await generateFinancialInsight({
+                financialHistory,
+                goals: goals.filter(g => !g.completed).map(g => ({ name: g.name, progress: getGoalProgress(g) })),
+            });
+            setFinancialInsight(insight);
+        }
+    } catch (error) {
+        console.error("Error generating insight:", error);
+        toast({
+            variant: "destructive",
+            title: "Erro do Copilot",
+            description: "Não foi possível gerar a sugestão no momento.",
         });
-        setFinancialInsight(insight);
+    } finally {
         setIsLoading(false);
     }
   };
@@ -181,7 +197,7 @@ export function CopilotCard() {
     if (celebrationPlan) {
         return (
             <div className="text-sm space-y-2">
-                <p>{celebrationPlan.title}</p>
+                <p className="font-semibold">{celebrationPlan.title}</p>
                 <p className="text-xs text-muted-foreground">{celebrationPlan.description}</p>
             </div>
         )
@@ -198,15 +214,14 @@ export function CopilotCard() {
   }
   
   const getButtonText = () => {
-      if (currentInsight?.source === 'celebration' && celebrationPlan) return "Ver no Descobrir";
-      if (currentInsight?.source === 'finance' && financialInsight) return "Ver Minhas Finanças";
-      if (currentInsight?.source === 'celebration' || currentInsight?.source === 'finance') return "Gerar Sugestão";
+      if (isLoading) return "Gerando...";
+      if (celebrationPlan || financialInsight) return "Ver Sugestão Completa";
       return currentInsight?.buttonText || "Saber mais";
   }
   
   const getButtonLink = () => {
-      if (currentInsight?.source === 'celebration' && celebrationPlan) return '/discover';
-      if (currentInsight?.source === 'finance' && financialInsight) return '/finance';
+      if (celebrationPlan) return '/discover';
+      if (financialInsight) return '/finance';
       return currentInsight?.link || '/';
   }
 
@@ -230,10 +245,17 @@ export function CopilotCard() {
       </CardContent>
       <CardFooter>
         {currentInsight?.source === 'celebration' || currentInsight?.source === 'finance' ? (
-           <Button onClick={handleButtonClick} disabled={isLoading} variant="outline" className="w-full bg-transparent border-primary/50 text-primary hover:bg-primary/10 hover:text-primary">
-                {isLoading ? <Loader2 className="h-4 w-4 animate-spin"/> : getButtonText()}
-                <ArrowUpRight className="ml-2 h-4 w-4" />
-           </Button>
+           (celebrationPlan || financialInsight) ? (
+                <Button asChild variant="outline" className="w-full bg-transparent border-primary/50 text-primary hover:bg-primary/10 hover:text-primary">
+                    <Link href={getButtonLink()}>
+                        {getButtonText()} <ArrowUpRight className="ml-2 h-4 w-4" />
+                    </Link>
+                </Button>
+            ) : (
+                <Button onClick={handleButtonClick} disabled={isLoading} variant="outline" className="w-full bg-transparent border-primary/50 text-primary hover:bg-primary/10 hover:text-primary">
+                    {isLoading ? <Loader2 className="h-4 w-4 animate-spin"/> : currentInsight.buttonText}
+                </Button>
+            )
         ) : (
             <Button asChild variant="outline" className="w-full bg-transparent border-primary/50 text-primary hover:bg-primary/10 hover:text-primary">
             <Link href={getButtonLink()}>
@@ -245,3 +267,5 @@ export function CopilotCard() {
     </Card>
   );
 }
+
+    

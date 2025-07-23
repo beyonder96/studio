@@ -18,7 +18,7 @@ const prompt = ai.definePrompt({
   name: 'generateFinancialInsightPrompt',
   input: { schema: GenerateFinancialInsightInputSchema },
   output: { schema: GenerateFinancialInsightOutputSchema },
-  prompt: `Você é um consultor financeiro amigável e proativo para casais. Sua tarefa é analisar o histórico de gastos dos últimos 3 meses e fornecer um insight acionável para ajudá-los a economizar e alcançar suas metas.
+  prompt: `Você é um consultor financeiro amigável e proativo para casais. Sua tarefa é analisar o histórico de gastos e fornecer um insight acionável para ajudá-los a economizar e alcançar suas metas.
 Responda sempre em português do Brasil.
 
 **Dados Recebidos:**
@@ -35,28 +35,32 @@ Responda sempre em português do Brasil.
 
 - **Metas Atuais do Casal:**
 {{#each goals}}
-  - {{this}}
+  - {{name}} (Progresso: {{progress}}%)
 {{else}}
   (Nenhuma meta ativa no momento)
 {{/each}}
 
-**Sua Análise:**
+**Sua Análise e Tarefa:**
 
-1.  **Identifique uma Oportunidade:** Compare os gastos do último mês com a média dos dois meses anteriores. Encontre uma categoria (exceto "Moradia" ou outras despesas fixas óbvias) onde eles gastaram *menos* no último mês. Isso representa uma economia!
-2.  **Calcule a Economia:** Calcule a diferença entre a média dos dois primeiros meses e o gasto do último mês para essa categoria.
-3.  **Crie o Insight:**
-    - Formule um título chamativo para a sua descoberta (ex: "Economia Inteligente em Lazer!").
-    - Escreva um insight parabenizando o casal pela economia na categoria que você identificou.
-    - **Conecte com uma Meta:** Se houver metas ativas, sugira que eles apliquem o valor economizado em uma de suas metas. Mencione a meta específica.
-    - Se não houver metas, sugira que eles guardem o dinheiro ou comecem uma nova meta.
+1.  **Crie um Título Cativante:** Formule um título curto e amigável para o seu insight financeiro (ex: "Check-up Financeiro de [Mês]!").
+2.  **Escreva o Insight Principal:**
+    - Comece com uma saudação e um resumo geral do mês.
+    - Identifique a **maior categoria de despesa** no último mês (exceto "Moradia" ou despesas fixas óbvias). Mencione o valor gasto.
+    - Compare o gasto total do último mês com a média dos dois meses anteriores. Diga se eles gastaram mais ou menos no geral.
+3.  **Encontre uma Oportunidade de Economia:**
+    - Encontre uma categoria (diferente da maior despesa, se possível) onde eles gastaram **menos** no último mês em comparação com a média dos meses anteriores.
+    - Calcule o valor economizado e parabenize-os por isso.
+4.  **Crie uma Ação Sugerida:**
+    - **Conecte a Economia a uma Meta:** Sugira que eles apliquem o valor economizado em uma de suas metas ativas. Formule uma ação clara (ex: "Contribuir R$ [valor] para a meta '[Nome da Meta]'").
+    - **Sugira uma Mini-Meta:** Se não houver uma economia clara, sugira uma pequena meta de redução para a categoria de maior gasto do próximo mês (ex: "Tentar reduzir os gastos com 'Lazer' em 10% no próximo mês").
+    - A ação deve ser prática e motivadora.
 
-**Exemplo de Resposta:**
-- Título: "Ótima Economia em Alimentação!"
-- Insight: "Percebi que em {{last_month}}, vocês gastaram R$ {{amount_saved}} a menos com Alimentação em comparação com a média dos meses anteriores. Que tal usar essa economia para dar um gás na meta '{{goal_name}}'?"
-- Ação Sugerida: "Contribuir R$ {{amount_saved}} para a meta {{goal_name}}"
+**Formato da Resposta:**
+- **title:** O título cativante.
+- **insight:** Um parágrafo bem escrito combinando os pontos 2 e 3 da análise.
+- **suggestedAction:** O objeto com o texto da ação, a meta relacionada e o valor, se aplicável.
 
-Se não encontrar uma economia clara, forneça uma dica geral baseada na categoria de maior gasto.
-Formate a resposta final no JSON especificado.
+Use uma linguagem positiva e encorajadora. O objetivo é capacitar o casal, não criticá-los.
 `,
 });
 
@@ -68,13 +72,15 @@ const generateFinancialInsightFlow = ai.defineFlow(
   },
   async (input) => {
     // Basic validation to ensure we have enough data
-    if (input.financialHistory.length < 3) {
+    if (input.financialHistory.length < 2) {
       return {
         title: "Mais dados necessários",
-        insight: "Continue registrando suas transações para receber insights financeiros personalizados.",
+        insight: "Continue registrando suas transações por pelo menos dois meses para receber insights financeiros personalizados e completos.",
       };
     }
     const { output } = await prompt(input);
     return output!;
   }
 );
+
+    

@@ -1,0 +1,108 @@
+
+'use server';
+/**
+ * @fileOverview Application-specific tools for Genkit AI flows.
+ *
+ * These tools allow the AI to interact with the application's backend services,
+ * such as creating calendar events or tasks.
+ */
+import { ai } from '@/ai/genkit';
+import { z } from 'genkit';
+import { getDatabase, ref, push, set } from 'firebase/database';
+import { app as firebaseApp } from '@/lib/firebase';
+import { auth } from '@/lib/firebase';
+
+async function getUserId(): Promise<string> {
+  // In a real app, you would get the current user's ID.
+  // We'll simulate this for now, but this needs to be implemented.
+  if (auth.currentUser) {
+    return auth.currentUser.uid;
+  }
+  // This is a fallback and should be handled more gracefully
+  // in a production environment (e.g., by throwing an error).
+  console.warn("User not authenticated, operations will not be saved.");
+  return 'GHOST_USER';
+}
+
+
+export const createCalendarEvent = ai.defineTool(
+  {
+    name: 'createCalendarEvent',
+    description: 'Creates a new event in the couple\'s shared calendar. Use this to schedule dates or appointments.',
+    inputSchema: z.object({
+      title: z.string().describe('The title of the calendar event.'),
+      date: z.string().describe('The date of the event in YYYY-MM-DD format.'),
+      time: z.string().optional().describe('The time of the event in HH:MM format.'),
+      category: z.string().describe('The category of the event, e.g., "Social", "Lazer", "Pessoal".'),
+      notes: z.string().optional().describe('Any additional notes for the event.'),
+    }),
+    outputSchema: z.object({
+      success: z.boolean(),
+      eventId: z.string().optional(),
+    }),
+  },
+  async (input) => {
+    try {
+      const userId = await getUserId();
+      if (userId === 'GHOST_USER') {
+          return { success: false };
+      }
+      
+      const db = getDatabase(firebaseApp);
+      const appointmentsRef = ref(db, `users/${userId}/appointments`);
+      const newEventRef = push(appointmentsRef);
+      
+      await set(newEventRef, {
+        title: input.title,
+        date: input.date,
+        time: input.time || '',
+        category: input.category,
+        notes: input.notes || '',
+      });
+
+      return { success: true, eventId: newEventRef.key || undefined };
+    } catch (error) {
+      console.error("Failed to create calendar event:", error);
+      return { success: false };
+    }
+  }
+);
+
+
+export const createTask = ai.defineTool(
+  {
+    name: 'createTask',
+    description: 'Adds a new task to the couple\'s shared to-do list. Use this for actions the couple needs to take.',
+    inputSchema: z.object({
+      text: z.string().describe('The description of the task to be created.'),
+    }),
+    outputSchema: z.object({
+      success: z.boolean(),
+      taskId: z.string().optional(),
+    }),
+  },
+  async (input) => {
+    try {
+        const userId = await getUserId();
+        if (userId === 'GHOST_USER') {
+            return { success: false };
+        }
+
+        const db = getDatabase(firebaseApp);
+        const tasksRef = ref(db, `users/${userId}/tasks`);
+        const newTaskRef = push(tasksRef);
+
+        await set(newTaskRef, {
+            text: input.text,
+            completed: false,
+        });
+
+        return { success: true, taskId: newTaskRef.key || undefined };
+    } catch (error) {
+        console.error("Failed to create task:", error);
+        return { success: false };
+    }
+  }
+);
+
+    

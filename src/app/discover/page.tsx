@@ -9,10 +9,11 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
-import { Utensils, Plane, Heart, Lightbulb, Loader2, Sparkles, Copy, ShoppingCart, Star, Building, Map, MapPin as VenueIcon } from 'lucide-react';
+import { Utensils, Plane, Heart, Lightbulb, Loader2, Sparkles, Copy, ShoppingCart, Star, Building, Map, MapPin as VenueIcon, MessageCircle } from 'lucide-react';
 import { generateRecipeSuggestion, GenerateRecipeOutput } from '@/ai/flows/generate-recipe-flow';
 import { generateTripPlan, GenerateTripPlanOutput } from '@/ai/flows/generate-trip-plan-flow';
 import { generateDateIdea, GenerateDateIdeaOutput } from '@/ai/flows/generate-date-idea-flow';
+import { generateConversationStarters } from '@/ai/flows/generate-conversation-starters-flow';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { FinanceContext } from '@/contexts/finance-context';
@@ -22,8 +23,8 @@ import { app as firebaseApp } from '@/lib/firebase';
 import { CurrencyInput } from '@/components/finance/currency-input';
 import { Badge } from '@/components/ui/badge';
 
-type SuggestionCategory = 'recipe' | 'trip' | 'date';
-type ResultType = GenerateRecipeOutput | GenerateTripPlanOutput | GenerateDateIdeaOutput;
+type SuggestionCategory = 'recipe' | 'trip' | 'date' | 'conversation';
+type ResultType = GenerateRecipeOutput | GenerateTripPlanOutput | GenerateDateIdeaOutput | string[];
 type HistoryItem = { title: string; content: ResultType; };
 
 const suggestionCards = [
@@ -43,11 +44,17 @@ const suggestionCards = [
   },
   {
     id: 'date',
-    title: 'Ideia de Encontro',
-    description: 'Receba sugestões criativas para o próximo encontro do casal.',
+    title: 'Orquestrador de Encontros',
+    description: 'Planeje um encontro completo, com ideias, reservas e tarefas.',
     icon: <Heart className="h-8 w-8 text-primary" />,
-    placeholder: 'Ex: "uma noite divertida e barata"',
+    placeholder: 'Ex: "um encontro para sábado à noite"',
   },
+  {
+    id: 'conversation',
+    title: 'Conversas Guiadas',
+    description: 'Gere temas divertidos e profundos para fortalecer a conexão de vocês.',
+    icon: <MessageCircle className="h-8 w-8 text-primary" />,
+  }
 ];
 
 export default function DiscoverPage() {
@@ -86,30 +93,36 @@ export default function DiscoverPage() {
     setActiveSuggestion(id);
     setResult(null);
     setPrompt('');
+
+    // If it's a promptless suggestion, generate immediately
+    if (id === 'conversation') {
+        handleGenerate(id);
+    }
   };
 
-  const handleGenerate = async () => {
-    if (!prompt || !activeSuggestion) return;
+  const handleGenerate = async (suggestionType?: SuggestionCategory) => {
+    const currentSuggestion = suggestionType || activeSuggestion;
+    if (!currentSuggestion || (currentSuggestion !== 'conversation' && !prompt)) return;
 
     setIsLoading(true);
     setResult(null);
 
     try {
         let genResult;
-        if (activeSuggestion === 'recipe') {
+        if (currentSuggestion === 'recipe') {
             genResult = await generateRecipeSuggestion({
                 prompt,
                 usePantry,
                 pantryItems: usePantry ? pantryItems.map(p => ({ name: p.name, quantity: p.quantity })) : [],
             });
-        } else if (activeSuggestion === 'trip') {
+        } else if (currentSuggestion === 'trip') {
             genResult = await generateTripPlan({
                 prompt,
                 favoritePlace: profileData.favoritePlace,
                 location: profileData.location,
                 budget: tripBudget,
             });
-        } else if (activeSuggestion === 'date') {
+        } else if (currentSuggestion === 'date') {
             genResult = await generateDateIdea({
                 prompt,
                 favoritePlace: profileData.favoritePlace,
@@ -117,13 +130,17 @@ export default function DiscoverPage() {
                 location: profileData.location,
                 budget: dateBudget,
             });
+        } else if (currentSuggestion === 'conversation') {
+            genResult = await generateConversationStarters();
         }
         
         setResult(genResult || null);
         
         if(genResult){
             let title = "Uma sugestão incrível!";
-            if ('recipe' in genResult) {
+            if (Array.isArray(genResult)) {
+                title = "Iniciadores de Conversa";
+            } else if ('recipe' in genResult) {
                 const titleMatch = genResult.recipe.match(/^#+\s*(.*)/);
                 if (titleMatch) title = titleMatch[1];
             } else if ('destination' in genResult) {
@@ -149,8 +166,8 @@ export default function DiscoverPage() {
   }
 
   const handleAddMissingToCart = () => {
-    if (!result || !('missingItems' in result) || !result.missingItems || result.missingItems.length === 0) return;
-    result.missingItems.forEach(item => {
+    if (!result || !('missingItems' in (result as any)) || !(result as any).missingItems || (result as any).missingItems.length === 0) return;
+    (result as any).missingItems.forEach((item: string) => {
         handleAddItemToList(item, 1);
     });
     toast({
@@ -165,12 +182,15 @@ export default function DiscoverPage() {
     let rawText = '';
     if (typeof textToCopy === 'string') {
         rawText = textToCopy;
-    } else if ('planMarkdown' in textToCopy) {
-        rawText = textToCopy.planMarkdown;
-    } else if ('recipe' in textToCopy) {
-        rawText = textToCopy.recipe;
-    } else if ('detailsMarkdown' in textToCopy) {
-        rawText = textToCopy.detailsMarkdown;
+    } else if (Array.isArray(textToCopy)) {
+        rawText = textToCopy.join('\n- ');
+        rawText = "Sugestões de conversa:\n- " + rawText;
+    } else if ('planMarkdown' in (textToCopy as any)) {
+        rawText = (textToCopy as any).planMarkdown;
+    } else if ('recipe' in (textToCopy as any)) {
+        rawText = (textToCopy as any).recipe;
+    } else if ('detailsMarkdown' in (textToCopy as any)) {
+        rawText = (textToCopy as any).detailsMarkdown;
     }
 
     const cleanedText = rawText.replace(/#+\s*/g, '').replace(/\*/g, '');
@@ -183,15 +203,16 @@ export default function DiscoverPage() {
 
   const resultTitle = useMemo(() => {
     if (!result) return 'Uma sugestão incrível!';
-    if ('recipe' in result) {
-      const titleMatch = result.recipe.match(/^#+\s*(.*)/);
+    if (Array.isArray(result)) return "Iniciadores de Conversa";
+    if ('recipe' in (result as any)) {
+      const titleMatch = (result as any).recipe.match(/^#+\s*(.*)/);
       return titleMatch ? titleMatch[1] : 'Uma receita incrível!';
     }
-    if ('destination' in result) {
-      return `Viagem para ${result.destination}`;
+    if ('destination' in (result as any)) {
+      return `Viagem para ${(result as any).destination}`;
     }
-    if ('title' in result) {
-        return result.title;
+    if ('title' in (result as any)) {
+        return (result as any).title;
     }
     return 'Uma sugestão incrível!';
   }, [result]);
@@ -207,17 +228,31 @@ export default function DiscoverPage() {
   }
   
   const ResultContent = ({ content }: { content: ResultType }) => {
-    if ('recipe' in content) {
-        return <ReactMarkdown components={{ h1: 'h2', h2: 'h3', h3: 'h4' }}>{content.recipe}</ReactMarkdown>;
+    if (Array.isArray(content)) {
+        return <ConversationResult starters={content} />;
     }
-    if ('destination' in content) {
-        return <TripPlanResult plan={content} />;
+    if ('recipe' in (content as any)) {
+        return <ReactMarkdown components={{ h1: 'h2', h2: 'h3', h3: 'h4' }}>{(content as any).recipe}</ReactMarkdown>;
     }
-    if ('detailsMarkdown' in content) {
-        return <DateIdeaResult idea={content} />;
+    if ('destination' in (content as any)) {
+        return <TripPlanResult plan={content as any} />;
+    }
+    if ('detailsMarkdown' in (content as any)) {
+        return <DateIdeaResult idea={content as any} />;
     }
     return null;
   };
+  
+  const ConversationResult = ({ starters }: { starters: string[] }) => (
+    <ul className="space-y-4 list-none p-0">
+        {starters.map((starter, index) => (
+            <li key={index} className="flex items-start gap-3">
+                <MessageCircle className="h-5 w-5 mt-1 text-primary flex-shrink-0"/>
+                <span className="flex-1">{starter}</span>
+            </li>
+        ))}
+    </ul>
+  );
 
   const DateIdeaResult = ({ idea }: { idea: GenerateDateIdeaOutput }) => (
     <div className="space-y-6">
@@ -309,7 +344,7 @@ export default function DiscoverPage() {
                 Deixe a IA ser a sua fada madrinha e inspire o dia a dia de vocês.
             </p>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10 w-full max-w-4xl">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10 w-full max-w-5xl">
                 {suggestionCards.map((card) => (
                     <Card 
                         key={card.id} 
@@ -332,19 +367,26 @@ export default function DiscoverPage() {
 
             {activeSuggestion && (
                  <div className="w-full max-w-2xl space-y-4">
-                    <div className="flex w-full items-center space-x-2">
-                        <Input
-                            type="text"
-                            value={prompt}
-                            onChange={(e) => setPrompt(e.target.value)}
-                            placeholder={suggestionCards.find(c => c.id === activeSuggestion)?.placeholder}
-                            onKeyDown={(e) => e.key === 'Enter' && handleGenerate()}
-                        />
-                        <Button onClick={handleGenerate} disabled={isLoading || !prompt}>
+                    {activeSuggestion !== 'conversation' ? (
+                        <div className="flex w-full items-center space-x-2">
+                            <Input
+                                type="text"
+                                value={prompt}
+                                onChange={(e) => setPrompt(e.target.value)}
+                                placeholder={suggestionCards.find(c => c.id === activeSuggestion)?.placeholder}
+                                onKeyDown={(e) => e.key === 'Enter' && handleGenerate()}
+                            />
+                            <Button onClick={() => handleGenerate()} disabled={isLoading || !prompt}>
+                                {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Lightbulb className="h-4 w-4" />}
+                                <span className="hidden sm:inline ml-2">{isLoading ? 'Gerando...' : 'Gerar'}</span>
+                            </Button>
+                        </div>
+                     ) : (
+                        <Button onClick={() => handleGenerate()} disabled={isLoading}>
                             {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Lightbulb className="h-4 w-4" />}
-                            <span className="hidden sm:inline ml-2">{isLoading ? 'Gerando...' : 'Gerar'}</span>
+                            <span className="ml-2">{isLoading ? 'Gerando...' : 'Gerar Novas Conversas'}</span>
                         </Button>
-                    </div>
+                     )}
                     
                     {activeSuggestion === 'recipe' && (
                         <div className="flex items-center space-x-2 justify-center pt-2">
@@ -387,16 +429,16 @@ export default function DiscoverPage() {
                         <Card className="bg-background/50 text-left">
                             <CardHeader>
                                <CardTitle className="text-2xl font-bold">{resultTitle}</CardTitle>
-                               {'category' in result && <Badge variant="secondary" className="w-fit">{result.category}</Badge>}
+                               {'category' in (result as any) && <Badge variant="secondary" className="w-fit">{(result as any).category}</Badge>}
                             </CardHeader>
                             <CardContent className="prose dark:prose-invert prose-sm sm:prose-base max-w-none">
                                 <ResultContent content={result} />
 
-                                {'missingItems' in result && result.missingItems && result.missingItems.length > 0 && (
+                                {'missingItems' in (result as any) && (result as any).missingItems && (result as any).missingItems.length > 0 && (
                                     <div className="mt-6">
                                         <h3 className="text-lg font-semibold">Itens para comprar:</h3>
                                         <ul className="list-disc pl-5">
-                                            {result.missingItems.map((item, index) => (
+                                            {(result as any).missingItems.map((item: string, index: number) => (
                                                 <li key={index}>{item}</li>
                                             ))}
                                         </ul>
@@ -450,3 +492,5 @@ export default function DiscoverPage() {
     </Card>
   );
 }
+
+    
