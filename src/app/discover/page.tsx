@@ -24,7 +24,8 @@ import { CurrencyInput } from '@/components/finance/currency-input';
 import { Badge } from '@/components/ui/badge';
 
 type SuggestionCategory = 'recipe' | 'trip' | 'date' | 'conversation';
-type ResultType = GenerateRecipeOutput | GenerateTripPlanOutput | GenerateDateIdeaOutput | string[];
+type ConversationStarters = { starters: string[] };
+type ResultType = GenerateRecipeOutput | GenerateTripPlanOutput | GenerateDateIdeaOutput | ConversationStarters;
 type HistoryItem = { title: string; content: ResultType; };
 
 const suggestionCards = [
@@ -138,7 +139,7 @@ export default function DiscoverPage() {
         
         if(genResult){
             let title = "Uma sugestão incrível!";
-            if (Array.isArray(genResult)) {
+            if ('starters' in genResult) {
                 title = "Iniciadores de Conversa";
             } else if ('recipe' in genResult) {
                 const titleMatch = genResult.recipe.match(/^#+\s*(.*)/);
@@ -182,8 +183,8 @@ export default function DiscoverPage() {
     let rawText = '';
     if (typeof textToCopy === 'string') {
         rawText = textToCopy;
-    } else if (Array.isArray(textToCopy)) {
-        rawText = textToCopy.join('\n- ');
+    } else if ('starters' in (textToCopy as any)) {
+        rawText = (textToCopy as any).starters.join('\n- ');
         rawText = "Sugestões de conversa:\n- " + rawText;
     } else if ('planMarkdown' in (textToCopy as any)) {
         rawText = (textToCopy as any).planMarkdown;
@@ -203,7 +204,7 @@ export default function DiscoverPage() {
 
   const resultTitle = useMemo(() => {
     if (!result) return 'Uma sugestão incrível!';
-    if (Array.isArray(result)) return "Iniciadores de Conversa";
+    if ('starters' in (result as any)) return "Iniciadores de Conversa";
     if ('recipe' in (result as any)) {
       const titleMatch = (result as any).recipe.match(/^#+\s*(.*)/);
       return titleMatch ? titleMatch[1] : 'Uma receita incrível!';
@@ -228,8 +229,8 @@ export default function DiscoverPage() {
   }
   
   const ResultContent = ({ content }: { content: ResultType }) => {
-    if (Array.isArray(content)) {
-        return <ConversationResult starters={content} />;
+    if ('starters' in (content as any)) {
+        return <ConversationResult starters={(content as any).starters} />;
     }
     if ('recipe' in (content as any)) {
         return <ReactMarkdown components={{ h1: 'h2', h2: 'h3', h3: 'h4' }}>{(content as any).recipe}</ReactMarkdown>;
@@ -492,5 +493,3 @@ export default function DiscoverPage() {
     </Card>
   );
 }
-
-    

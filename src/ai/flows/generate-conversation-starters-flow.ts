@@ -8,11 +8,13 @@
 import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
 
-const GenerateConversationStartersOutputSchema = z.array(z.string().describe('A single conversation starter question or topic.'));
+const GenerateConversationStartersOutputSchema = z.object({
+    starters: z.array(z.string().describe('A single conversation starter question or topic.')),
+});
 
-export async function generateConversationStarters(): Promise<string[]> {
+export async function generateConversationStarters(): Promise<{ starters: string[] }> {
   const { output } = await generateConversationStartersFlow();
-  return output || [];
+  return output || { starters: [] };
 }
 
 const prompt = ai.definePrompt({
@@ -44,5 +46,4 @@ const generateConversationStartersFlow = ai.defineFlow(
     return output!;
   }
 );
-
     
