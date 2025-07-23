@@ -9,11 +9,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
-import { Utensils, Plane, Heart, Lightbulb, Loader2, Sparkles, Copy, ShoppingCart, Star, Building, Map, MapPin as VenueIcon, MessageCircle } from 'lucide-react';
+import { Utensils, Plane, Heart, Lightbulb, Loader2, Sparkles, Copy, ShoppingCart, Star, Building, Map, MapPin as VenueIcon } from 'lucide-react';
 import { generateRecipeSuggestion, GenerateRecipeOutput } from '@/ai/flows/generate-recipe-flow';
 import { generateTripPlan, GenerateTripPlanOutput } from '@/ai/flows/generate-trip-plan-flow';
 import { generateDateIdea, GenerateDateIdeaOutput } from '@/ai/flows/generate-date-idea-flow';
-import { generateConversationStarters } from '@/ai/flows/generate-conversation-starters-flow';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { FinanceContext } from '@/contexts/finance-context';
@@ -23,9 +22,8 @@ import { app as firebaseApp } from '@/lib/firebase';
 import { CurrencyInput } from '@/components/finance/currency-input';
 import { Badge } from '@/components/ui/badge';
 
-type SuggestionCategory = 'recipe' | 'trip' | 'date' | 'conversation';
-type ConversationStarters = { starters: string[] };
-type ResultType = GenerateRecipeOutput | GenerateTripPlanOutput | GenerateDateIdeaOutput | ConversationStarters;
+type SuggestionCategory = 'recipe' | 'trip' | 'date';
+type ResultType = GenerateRecipeOutput | GenerateTripPlanOutput | GenerateDateIdeaOutput;
 type HistoryItem = { title: string; content: ResultType; };
 
 const suggestionCards = [
@@ -50,12 +48,6 @@ const suggestionCards = [
     icon: <Heart className="h-8 w-8 text-primary" />,
     placeholder: 'Ex: "um encontro para sábado à noite"',
   },
-  {
-    id: 'conversation',
-    title: 'Conversas Guiadas',
-    description: 'Gere temas divertidos e profundos para fortalecer a conexão de vocês.',
-    icon: <MessageCircle className="h-8 w-8 text-primary" />,
-  }
 ];
 
 export default function DiscoverPage() {
@@ -98,7 +90,7 @@ export default function DiscoverPage() {
 
   const handleGenerate = async (suggestionType?: SuggestionCategory) => {
     const currentSuggestion = suggestionType || activeSuggestion;
-    if (!currentSuggestion || (currentSuggestion !== 'conversation' && !prompt)) return;
+    if (!currentSuggestion || !prompt) return;
 
     setIsLoading(true);
     setResult(null);
@@ -126,17 +118,13 @@ export default function DiscoverPage() {
                 location: profileData.location,
                 budget: dateBudget,
             });
-        } else if (currentSuggestion === 'conversation') {
-            genResult = await generateConversationStarters();
         }
         
         setResult(genResult || null);
         
         if(genResult){
             let title = "Uma sugestão incrível!";
-            if ('starters' in genResult) {
-                title = "Iniciadores de Conversa";
-            } else if ('recipe' in genResult) {
+            if ('recipe' in genResult) {
                 const titleMatch = genResult.recipe.match(/^#+\s*(.*)/);
                 if (titleMatch) title = titleMatch[1];
             } else if ('destination' in genResult) {
@@ -178,9 +166,6 @@ export default function DiscoverPage() {
     let rawText = '';
     if (typeof textToCopy === 'string') {
         rawText = textToCopy;
-    } else if ('starters' in (textToCopy as any)) {
-        rawText = (textToCopy as any).starters.join('\n- ');
-        rawText = "Sugestões de conversa:\n- " + rawText;
     } else if ('planMarkdown' in (textToCopy as any)) {
         rawText = (textToCopy as any).planMarkdown;
     } else if ('recipe' in (textToCopy as any)) {
@@ -199,7 +184,6 @@ export default function DiscoverPage() {
 
   const resultTitle = useMemo(() => {
     if (!result) return 'Uma sugestão incrível!';
-    if ('starters' in (result as any)) return "Iniciadores de Conversa";
     if ('recipe' in (result as any)) {
       const titleMatch = (result as any).recipe.match(/^#+\s*(.*)/);
       return titleMatch ? titleMatch[1] : 'Uma receita incrível!';
@@ -224,9 +208,6 @@ export default function DiscoverPage() {
   }
   
   const ResultContent = ({ content }: { content: ResultType }) => {
-    if ('starters' in (content as any)) {
-        return <ConversationResult starters={(content as any).starters} />;
-    }
     if ('recipe' in (content as any)) {
         return <ReactMarkdown components={{ h1: 'h2', h2: 'h3', h3: 'h4' }}>{(content as any).recipe}</ReactMarkdown>;
     }
@@ -239,17 +220,6 @@ export default function DiscoverPage() {
     return null;
   };
   
-  const ConversationResult = ({ starters }: { starters: string[] }) => (
-    <ul className="space-y-4 list-none p-0">
-        {starters.map((starter, index) => (
-            <li key={index} className="flex items-start gap-3">
-                <MessageCircle className="h-5 w-5 mt-1 text-primary flex-shrink-0"/>
-                <span className="flex-1">{starter}</span>
-            </li>
-        ))}
-    </ul>
-  );
-
   const DateIdeaResult = ({ idea }: { idea: GenerateDateIdeaOutput }) => (
     <div className="space-y-6">
       <ReactMarkdown components={{ h1: 'h2', h2: 'h3', h3: 'h4' }}>
@@ -340,7 +310,7 @@ export default function DiscoverPage() {
                 Deixe a IA ser a sua fada madrinha e inspire o dia a dia de vocês.
             </p>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10 w-full max-w-5xl">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-10 w-full max-w-5xl">
                 {suggestionCards.map((card) => (
                     <Card 
                         key={card.id} 
@@ -363,26 +333,19 @@ export default function DiscoverPage() {
 
             {activeSuggestion && (
                  <div className="w-full max-w-2xl space-y-4">
-                    {activeSuggestion !== 'conversation' ? (
-                        <div className="flex w-full items-center space-x-2">
-                            <Input
-                                type="text"
-                                value={prompt}
-                                onChange={(e) => setPrompt(e.target.value)}
-                                placeholder={suggestionCards.find(c => c.id === activeSuggestion)?.placeholder}
-                                onKeyDown={(e) => e.key === 'Enter' && handleGenerate()}
-                            />
-                            <Button onClick={() => handleGenerate()} disabled={isLoading || !prompt}>
-                                {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Lightbulb className="h-4 w-4" />}
-                                <span className="hidden sm:inline ml-2">{isLoading ? 'Gerando...' : 'Gerar'}</span>
-                            </Button>
-                        </div>
-                     ) : (
-                        <Button onClick={() => handleGenerate()} disabled={isLoading}>
+                    <div className="flex w-full items-center space-x-2">
+                        <Input
+                            type="text"
+                            value={prompt}
+                            onChange={(e) => setPrompt(e.target.value)}
+                            placeholder={suggestionCards.find(c => c.id === activeSuggestion)?.placeholder}
+                            onKeyDown={(e) => e.key === 'Enter' && handleGenerate()}
+                        />
+                        <Button onClick={() => handleGenerate()} disabled={isLoading || !prompt}>
                             {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Lightbulb className="h-4 w-4" />}
-                            <span className="ml-2">{isLoading ? 'Gerando...' : 'Gerar Novas Conversas'}</span>
+                            <span className="hidden sm:inline ml-2">{isLoading ? 'Gerando...' : 'Gerar'}</span>
                         </Button>
-                     )}
+                    </div>
                     
                     {activeSuggestion === 'recipe' && (
                         <div className="flex items-center space-x-2 justify-center pt-2">
