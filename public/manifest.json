@@ -1,0 +1,21 @@
+{
+  "name": "Vida a 2",
+  "short_name": "Vida a 2",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#FFFFFF",
+  "theme_color": "#9333ea",
+  "description": "Seu app de casal para organizar a vida e celebrar o amor.",
+  "icons": [
+    {
+      "src": "/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

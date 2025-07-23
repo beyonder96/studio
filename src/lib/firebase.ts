@@ -1,8 +1,8 @@
-
 // Import the functions you need from the SDKs you need
 import { initializeApp, getApps, getApp, FirebaseApp } from "firebase/app";
 import { getAuth, Auth } from "firebase/auth";
 import { getDatabase } from "firebase/database";
+import { getMessaging, Messaging } from "firebase/messaging";
 
 // Your web app's Firebase configuration
 const firebaseConfig = {
@@ -18,10 +18,18 @@ const firebaseConfig = {
 // Initialize Firebase for client-side only
 let app: FirebaseApp;
 let auth: Auth;
+let messaging: Messaging | null = null;
 
 if (typeof window !== 'undefined') {
   app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
   auth = getAuth(app);
+  
+  // Check for Notification API support before initializing messaging
+  try {
+    messaging = getMessaging(app);
+  } catch (err) {
+    console.log('An error occurred while initializing messaging: ', err);
+  }
 }
 
-export { app, auth };
+export { app, auth, messaging };

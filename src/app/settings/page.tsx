@@ -22,7 +22,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
-import { PlusCircle, Moon, Sun, AlertTriangle, Check, Save, Trash2, Edit } from 'lucide-react';
+import { PlusCircle, Moon, Sun, AlertTriangle, Check, Save, Trash2, Edit, Bell } from 'lucide-react';
 import { FinanceContext } from '@/contexts/finance-context';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
@@ -30,6 +30,8 @@ import { useToast } from '@/hooks/use-toast';
 import { EditAccountCardDialog } from '@/components/settings/edit-account-card-dialog';
 import { EditCategoryDialog } from '@/components/settings/edit-category-dialog';
 import type { Account, Card as CardType } from '@/contexts/finance-context';
+import { useFCM } from '@/hooks/use-fcm';
+import { useAuth } from '@/contexts/auth-context';
 
 
 const pastelColors = [
@@ -66,6 +68,8 @@ export default function SettingsPage() {
     updateExpenseCategory,
   } = useContext(FinanceContext);
   const { toast } = useToast();
+  const { user } = useAuth();
+  const { permission, requestPermission } = useFCM();
   
   const [isClient, setIsClient] = useState(false);
   const [savedTheme, setSavedTheme] = useState<Theme>('light');
@@ -244,6 +248,24 @@ export default function SettingsPage() {
                             </Button>
                         </CardFooter>
                     )}
+                </Card>
+                
+                {/* Notifications */}
+                <Card className="bg-transparent">
+                    <CardHeader>
+                        <CardTitle>Notificações</CardTitle>
+                        <CardDescription>Receba alertas sobre tarefas e datas importantes.</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        {permission === 'granted' ? (
+                        <p className="text-sm text-green-600 flex items-center gap-2"><Check className="h-4 w-4" /> As notificações estão ativas para este dispositivo.</p>
+                        ) : (
+                        <Button onClick={() => requestPermission(user?.uid)} disabled={permission === 'denied' || !user}>
+                            <Bell className="mr-2 h-4 w-4" />
+                            {permission === 'denied' ? 'Permissão negada nas configurações do navegador' : 'Ativar Notificações'}
+                        </Button>
+                        )}
+                    </CardContent>
                 </Card>
 
                 {/* Categories */}

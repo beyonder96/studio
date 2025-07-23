@@ -43,6 +43,7 @@ export default function RootLayout({
       <head>
         <title>Vida a 2</title>
         <meta name="description" content="Sua visão geral do Vida a Dois." />
+        <link rel="manifest" href="/manifest.json" />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link
