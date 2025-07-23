@@ -3,137 +3,216 @@
 
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Sparkles, ArrowUpRight } from "lucide-react";
+import { Sparkles, ArrowUpRight, Loader2 } from "lucide-react";
 import { useContext, useState, useEffect, useMemo } from "react";
-import { FinanceContext } from "@/contexts/finance-context";
+import { FinanceContext, Wish } from "@/contexts/finance-context";
 import Link from "next/link";
-import { differenceInYears, parseISO, isSameMonth, startOfMonth } from "date-fns";
+import { differenceInDays, parseISO, startOfToday, addDays, getMonth, getDate, differenceInYears } from "date-fns";
+import { useAuth } from "@/contexts/auth-context";
+import { getDatabase, ref, onValue } from 'firebase/database';
+import { app as firebaseApp } from '@/lib/firebase';
+import { generateCelebrationPlan, GenerateCelebrationPlanOutput } from "@/ai/flows/generate-celebration-plan-flow";
+import { generateFinancialInsight, GenerateFinancialInsightOutput } from "@/ai/flows/generate-financial-insight-flow";
 
 type Insight = {
   text: string;
   link: string;
   buttonText: string;
+  source: string;
+  data?: any;
+};
+
+type ProfileData = {
+  names?: string;
+  sinceDate?: string;
+  birthday1?: string;
+  birthday2?: string;
+  food?: string;
+  place?: string;
+  location?: string;
 };
 
 export function CopilotCard() {
-  const { pantryItems, tasks, goals, memories, transactions } = useContext(FinanceContext);
+  const { pantryItems, tasks, goals, memories, transactions, wishes } = useContext(FinanceContext);
+  const { user } = useAuth();
+  const [profileData, setProfileData] = useState<ProfileData | null>(null);
   const [currentInsight, setCurrentInsight] = useState<Insight | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const highestSpendingCategory = useMemo(() => {
-    const today = new Date();
-    const expensesThisMonth = transactions.filter(t => 
-        t.type === 'expense' && isSameMonth(parseISO(t.date + 'T00:00:00'), today)
-    );
+  const [celebrationPlan, setCelebrationPlan] = useState<GenerateCelebrationPlanOutput | null>(null);
+  const [financialInsight, setFinancialInsight] = useState<GenerateFinancialInsightOutput | null>(null);
 
-    if (expensesThisMonth.length === 0) {
-        return null;
+  useEffect(() => {
+    if (user) {
+      const db = getDatabase(firebaseApp);
+      const profileRef = ref(db, `users/${user.uid}/profile`);
+      const unsubscribe = onValue(profileRef, (snapshot) => {
+        const data = snapshot.val();
+        setProfileData(data || {});
+      });
+      return () => unsubscribe();
     }
+  }, [user]);
 
-    const spendingByCategory = expensesThisMonth.reduce((acc, t) => {
-        const category = t.category || 'Outros';
-        acc[category] = (acc[category] || 0) + Math.abs(t.amount);
-        return acc;
-    }, {} as Record<string, number>);
+  const financialHistory = useMemo(() => {
+      const history: { month: string, total: number, categories: Record<string, number> }[] = [];
+      const now = new Date();
+      for (let i = 2; i >= 0; i--) {
+          const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
+          const monthKey = format(date, 'yyyy-MM');
+          const monthTransactions = transactions.filter(t => t.type === 'expense' && t.date.startsWith(monthKey));
+          
+          const categories = monthTransactions.reduce((acc, t) => {
+              acc[t.category] = (acc[t.category] || 0) + Math.abs(t.amount);
+              return acc;
+          }, {} as Record<string, number>);
 
-    return Object.entries(spendingByCategory).sort(([, a], [, b]) => b - a)[0];
+          const total = monthTransactions.reduce((sum, t) => sum + Math.abs(t.amount), 0);
+          history.push({ month: format(date, 'MMMM'), total, categories });
+      }
+      return history;
   }, [transactions]);
 
 
   useEffect(() => {
-    const potentialInsights: Insight[] = [];
+    const generateInsights = async () => {
+        if (!profileData) return;
+        setIsLoading(true);
 
-    // Pantry Insight
-    const lowStockItem = pantryItems.find(item => item.quantity <= 2);
-    if (lowStockItem) {
-      potentialInsights.push({
-        text: `Você tem pouco ${lowStockItem.name.toLowerCase()} na despensa. Que tal adicionar na sua lista de compras?`,
-        link: '/purchases',
-        buttonText: 'Ir para Compras'
-      });
-    }
+        const potentialInsights: Insight[] = [];
+        const today = startOfToday();
 
-    // Tasks Insight
-    const pendingTask = tasks.find(task => !task.completed);
-    if (pendingTask) {
+        // 1. Anniversary/Birthday Insight
+        const specialDates = [];
+        const [name1, name2] = (profileData.names || 'Pessoa 1 & Pessoa 2').split(' & ');
+        if (profileData.sinceDate) specialDates.push({ date: parseISO(profileData.sinceDate), type: 'Aniversário de Namoro', name: 'de vocês' });
+        if (profileData.birthday1) specialDates.push({ date: parseISO(profileData.birthday1), type: 'Aniversário', name: `de ${name1}` });
+        if (profileData.birthday2) specialDates.push({ date: parseISO(profileData.birthday2), type: 'Aniversário', name: `de ${name2}` });
+
+        for (const specialDate of specialDates) {
+            const dateThisYear = new Date(today.getFullYear(), getMonth(specialDate.date), getDate(specialDate.date));
+            const daysUntil = differenceInDays(dateThisYear, today);
+            if (daysUntil > 0 && daysUntil <= 30) {
+                 potentialInsights.push({
+                    text: `O ${specialDate.type} ${specialDate.name} está chegando em ${daysUntil} dias!`,
+                    link: '/discover',
+                    buttonText: 'Planejar comemoração',
+                    source: 'celebration',
+                    data: { dateType: specialDate.type, personName: specialDate.name }
+                });
+            }
+        }
+        
+        // 2. Financial Insight
         potentialInsights.push({
-            text: `Não se esqueça da sua tarefa pendente: "${pendingTask.text}".`,
-            link: '/tasks',
-            buttonText: 'Ver Tarefas'
+            text: 'Analisando suas finanças para encontrar oportunidades de economia...',
+            link: '/finance',
+            buttonText: 'Ver Finanças',
+            source: 'finance'
         });
-    }
 
-    // Goals Insight
-    const nextGoal = goals.find(goal => goal.currentAmount < goal.targetAmount);
-    if (nextGoal) {
-        potentialInsights.push({
-            text: `Continuem economizando para a próxima meta de vocês: ${nextGoal.name}!`,
-            link: '/goals',
-            buttonText: 'Ver Metas'
-        });
-    }
-    
-    // Memory Insight
-    if (memories.length > 0) {
+        // 3. Goal Insight
+        const nextGoal = goals.find(goal => !goal.completed);
+        if (nextGoal) {
+            potentialInsights.push({
+                text: `Continuem economizando para a próxima meta de vocês: ${nextGoal.name}!`,
+                link: '/goals',
+                buttonText: 'Ver Metas',
+                source: 'goals'
+            });
+        }
+        
+        // 4. Memory Insight
         const pastMemories = memories.filter(m => new Date(m.date) < new Date());
         if (pastMemories.length > 0) {
             const randomMemory = pastMemories[Math.floor(Math.random() * pastMemories.length)];
             const yearsAgo = differenceInYears(new Date(), parseISO(randomMemory.date));
-            if (yearsAgo >= 1) {
-                 potentialInsights.push({
-                    text: `Lembram de quando ${randomMemory.title.toLowerCase()} há ${yearsAgo} ano(s) atrás?`,
-                    link: '/timeline',
-                    buttonText: 'Ver Linha do Tempo'
-                });
-            } else {
-                 potentialInsights.push({
-                    text: `Que tal relembrar o dia em que ${randomMemory.title.toLowerCase()}?`,
-                    link: '/timeline',
-                    buttonText: 'Ver Linha do Tempo'
-                });
-            }
+             potentialInsights.push({
+                text: yearsAgo > 0 ? `Lembram de quando ${randomMemory.title.toLowerCase()} há ${yearsAgo} ano(s)?` : `Que tal relembrar o dia em que ${randomMemory.title.toLowerCase()}?`,
+                link: '/timeline',
+                buttonText: 'Ver Linha do Tempo',
+                source: 'memory'
+            });
         }
+
+        const randomIndex = Math.floor(Math.random() * potentialInsights.length);
+        setCurrentInsight(potentialInsights[randomIndex]);
+        setIsLoading(false);
     }
     
-    // Real Financial Insight
-    if(highestSpendingCategory) {
-        const [categoryName] = highestSpendingCategory;
-         potentialInsights.push({
-            text: `Este mês, sua maior despesa foi com ${categoryName}. Que tal rever esses gastos?`,
-            link: '/finance',
-            buttonText: 'Ver Finanças'
+    if (profileData) {
+        generateInsights();
+    }
+  }, [profileData, goals, memories, financialHistory, wishes]);
+  
+  const handleButtonClick = async () => {
+    if (!currentInsight || !profileData) return;
+
+    if (currentInsight.source === 'celebration' && !celebrationPlan) {
+        setIsLoading(true);
+        const plan = await generateCelebrationPlan({
+            dateType: currentInsight.data.dateType,
+            personName: currentInsight.data.personName,
+            wishList: wishes.map(w => ({ name: w.name, price: w.price })),
+            couplePreferences: {
+                favoriteFood: profileData.food || '',
+                favoritePlace: profileData.place || '',
+            }
         });
-    } else {
-         potentialInsights.push({
-            text: `Nenhuma despesa registrada este mês. Comece a adicionar transações para obter insights!`,
-            link: '/finance',
-            buttonText: 'Adicionar Transação'
-        });
+        setCelebrationPlan(plan);
+        setIsLoading(false);
     }
     
-    // Choose one insight randomly to display
-    const randomIndex = Math.floor(Math.random() * potentialInsights.length);
-    setCurrentInsight(potentialInsights[randomIndex]);
+    if (currentInsight.source === 'finance' && !financialInsight) {
+        setIsLoading(true);
+        const insight = await generateFinancialInsight({
+            financialHistory,
+            goals: goals.filter(g => !g.completed).map(g => g.name),
+        });
+        setFinancialInsight(insight);
+        setIsLoading(false);
+    }
+  };
 
-  }, [pantryItems, tasks, goals, memories, highestSpendingCategory]);
+  const renderContent = () => {
+    if (isLoading) {
+        return <Loader2 className="h-6 w-6 animate-spin text-primary mx-auto" />;
+    }
+    if (celebrationPlan) {
+        return (
+            <div className="text-sm space-y-2">
+                <p>{celebrationPlan.title}</p>
+                <p className="text-xs text-muted-foreground">{celebrationPlan.description}</p>
+            </div>
+        )
+    }
+    if (financialInsight) {
+         return (
+            <div className="text-sm space-y-2">
+                <p className="font-semibold">{financialInsight.title}</p>
+                <p className="text-xs text-muted-foreground">{financialInsight.insight}</p>
+            </div>
+        )
+    }
+    return <p className="text-foreground/80">{currentInsight?.text}</p>;
+  }
+  
+  const getButtonText = () => {
+      if (currentInsight?.source === 'celebration' && celebrationPlan) return "Ver no Descobrir";
+      if (currentInsight?.source === 'finance' && financialInsight) return "Ver Minhas Finanças";
+      if (currentInsight?.source === 'celebration' || currentInsight?.source === 'finance') return "Gerar Sugestão";
+      return currentInsight?.buttonText || "Saber mais";
+  }
+  
+  const getButtonLink = () => {
+      if (currentInsight?.source === 'celebration' && celebrationPlan) return '/discover';
+      if (currentInsight?.source === 'finance' && financialInsight) return '/finance';
+      return currentInsight?.link || '/';
+  }
 
-  if (!currentInsight) {
-    return (
-        <Card className="bg-white/10 dark:bg-black/10 border-none shadow-none flex flex-col">
-            <CardHeader>
-                <div className="flex items-center gap-2">
-                <Sparkles className="h-6 w-6 text-primary" />
-                <CardTitle className="text-base font-semibold text-primary">
-                    Copilot
-                </CardTitle>
-                </div>
-            </CardHeader>
-            <CardContent className="flex-grow">
-                <p className="text-foreground/80">
-                    Analisando seus dados...
-                </p>
-            </CardContent>
-        </Card>
-    );
+
+  if (!currentInsight && !isLoading) {
+    return null; // Or a fallback card
   }
 
   return (
@@ -146,17 +225,22 @@ export function CopilotCard() {
           </CardTitle>
         </div>
       </CardHeader>
-      <CardContent className="flex-grow">
-        <p className="text-foreground/80">
-          {currentInsight.text}
-        </p>
+      <CardContent className="flex-grow flex items-center">
+        {renderContent()}
       </CardContent>
       <CardFooter>
-        <Button asChild variant="outline" className="w-full bg-transparent border-primary/50 text-primary hover:bg-primary/10 hover:text-primary">
-          <Link href={currentInsight.link}>
-            {currentInsight.buttonText} <ArrowUpRight className="ml-2 h-4 w-4" />
-          </Link>
-        </Button>
+        {currentInsight?.source === 'celebration' || currentInsight?.source === 'finance' ? (
+           <Button onClick={handleButtonClick} disabled={isLoading} variant="outline" className="w-full bg-transparent border-primary/50 text-primary hover:bg-primary/10 hover:text-primary">
+                {isLoading ? <Loader2 className="h-4 w-4 animate-spin"/> : getButtonText()}
+                <ArrowUpRight className="ml-2 h-4 w-4" />
+           </Button>
+        ) : (
+            <Button asChild variant="outline" className="w-full bg-transparent border-primary/50 text-primary hover:bg-primary/10 hover:text-primary">
+            <Link href={getButtonLink()}>
+                {getButtonText()} <ArrowUpRight className="ml-2 h-4 w-4" />
+            </Link>
+            </Button>
+        )}
       </CardFooter>
     </Card>
   );

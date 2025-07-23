@@ -22,12 +22,27 @@ import {
   Flag,
   Plus,
   Camera,
+  Sparkles,
+  Loader2
 } from 'lucide-react';
 import { AddMemoryDialog } from '@/components/timeline/add-memory-dialog';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
+import { useToast } from '@/hooks/use-toast';
+import { generateMemoryStory, GenerateMemoryStoryOutput } from '@/ai/flows/generate-memory-story-flow';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 type TimelineEvent = {
+  id: string;
   date: Date;
   title: string;
   description: string;
@@ -35,6 +50,7 @@ type TimelineEvent = {
   icon: React.ReactNode;
   isFuture: boolean;
   imageUrl?: string;
+  raw: Memory | any;
 };
 
 type ProfileData = {
@@ -49,6 +65,10 @@ export default function TimelinePage() {
   const { goals, appointments, memories, addMemory } = useContext(FinanceContext);
   const [profileData, setProfileData] = useState<ProfileData>({});
   const [isMemoryDialogOpen, setIsMemoryDialogOpen] = useState(false);
+  const [isGeneratingStory, setIsGeneratingStory] = useState<string | null>(null);
+  const [generatedStory, setGeneratedStory] = useState<GenerateMemoryStoryOutput | null>(null);
+  const [isStoryDialogOpen, setIsStoryDialogOpen] = useState(false);
+  const { toast } = useToast();
 
   useEffect(() => {
     if (user) {
@@ -73,12 +93,14 @@ export default function TimelinePage() {
     if (profileData.sinceDate && isValid(parseISO(profileData.sinceDate))) {
       const date = parseISO(profileData.sinceDate);
       events.push({
+        id: `relationship-${date.toISOString()}`,
         date,
         title: 'O Início de Tudo',
         description: 'Onde a nossa jornada começou.',
         type: 'relationship',
         icon: <Heart className="h-5 w-5" />,
         isFuture: false,
+        raw: { date: profileData.sinceDate }
       });
     }
 
@@ -92,12 +114,14 @@ export default function TimelinePage() {
             const anniversaryDate = new Date(year, since.getMonth(), since.getDate());
              if (anniversaryDate < today) {
                 events.push({
+                    id: `anniversary-${year}`,
                     date: anniversaryDate,
                     title: `Aniversário de ${year - startYear} Ano${year - startYear > 1 ? 's' : ''}`,
                     description: 'Mais um ano de amor e companheirismo.',
                     type: 'anniversary',
                     icon: <PartyPopper className="h-5 w-5" />,
                     isFuture: false,
+                    raw: { date: anniversaryDate.toISOString() }
                 });
              }
         }
@@ -107,17 +131,19 @@ export default function TimelinePage() {
             nextAnniversary.setFullYear(currentYear + 1);
         }
          events.push({
+            id: `anniversary-next`,
             date: nextAnniversary,
             title: `Próximo Aniversário de Namoro`,
             description: `Comemorando ${getYear(nextAnniversary) - startYear} anos juntos.`,
             type: 'anniversary',
             icon: <PartyPopper className="h-5 w-5" />,
             isFuture: true,
+            raw: { date: nextAnniversary.toISOString() }
         });
     }
 
     // 3. Birthdays
-    const addBirthdayEvents = (isoDate?: string, name?: string) => {
+    const addBirthdayEvents = (isoDate?: string, name?: string, personKey?: string) => {
         if (!isoDate || !isValid(parseISO(isoDate)) || !name) return;
         const birthDate = parseISO(isoDate);
         const currentYear = getYear(today);
@@ -127,28 +153,35 @@ export default function TimelinePage() {
             nextBirthday.setFullYear(currentYear + 1);
         }
         events.push({
+            id: `birthday-${personKey}`,
             date: nextBirthday,
             title: `Aniversário de ${name}`,
             description: 'Um dia especial para celebrar!',
             type: 'birthday',
             icon: <Cake className="h-5 w-5" />,
             isFuture: true,
+            raw: { date: nextBirthday.toISOString() }
         });
     };
-    addBirthdayEvents(profileData.birthday1, name1);
-    addBirthdayEvents(profileData.birthday2, name2);
-
+    addBirthdayEvents(profileData.birthday1, name1, 'p1');
+    addBirthdayEvents(profileData.birthday2, name2, 'p2');
 
     // 4. Achieved Goals
-    goals.filter(g => g.currentAmount >= g.targetAmount).forEach(goal => {
-      const mockPurchaseDate = new Date(today.getFullYear(), Math.random() * 12, Math.random() * 28);
+    goals.filter(g => g.completed).forEach(goal => {
+      // Find a transaction related to the goal to get a more realistic date
+      const relatedTransactionDate = memories.find(m => m.title.includes(goal.name))?.date;
+      const date = relatedTransactionDate ? parseISO(relatedTransactionDate) : new Date();
+
       events.push({
-        date: mockPurchaseDate,
+        id: `goal-${goal.id}`,
+        date,
         title: 'Meta Alcançada!',
         description: `Conquistamos: ${goal.name}.`,
         type: 'goal',
         icon: <Star className="h-5 w-5" />,
         isFuture: false,
+        imageUrl: goal.imageUrl,
+        raw: goal
       });
     });
 
@@ -156,12 +189,14 @@ export default function TimelinePage() {
     appointments.forEach(appointment => {
       const date = parseISO(appointment.date + 'T00:00:00');
       events.push({
+        id: `appt-${appointment.id}`,
         date,
         title: `Compromisso: ${appointment.title}`,
         description: appointment.notes || `Categoria: ${appointment.category}`,
         type: 'appointment',
         icon: <CalendarCheck className="h-5 w-5" />,
         isFuture: date >= today,
+        raw: appointment
       });
     });
 
@@ -169,13 +204,15 @@ export default function TimelinePage() {
     memories.forEach(memory => {
         const date = parseISO(memory.date);
         events.push({
+            id: `memory-${memory.id}`,
             date,
             title: memory.title,
             description: memory.description,
             type: 'memory',
             icon: <Camera className="h-5 w-5" />,
             isFuture: date >= today,
-            imageUrl: memory.imageUrl
+            imageUrl: memory.imageUrl,
+            raw: memory
         });
     });
     
@@ -200,6 +237,28 @@ export default function TimelinePage() {
       addMemory(data);
       setIsMemoryDialogOpen(false);
   }
+  
+  const handleGenerateStory = async (event: TimelineEvent) => {
+    if (!event || event.type !== 'memory') return;
+    setIsGeneratingStory(event.id);
+    try {
+        const story = await generateMemoryStory({
+            memoryTitle: event.title,
+            memoryDescription: event.description
+        });
+        setGeneratedStory(story);
+        setIsStoryDialogOpen(true);
+    } catch (error) {
+        console.error("Error generating memory story:", error);
+        toast({
+            variant: "destructive",
+            title: "Erro ao criar história",
+            description: "Não foi possível gerar uma história para esta memória. Tente novamente."
+        });
+    } finally {
+        setIsGeneratingStory(null);
+    }
+  }
 
   return (
     <>
@@ -222,7 +281,7 @@ export default function TimelinePage() {
                     
                     <div className="space-y-12">
                     {timelineEvents.map((event, index) => (
-                        <div key={index} className="relative flex items-center">
+                        <div key={event.id} className="relative flex items-center">
                             <div className={cn(
                                 "absolute left-5 sm:left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-3 h-3 rounded-full",
                                 event.isFuture ? 'bg-primary' : 'bg-border'
@@ -243,7 +302,7 @@ export default function TimelinePage() {
                                                 <Image src={event.imageUrl} alt={event.title} layout="fill" objectFit="cover" className="rounded-t-lg"/>
                                             </div>
                                         )}
-                                        <div className="flex items-center gap-4 p-4">
+                                        <div className="flex items-start gap-4 p-4">
                                             <div className={cn("hidden sm:flex self-start", getEventTypeStyles(event.type, event.isFuture))}>
                                                 {event.icon}
                                             </div>
@@ -257,6 +316,21 @@ export default function TimelinePage() {
                                                     {format(event.date, "dd MMM yyyy", { locale: ptBR })}
                                                     </Badge>
                                                 </div>
+                                                {event.type === 'memory' && (
+                                                    <Button variant="link" size="sm" className="px-0 h-auto text-primary" onClick={() => handleGenerateStory(event)} disabled={isGeneratingStory === event.id}>
+                                                        {isGeneratingStory === event.id ? (
+                                                            <>
+                                                                <Loader2 className="mr-2 h-4 w-4 animate-spin"/>
+                                                                Criando...
+                                                            </>
+                                                        ) : (
+                                                            <>
+                                                                <Sparkles className="mr-2 h-4 w-4" />
+                                                                Criar História
+                                                            </>
+                                                        )}
+                                                    </Button>
+                                                )}
                                             </div>
                                         </div>
                                     </Card>
@@ -281,6 +355,19 @@ export default function TimelinePage() {
             onClose={() => setIsMemoryDialogOpen(false)}
             onSave={handleSaveMemory}
         />
+        <AlertDialog open={isStoryDialogOpen} onOpenChange={setIsStoryDialogOpen}>
+            <AlertDialogContent className="max-w-2xl">
+                <AlertDialogHeader>
+                    <AlertDialogTitle className="text-2xl font-bold">{generatedStory?.title}</AlertDialogTitle>
+                    <AlertDialogDescription className="text-base text-muted-foreground pt-4 whitespace-pre-wrap">
+                        {generatedStory?.story}
+                    </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                    <AlertDialogCancel>Fechar</AlertDialogCancel>
+                </AlertDialogFooter>
+            </AlertDialogContent>
+        </AlertDialog>
     </>
   );
 }
