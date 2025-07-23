@@ -9,6 +9,7 @@ import {
   CardHeader,
   CardTitle,
   CardDescription,
+  CardFooter,
 } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -29,7 +30,8 @@ import {
     Pencil,
     Save,
     Eraser,
-    CheckCircle2
+    CheckCircle2,
+    X,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
@@ -217,16 +219,18 @@ export default function PurchasesPage() {
                         <CardHeader>
                             <CardTitle>Criar Nova Lista</CardTitle>
                         </CardHeader>
-                        <CardContent className="flex items-center gap-2">
-                            <Input 
+                        <CardContent className="space-y-2">
+                             <Input 
                                 placeholder="Dê um nome para a sua lista..."
                                 value={newListName}
                                 onChange={(e) => setNewListName(e.target.value)}
                                 onKeyDown={(e) => e.key === 'Enter' && onCreateListSave()}
                                 autoFocus
                             />
-                            <Button onClick={onCreateListSave}><Save className="h-4 w-4" /></Button>
-                            <Button variant="ghost" onClick={handleCreateListCancel}><Trash2 className="h-4 w-4" /></Button>
+                            <div className="flex justify-end gap-2">
+                                <Button variant="ghost" onClick={handleCreateListCancel} size="sm"><X className="h-4 w-4 mr-2"/> Cancelar</Button>
+                                <Button onClick={onCreateListSave} size="sm"><Save className="h-4 w-4 mr-2"/> Salvar</Button>
+                            </div>
                         </CardContent>
                     </Card>
                 ) : (
@@ -399,7 +403,7 @@ export default function PurchasesPage() {
                                 </div>
                             </Tabs>
                         </CardContent>
-                        <CardHeader>
+                        <CardFooter>
                             <Button 
                                 onClick={() => setIsFinalizeDialogOpen(true)}
                                 disabled={getCheckedCount(selectedList) === 0}
@@ -408,7 +412,7 @@ export default function PurchasesPage() {
                                 <CheckCircle2 className="mr-2 h-4 w-4" />
                                 Finalizar Compra ({getCheckedCount(selectedList)} Itens)
                             </Button>
-                        </CardHeader>
+                        </CardFooter>
                     </Card>
                 ) : (
                     <div className="text-center text-muted-foreground py-16 border-2 border-dashed rounded-lg h-full flex flex-col items-center justify-center">
