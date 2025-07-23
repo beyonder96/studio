@@ -13,5 +13,6 @@ import './flows/generate-conversation-starters-flow';
 // Tools will be imported for their side effects in this file.
 import './tools/location-tools';
 import './tools/app-tools';
+import './tools/weather-tools';
 
     

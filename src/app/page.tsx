@@ -19,6 +19,7 @@ import { format } from 'date-fns';
 import { useRouter } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
 import { useAuth } from '@/contexts/auth-context';
+import { WeatherOverview } from '@/components/dashboard/weather-overview';
 
 
 const DateDisplay = () => {
@@ -109,6 +110,7 @@ export default function Home() {
                 </div>
                 <TransactionsOverview />
                 <DateDisplay />
+                <WeatherOverview />
                 <MonthOverview />
               </div>
 
