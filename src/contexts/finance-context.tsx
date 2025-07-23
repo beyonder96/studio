@@ -3,7 +3,7 @@
 'use client';
 
 import React, { createContext, useState, ReactNode, useEffect, useCallback } from 'react';
-import { getDatabase, ref, onValue, set, push, remove, update } from 'firebase/database';
+import { getDatabase, ref, onValue, set, push, remove, update, child } from 'firebase/database';
 import type { Transaction } from '@/components/finance/transactions-table';
 import { addMonths, format, isSameMonth, startOfMonth } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
@@ -705,7 +705,7 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
     const listsRef = getDbRef('shoppingLists');
     const newId = push(listsRef).key!;
     const newList: Omit<ShoppingList, 'id'> = { name: name.trim(), shared: false, items: [] };
-    set(ref(listsRef, newId), newList);
+    set(child(listsRef, newId), newList);
     callback({ ...newList, id: newId });
   }, [user, getDbRef]);
   
