@@ -105,4 +105,25 @@ export const createTask = ai.defineTool(
   }
 );
 
-    
+export const recordSpendingFeedback = ai.defineTool({
+    name: 'recordSpendingFeedback',
+    description: 'Records user feedback on a particular spending category.',
+    inputSchema: z.object({
+        category: z.string().describe('The spending category to record feedback for.'),
+        sentiment: z.enum(['positive', 'negative', 'neutral']).describe('The user\'s sentiment about spending in this category.'),
+        reason: z.string().optional().describe('The user\'s reason for this sentiment.'),
+    }),
+    outputSchema: z.object({
+        success: z.boolean(),
+    }),
+}, async (input) => {
+    const userId = await getUserId();
+    if (userId === 'GHOST_USER') {
+        return { success: false };
+    }
+    const db = getDatabase(firebaseApp);
+    const feedbackRef = ref(db, `users/${userId}/spendingFeedback`);
+    const newFeedbackRef = push(feedbackRef);
+    await set(newFeedbackRef, { ...input, timestamp: new Date().toISOString() });
+    return { success: true };
+});

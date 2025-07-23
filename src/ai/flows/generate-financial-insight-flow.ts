@@ -8,6 +8,7 @@
 
 import { ai } from '@/ai/genkit';
 import { GenerateFinancialInsightInputSchema, GenerateFinancialInsightOutputSchema, GenerateFinancialInsightInput, GenerateFinancialInsightOutput } from './schemas/generate-financial-insight-schema';
+import { recordSpendingFeedback } from '../tools/app-tools';
 
 
 export async function generateFinancialInsight(input: GenerateFinancialInsightInput): Promise<GenerateFinancialInsightOutput> {
@@ -18,6 +19,7 @@ const prompt = ai.definePrompt({
   name: 'generateFinancialInsightPrompt',
   input: { schema: GenerateFinancialInsightInputSchema },
   output: { schema: GenerateFinancialInsightOutputSchema },
+  tools: [recordSpendingFeedback],
   prompt: `Você é um consultor financeiro amigável e proativo para casais. Sua tarefa é analisar o histórico de gastos e fornecer um insight acionável para ajudá-los a economizar e alcançar suas metas.
 Responda sempre em português do Brasil.
 
@@ -31,6 +33,13 @@ Responda sempre em português do Brasil.
     {{#each categories}}
       - {{@key}}: R$ {{this}}
     {{/each}}
+{{/each}}
+
+- **Feedbacks de Gastos Anteriores:**
+{{#each spendingFeedback}}
+    - Categoria: {{category}}, Sentimento: {{sentiment}}{{#if reason}}, Razão: {{reason}}{{/if}}
+{{else}}
+    (Nenhum feedback de gastos registrado)
 {{/each}}
 
 - **Metas Atuais do Casal:**
@@ -54,6 +63,7 @@ Responda sempre em português do Brasil.
     - **Conecte a Economia a uma Meta:** Sugira que eles apliquem o valor economizado em uma de suas metas ativas. Formule uma ação clara (ex: "Contribuir R$ [valor] para a meta '[Nome da Meta]'").
     - **Sugira uma Mini-Meta:** Se não houver uma economia clara, sugira uma pequena meta de redução para a categoria de maior gasto do próximo mês (ex: "Tentar reduzir os gastos com 'Lazer' em 10% no próximo mês").
     - A ação deve ser prática e motivadora.
+5.  **Peça Feedback (Opcional):** Se você identificar uma categoria de alto gasto que também teve feedback negativo no passado (usando a ferramenta 'recordSpendingFeedback'), mencione isso e pergunte se eles querem criar um plano para reduzir esses gastos.
 
 **Formato da Resposta:**
 - **title:** O título cativante.
@@ -82,5 +92,3 @@ const generateFinancialInsightFlow = ai.defineFlow(
     return output!;
   }
 );
-
-    

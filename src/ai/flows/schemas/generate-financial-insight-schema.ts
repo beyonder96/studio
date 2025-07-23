@@ -15,9 +15,16 @@ const GoalProgressSchema = z.object({
     progress: z.number().describe('The completion percentage of the goal.'),
 });
 
+const SpendingFeedbackSchema = z.object({
+    category: z.string(),
+    sentiment: z.enum(['positive', 'negative', 'neutral']),
+    reason: z.string().optional(),
+});
+
 export const GenerateFinancialInsightInputSchema = z.object({
   financialHistory: z.array(MonthlySpendingSchema).describe('An array of the last 2-3 months of spending data.'),
   goals: z.array(GoalProgressSchema).describe('A list of the couple\'s active financial goals and their progress.'),
+  spendingFeedback: z.array(SpendingFeedbackSchema).optional().describe('A list of past spending feedbacks.'),
 });
 export type GenerateFinancialInsightInput = z.infer<typeof GenerateFinancialInsightInputSchema>;
 
@@ -31,5 +38,3 @@ export const GenerateFinancialInsightOutputSchema = z.object({
   }).optional().describe('A specific action the user can take.'),
 });
 export type GenerateFinancialInsightOutput = z.infer<typeof GenerateFinancialInsightOutputSchema>;
-
-    

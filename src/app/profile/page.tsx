@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { ArrowLeft, Camera, Edit, Utensils, Film, Music, MapPin, Save, Calendar as CalendarIcon, Loader2, Disc, Mail, Users, Info, Gift as GiftIcon, HeartPulse, Shield, Phone, Hospital } from 'lucide-react';
+import { ArrowLeft, Camera, Edit, Utensils, Film, Music, MapPin, Save, Calendar as CalendarIcon, Loader2, Disc, Mail, Users, Info, Gift as GiftIcon, HeartPulse, Shield, Phone, Hospital, Trophy } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
@@ -19,6 +19,9 @@ import { Textarea } from '@/components/ui/textarea';
 import { useAuth } from '@/contexts/auth-context';
 import { getDatabase, ref, onValue, update } from 'firebase/database';
 import { app as firebaseApp } from '@/lib/firebase';
+import { FinanceContext } from '@/contexts/finance-context';
+import { Badge } from '@/components/ui/badge';
+
 
 const defaultProfileImage = "https://placehold.co/600x800.png";
 
@@ -90,6 +93,7 @@ const getSinceText = (isoDate?: string): string => {
 export default function ProfilePage() {
   const { toast } = useToast();
   const { user } = useAuth();
+  const { achievements } = useContext(FinanceContext);
   const [profileData, setProfileData] = useState<ProfileData>({});
   const [tempData, setTempData] = useState<ProfileData>({});
   const [isEditing, setIsEditing] = useState(false);
@@ -422,6 +426,30 @@ export default function ProfilePage() {
                                 <p className="text-muted-foreground">{person2Name}: {profileData.birthday2 && isValid(parseISO(profileData.birthday2)) ? format(parseISO(profileData.birthday2), "d 'de' MMMM", { locale: ptBR }) : 'Não definido'}</p>
                              </div>
                         )}
+                    </CardContent>
+                </Card>
+
+                 <Card className="bg-transparent">
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                           <Trophy className="h-5 w-5" />
+                           Conquistas do Casal
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                       {achievements && achievements.length > 0 ? (
+                           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                               {achievements.map(ach => (
+                                   <div key={ach.id} className="flex flex-col items-center text-center gap-2 p-3 border rounded-lg bg-background/50">
+                                       <span className="text-4xl">{ach.icon}</span>
+                                       <h4 className="font-semibold text-sm">{ach.name}</h4>
+                                       <p className="text-xs text-muted-foreground">{ach.description}</p>
+                                   </div>
+                               ))}
+                           </div>
+                       ) : (
+                           <p className="text-muted-foreground text-center">Comecem a usar o app para desbloquear conquistas!</p>
+                       )}
                     </CardContent>
                 </Card>
 

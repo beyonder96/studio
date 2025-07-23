@@ -27,6 +27,15 @@ const initialWishes: Wish[] = [ { id: 'wish1', name: 'Liquidificador Novo', pric
 const initialAppointments: Appointment[] = [];
 const initialMemories: Memory[] = [];
 const initialShoppingLists: ShoppingList[] = [ { id: 'list1', name: 'Mercado', shared: true, items: [ { id: 'item1', name: 'Leite Integral', quantity: 1, checked: false } ] } ];
+const allAchievements: Achievement[] = [
+    { id: 'goal1', name: 'Conquistador', description: 'Atingiu a primeira meta', icon: '🏆' },
+    { id: 'goal5', name: 'Planejador Mestre', description: 'Atingiu 5 metas', icon: '🏅' },
+    { id: 'memory1', name: 'Guardião de Memórias', description: 'Adicionou a primeira memória', icon: '📸' },
+    { id: 'memory10', name: 'Contador de Histórias', description: 'Adicionou 10 memórias', icon: '📚' },
+    { id: 'recipe1', name: 'Mestre Cuca', description: 'Cozinhou 1 receita da IA', icon: '🧑‍🍳' },
+    { id: 'trip1', name: 'Explorador', description: 'Planejou a primeira viagem', icon: '✈️' },
+];
+
 
 export type Account = { id: string; name: string; balance: number; type: 'checking' | 'savings'; }
 export type Card = { id: string; name: string; limit: number; dueDay: number; }
@@ -39,6 +48,7 @@ export type Wish = { id: string; name: string; price: number; link?: string; ima
 export type ShoppingListItem = { id: string; name: string; quantity: number; checked: boolean; price?: number; };
 export type ShoppingList = { id: string; name: string; items: ShoppingListItem[]; shared: boolean; };
 export type Memory = { id: string; title: string; description: string; date: string; imageUrl?: string; };
+export type Achievement = { id: string; name: string; description: string; icon: string; };
 
 const mapShoppingItemToPantryCategory = (itemName: string): PantryCategory => {
     const lowerCaseName = itemName.toLowerCase();
@@ -121,6 +131,7 @@ type FinanceContextType = {
   handleFinishList: (list: ShoppingList, transactionDetails: Omit<Transaction, 'id' | 'amount' | 'description'>) => void;
   memories: Memory[];
   addMemory: (memory: Omit<Memory, 'id'>) => void;
+  achievements: Achievement[];
 };
 
 export const FinanceContext = createContext<FinanceContextType>({} as FinanceContextType);
@@ -142,6 +153,7 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [shoppingLists, setShoppingLists] = useState<ShoppingList[]>([]);
   const [memories, setMemories] = useState<Memory[]>([]);
+  const [achievements, setAchievements] = useState<Achievement[]>([]);
   
   const [isSensitiveDataVisible, setIsSensitiveDataVisible] = useState(true);
   const [selectedListId, setSelectedListId] = useState<string | null>(null);
@@ -153,6 +165,36 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
     const db = getDatabase(firebaseApp);
     return ref(db, `users/${user.uid}/${path}`);
   }, [user]);
+  
+  const checkForAchievements = useCallback(() => {
+    if(!user) return;
+
+    const completedGoalsCount = goals.filter(g => g.completed).length;
+    const memoriesCount = memories.length;
+
+    const unlocked: Achievement[] = [];
+    if(completedGoalsCount >= 1) unlocked.push(allAchievements.find(a => a.id === 'goal1')!);
+    if(completedGoalsCount >= 5) unlocked.push(allAchievements.find(a => a.id === 'goal5')!);
+    if(memoriesCount >= 1) unlocked.push(allAchievements.find(a => a.id === 'memory1')!);
+    if(memoriesCount >= 10) unlocked.push(allAchievements.find(a => a.id === 'memory10')!);
+
+    const currentAchievementIds = achievements.map(a => a.id);
+    const newAchievements = unlocked.filter(a => !currentAchievementIds.includes(a.id));
+
+    if(newAchievements.length > 0){
+        const allNewAchievements = [...achievements, ...newAchievements];
+        set(getDbRef('achievements'), allNewAchievements.map(a => ({...a})));
+        
+        newAchievements.forEach(a => {
+            toast({ title: '🏆 Conquista Desbloqueada!', description: `Você ganhou: ${a.name}`});
+        });
+    }
+
+  }, [user, goals, memories, achievements, getDbRef, toast]);
+
+  useEffect(() => {
+    checkForAchievements();
+  }, [goals, memories, checkForAchievements]);
   
   useEffect(() => {
     if (user) {
@@ -175,6 +217,7 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
                 setWishes(transformData(data.wishes));
                 setAppointments(transformData(data.appointments));
                 setMemories(transformData(data.memories));
+                setAchievements(data.achievements || []);
                 const dbShoppingLists: ShoppingList[] = transformData(data.shoppingLists).map((list: any) => ({
                     ...list,
                     items: list.items ? Object.keys(list.items).map(key => ({ id: key, ...list.items[key] })) : []
@@ -198,6 +241,7 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
                     appointments: {},
                     memories: {},
                     shoppingLists: Object.fromEntries(initialShoppingLists.map(l => [l.id, l])),
+                    achievements: [],
                 };
                 set(userRef, initialData);
             }
@@ -217,6 +261,7 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
         setWishes([]);
         setAppointments([]);
         setMemories([]);
+        setAchievements([]);
         setShoppingLists([]);
         setSelectedListId(null);
     }
@@ -736,6 +781,7 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
     handleClearCompletedItems, handleAddItemToList, handleCreateListSave,
     handleDeleteList, handleStartRenameList, handleRenameList, handleFinishList,
     memories, addMemory,
+    achievements
   };
 
   return (
