@@ -28,7 +28,12 @@ export const getCurrentWeather = ai.defineTool(
   async (input) => {
     const apiKey = process.env.OPENWEATHERMAP_API_KEY;
     if (!apiKey) {
-      throw new Error('OpenWeatherMap API key is missing.');
+      console.warn('OpenWeatherMap API key is missing. Returning default weather.');
+      return {
+        temperature: 20,
+        condition: 'Clima não disponível',
+        icon: '01d',
+      };
     }
 
     try {
