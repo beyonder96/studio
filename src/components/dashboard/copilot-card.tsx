@@ -13,6 +13,7 @@ import { getDatabase, ref, onValue } from 'firebase/database';
 import { app as firebaseApp } from '@/lib/firebase';
 import { generateCelebrationPlan, GenerateCelebrationPlanOutput } from "@/ai/flows/generate-celebration-plan-flow";
 import { generateFinancialInsight, GenerateFinancialInsightOutput } from "@/ai/flows/generate-financial-insight-flow";
+import { useToast } from "@/hooks/use-toast";
 
 type Insight = {
   text: string;
@@ -35,6 +36,7 @@ type ProfileData = {
 export function CopilotCard() {
   const { pantryItems, tasks, goals, memories, transactions, wishes } = useContext(FinanceContext);
   const { user } = useAuth();
+  const { toast } = useToast();
   const [profileData, setProfileData] = useState<ProfileData | null>(null);
   const [currentInsight, setCurrentInsight] = useState<Insight | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -85,9 +87,9 @@ export function CopilotCard() {
         // 1. Anniversary/Birthday Insight
         const specialDates = [];
         const [name1, name2] = (profileData.names || 'Pessoa 1 & Pessoa 2').split(' & ');
-        if (profileData.sinceDate) specialDates.push({ date: parseISO(profileData.sinceDate), type: 'Aniversário de Namoro', name: 'de vocês' });
-        if (profileData.birthday1) specialDates.push({ date: parseISO(profileData.birthday1), type: 'Aniversário', name: `de ${name1}` });
-        if (profileData.birthday2) specialDates.push({ date: parseISO(profileData.birthday2), type: 'Aniversário', name: `de ${name2}` });
+        if (profileData.sinceDate && profileData.sinceDate) specialDates.push({ date: parseISO(profileData.sinceDate), type: 'Aniversário de Namoro', name: 'de vocês' });
+        if (profileData.birthday1 && profileData.birthday1) specialDates.push({ date: parseISO(profileData.birthday1), type: 'Aniversário', name: `de ${name1}` });
+        if (profileData.birthday2 && profileData.birthday2) specialDates.push({ date: parseISO(profileData.birthday2), type: 'Aniversário', name: `de ${name2}` });
 
         for (const specialDate of specialDates) {
             const dateThisYear = new Date(today.getFullYear(), getMonth(specialDate.date), getDate(specialDate.date));
@@ -135,8 +137,10 @@ export function CopilotCard() {
             });
         }
 
-        const randomIndex = Math.floor(Math.random() * potentialInsights.length);
-        setCurrentInsight(potentialInsights[randomIndex]);
+        if (potentialInsights.length > 0) {
+            const randomIndex = Math.floor(Math.random() * potentialInsights.length);
+            setCurrentInsight(potentialInsights[randomIndex]);
+        }
         setIsLoading(false);
     }
     
@@ -175,6 +179,7 @@ export function CopilotCard() {
             const insight = await generateFinancialInsight({
                 financialHistory,
                 goals: goals.filter(g => !g.completed).map(g => ({ name: g.name, progress: getGoalProgress(g) })),
+                spendingFeedback: [],
             });
             setFinancialInsight(insight);
         }

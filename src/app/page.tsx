@@ -120,13 +120,13 @@ export default function Home() {
                  <JourneyCard />
                  <GoalsOverview />
                  <ShoppingListOverview />
-                 <CopilotCard />
               </div>
 
               {/* Right Column */}
                <div className="lg:col-span-1 flex flex-col gap-6">
                   <h2 className="text-2xl font-bold">Atividades</h2>
                   <TasksOverview />
+                  <CopilotCard />
               </div>
 
             </div>
