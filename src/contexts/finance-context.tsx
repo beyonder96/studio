@@ -18,7 +18,7 @@ const initialTransactions: Transaction[] = [
 const initialAccounts = [ { id: 'acc1', name: 'Conta Corrente', balance: 3500, type: 'checking' } ];
 const initialCards = [ { id: 'card1', name: 'Cartão de Crédito', limit: 5000, dueDay: 10 } ];
 const initialIncomeCategories = ['Salário', 'Freelance', 'Investimentos', 'Outros'];
-const initialExpenseCategories = ['Alimentação', 'Moradia', 'Transporte', 'Lazer', 'Saúde', 'Educação', 'Compras', 'Transferência', 'Outros'];
+const initialExpenseCategories = ['Alimentação', 'Moradia', 'Transporte', 'Lazer', 'Saúde', 'Educação', 'Compras', 'Transferência', 'Investimento', 'Outros'];
 const initialPantryCategories: PantryCategory[] = [ 'Laticínios', 'Carnes', 'Peixes', 'Frutas e Vegetais', 'Grãos e Cereais', 'Enlatados e Conservas', 'Bebidas', 'Higiene e Limpeza', 'Outros' ];
 const initialPantryItems: PantryItem[] = [];
 const initialTasks: Task[] = [ { id: 'task1', text: 'Pagar conta de luz', completed: false } ];
@@ -527,6 +527,17 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
           const updates: { [key: string]: any } = {};
           updates[`goals/${goalId}/currentAmount`] = newGoalAmount;
           updates[`accounts/${accountId}/balance`] = newAccountBalance;
+
+          const newTransactionId = push(getDbRef('transactions')).key!;
+          const newTransaction = {
+            description: `Investimento para: ${goal.name}`,
+            amount: -Math.abs(amount),
+            date: format(new Date(), 'yyyy-MM-dd'),
+            type: 'expense',
+            category: 'Investimento',
+            account: account.name
+          };
+          updates[`transactions/${newTransactionId}`] = newTransaction;
           
           update(getDbRef(''), updates);
           

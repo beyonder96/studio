@@ -15,16 +15,19 @@ const firebaseConfig = {
   databaseURL: process.env.NEXT_PUBLIC_FIREBASE_DATABASE_URL,
 };
 
-// Initialize Firebase for client-side only
+// Initialize Firebase
 let app: FirebaseApp;
-let auth: Auth;
+if (!getApps().length) {
+  app = initializeApp(firebaseConfig);
+} else {
+  app = getApp();
+}
+
+const auth: Auth = getAuth(app);
 let messaging: Messaging | null = null;
 
 if (typeof window !== 'undefined') {
-  app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
-  auth = getAuth(app);
-  
-  // Check for Notification API support before initializing messaging
+  // Check for Notification API support before initializing messaging on the client
   try {
     messaging = getMessaging(app);
   } catch (err) {
