@@ -81,24 +81,13 @@ Sua tarefa é analisar o 'Comando do usuário' e decidir qual ferramenta chamar.
 - Se o comando do usuário for para usar uma ferramenta, chame-a. APÓS a ferramenta ser executada com sucesso, você DEVE retornar uma mensagem de confirmação amigável e curta. Por exemplo: "Tarefa criada!", "Evento agendado com sucesso!", "Transação adicionada.".
 - Se o comando for ambíguo ou você não tiver uma ferramenta para ele, informe ao usuário que você não entendeu e dê exemplos do que você pode fazer.`,
         prompt: `Comando do usuário: "${input.command}"`,
-        history: [], // For this simple command flow, we don't need conversation history
     });
 
-    const toolCalls = llmResponse.history.filter(h => h.role === 'model' && h.content.some(c => !!c.toolRequest));
+    const toolRequest = llmResponse.choices[0]?.finishReason === 'toolCode';
 
-    if (toolCalls.length > 0) {
-      // If a tool was called, we assume success if the model provided a text response.
-      // A more robust check could inspect tool_response, but this is simpler.
-      return {
-        success: true,
-        message: llmResponse.text,
-      };
-    }
-
-    // If no tool was called, return the model's text response as a "failure" message.
     return {
-      success: false,
-      message: llmResponse.text,
+      success: toolRequest,
+      message: llmResponse.text(),
     };
   }
 );
