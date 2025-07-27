@@ -44,7 +44,6 @@ const processCommandFlow = ai.defineFlow(
     name: 'processCommandFlow',
     inputSchema: ProcessCommandInputSchema,
     outputSchema: ProcessCommandOutputSchema,
-    tools: [addTransaction, createTask, createCalendarEvent],
   },
   async (input) => {
     
@@ -84,9 +83,17 @@ Sua tarefa é analisar o 'Comando do usuário' e decidir qual ferramenta chamar.
         prompt: `Comando do usuário: "${input.command}"`,
         history: [], // For this simple command flow, we don't need conversation history
     });
+    
+    const history = llmResponse.candidates[0]?.history;
+    if (!history) {
+        return {
+            success: false,
+            message: llmResponse.text || "Desculpe, ocorreu um erro inesperado ao processar o comando.",
+        };
+    }
 
-    const toolCalls = llmResponse.history.filter(h => h.role === 'model' && h.content.some(c => !!c.toolRequest));
-    const toolResponses = llmResponse.history.filter(h => h.role === 'tool');
+    const toolCalls = history.filter(h => h.role === 'model' && h.content.some(c => !!c.toolRequest));
+    const toolResponses = history.filter(h => h.role === 'tool');
 
     if (toolCalls.length > 0) {
         if(toolResponses.length > 0 && toolResponses.every(r => r.content.every(c => c.toolResponse?.output?.success))) {
@@ -97,7 +104,7 @@ Sua tarefa é analisar o 'Comando do usuário' e decidir qual ferramenta chamar.
         } else {
              return {
                 success: false,
-                message: ll.mResponse.text || "Não foi possível executar a ação. Verifique os detalhes e tente novamente.",
+                message: llmResponse.text || "Não foi possível executar a ação. Verifique os detalhes e tente novamente.",
             };
         }
     }
