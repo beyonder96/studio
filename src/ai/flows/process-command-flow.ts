@@ -28,7 +28,6 @@ const ProcessCommandOutputSchema = z.object({
 export type ProcessCommandOutput = z.infer<typeof ProcessCommandOutputSchema>;
 
 export async function processCommand(input: ProcessCommandInput): Promise<ProcessCommandOutput> {
-  // Pass the input directly, merged with the context.
   const flowInput = {
     ...input,
     context: {
@@ -36,8 +35,6 @@ export async function processCommand(input: ProcessCommandInput): Promise<Proces
       currentDate: format(new Date(), 'yyyy-MM-dd'),
     },
   };
-  // The .run() method does not return the output directly.
-  // Instead, we should call the flow function itself.
   const output = await processCommandFlow(flowInput);
   return output!;
 }
@@ -50,7 +47,10 @@ const processCommandFlow = ai.defineFlow(
     tools: [addTransaction, createTask, createCalendarEvent],
   },
   async (input) => {
-    const response = await ai.generate({
+    
+    const llmResponse = await ai.generate({
+        model: 'googleai/gemini-2.0-flash',
+        tools: [addTransaction, createTask, createCalendarEvent],
         system: `Você é um assistente pessoal para um casal, extremamente eficiente em interpretar comandos em linguagem natural e usar ferramentas para executar ações no aplicativo. Responda sempre em português do Brasil.
 
 Sua tarefa é analisar o 'Comando do usuário' e decidir qual ferramenta chamar. Você DEVE chamar uma ferramenta se o comando corresponder a uma das ações possíveis.
@@ -79,51 +79,33 @@ Sua tarefa é analisar o 'Comando do usuário' e decidir qual ferramenta chamar.
 
 **Processo de Resposta:**
 
-- Após chamar uma ferramenta com sucesso, use a resposta dela para formular uma mensagem de confirmação clara e amigável.
-- Se nenhuma ferramenta for chamada, ou se o comando for muito ambíguo, informe ao usuário que você não entendeu e dê exemplos claros do que você pode fazer.`,
+- Se o comando do usuário for para usar uma ferramenta, chame-a. APÓS a ferramenta ser executada com sucesso, você DEVE retornar uma mensagem de confirmação amigável e curta. Por exemplo: "Tarefa criada!", "Evento agendado com sucesso!", "Transação adicionada.".
+- Se o comando for ambíguo ou você não tiver uma ferramenta para ele, informe ao usuário que você não entendeu e dê exemplos do que você pode fazer.`,
         prompt: `Comando do usuário: "${input.command}"`,
         history: [], // For this simple command flow, we don't need conversation history
     });
-    
-    const history = response.history || [];
-    const output = response.output;
 
-    const toolCalls = history.filter(h => h.role === 'model' && h.content.some(c => !!c.toolRequest));
-    
-    if (toolCalls.length === 0) {
-      return {
+    const toolCalls = llmResponse.history.filter(h => h.role === 'model' && h.content.some(c => !!c.toolRequest));
+    const toolResponses = llmResponse.history.filter(h => h.role === 'tool');
+
+    if (toolCalls.length > 0) {
+        if(toolResponses.length > 0 && toolResponses.every(r => r.content.every(c => c.toolResponse?.output?.success))) {
+             return {
+                success: true,
+                message: llmResponse.text || "Ação concluída com sucesso!",
+            };
+        } else {
+             return {
+                success: false,
+                message: ll.mResponse.text || "Não foi possível executar a ação. Verifique os detalhes e tente novamente.",
+            };
+        }
+    }
+
+    // If no tool was called, return the model's text response.
+    return {
         success: false,
-        message: "Desculpe, não consegui entender o seu comando. Tente algo como 'adicione uma tarefa para comprar leite' ou 'adicione uma despesa de R$25 com lanche'."
-      };
-    }
-    
-    // For simplicity, we assume the last tool call is the most relevant one for the confirmation message.
-    const lastToolResponse = history.find(h => h.role === 'tool');
-
-    if (lastToolResponse && lastToolResponse.content[0].toolResponse?.output?.success) {
-       const toolName = lastToolResponse.content[0].toolResponse.name;
-       let confirmationMessage = "Ação concluída com sucesso!";
-
-       switch (toolName) {
-           case 'addTransaction':
-               confirmationMessage = "Transação adicionada com sucesso!";
-               break;
-           case 'createTask':
-                confirmationMessage = "Tarefa adicionada à sua lista!";
-                break;
-           case 'createCalendarEvent':
-                confirmationMessage = "Evento adicionado ao seu calendário!";
-                break;
-       }
-
-      return { success: true, message: confirmationMessage };
-    }
-    
-    // Use the LLM's final text output if available and no tool succeeded
-    if (output) {
-      return { success: true, message: output.text! };
-    }
-
-    return { success: false, message: "Ocorreu um erro ao processar seu comando." };
+        message: llmResponse.text || "Desculpe, não consegui entender o seu comando. Tente algo como 'adicione uma tarefa para comprar leite' ou 'adicione uma despesa de R$25 com lanche'.",
+    };
   }
 );
