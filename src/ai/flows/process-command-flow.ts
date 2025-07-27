@@ -85,7 +85,8 @@ Sua tarefa é analisar o 'Comando do usuário' e decidir qual ferramenta chamar.
         prompt: `Comando do usuário: "${input.command}"`,
     });
 
-    const toolRequest = llmResponse.choices[0]?.finishReason === 'toolCode';
+    const choice = llmResponse.choices[0];
+    const toolRequest = choice?.finishReason === 'toolCode';
 
     return {
       success: toolRequest,
