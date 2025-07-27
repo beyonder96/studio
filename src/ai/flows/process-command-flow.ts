@@ -51,6 +51,7 @@ const processCommandFlow = ai.defineFlow(
     const llmResponse = await ai.generate({
         model: 'googleai/gemini-1.5-flash-latest',
         tools: [addTransaction, createTask, createCalendarEvent],
+        toolChoice: 'auto',
         system: `Você é um assistente pessoal para um casal, extremamente eficiente em interpretar comandos em linguagem natural e usar ferramentas para executar ações no aplicativo. Responda sempre em português do Brasil.
 
 Sua tarefa é analisar o 'Comando do usuário' e decidir qual ferramenta chamar. Você DEVE chamar uma ferramenta se o comando corresponder a uma das ações possíveis.
@@ -85,12 +86,18 @@ Sua tarefa é analisar o 'Comando do usuário' e decidir qual ferramenta chamar.
         prompt: `Comando do usuário: "${input.command}"`,
     });
 
-    const toolRequest = llmResponse.toolRequest;
-    const textResponse = llmResponse.text;
-    
+    const confirmationMessage = llmResponse.text;
+
+    if (confirmationMessage) {
+        return {
+            success: true,
+            message: confirmationMessage,
+        };
+    }
+
     return {
-      success: !!toolRequest,
-      message: textResponse || "Desculpe, não consegui entender o comando. Tente algo como 'adicionar uma tarefa para comprar pão' ou 'agendar um jantar para sábado'."
+        success: false,
+        message: "Desculpe, não consegui entender o comando. Tente algo como 'adicionar uma tarefa para comprar pão' ou 'agendar um jantar para sábado'."
     };
   }
 );
