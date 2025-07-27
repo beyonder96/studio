@@ -36,7 +36,9 @@ export async function processCommand(input: ProcessCommandInput): Promise<Proces
       currentDate: format(new Date(), 'yyyy-MM-dd'),
     },
   };
-  const { output } = await processCommandFlow.run(flowInput);
+  // The .run() method does not return the output directly.
+  // Instead, we should call the flow function itself.
+  const output = await processCommandFlow(flowInput);
   return output!;
 }
 
