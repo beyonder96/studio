@@ -74,7 +74,7 @@ Sua tarefa é analisar o 'Comando do usuário' e decidir qual ferramenta chamar.
 3.  **createCalendarEvent:**
     - Use para comandos que envolvam agendar um evento, compromisso ou reserva com data e/ou hora.
     - Ex: "agende um jantar para amanhã às 20h" -> \`createCalendarEvent({ userId: "${input.userId}", title: 'Jantar', date: <data_de_amanha>, time: '20:00', category: 'Social' })\`
-    - Título: Seja conciso (ex: "Jantar", "Reunião", "Cinema").
+    - Título: Seja conciso (ex: "Jantar", "Reunião", "Cinema", "Almoço evento").
     - Data: Converta "hoje", "amanhã", "dia 25" para o formato 'YYYY-MM-DD'.
     - Categoria: Infira a categoria ('Social', 'Trabalho', 'Lazer', 'Pessoal'). Use 'Pessoal' como padrão.
 
@@ -85,20 +85,13 @@ Sua tarefa é analisar o 'Comando do usuário' e decidir qual ferramenta chamar.
         prompt: `Comando do usuário: "${input.command}"`,
     });
 
-    const responseText = llmResponse.text;
+    const toolRequest = llmResponse.choices[0]?.finishReason === 'toolCode';
 
-    // If the response text is empty or very short, it likely failed or did nothing.
-    // A successful tool call usually results in a confirmation message.
-    if (!responseText || responseText.trim().length < 5) {
-      return {
-        success: false,
-        message: "Desculpe, não consegui entender o comando. Tente algo como 'adicionar uma tarefa para comprar pão' ou 'agendar um jantar para sábado'."
-      };
-    }
-    
     return {
-      success: true,
-      message: responseText,
+      success: toolRequest,
+      message: toolRequest 
+        ? llmResponse.text
+        : "Desculpe, não consegui entender o comando. Tente algo como 'adicionar uma tarefa para comprar pão' ou 'agendar um jantar para sábado'."
     };
   }
 );

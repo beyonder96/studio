@@ -43,10 +43,9 @@ export function CommandInput() {
 
     return (
         <div className="flex w-full items-center space-x-2">
-            <Sparkles className="h-5 w-5 text-primary" />
             <Input
                 type="text"
-                placeholder="Adicione uma despesa, tarefa..."
+                placeholder="Adicionar gasto, tarefa, evento..."
                 value={command}
                 onChange={(e) => setCommand(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleProcessCommand()}
