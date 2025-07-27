@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useContext } from 'react';
+import { useState } from 'react';
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Sparkles, Loader2, ArrowRight } from "lucide-react";
