@@ -1,24 +1,26 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useContext } from 'react';
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Sparkles, Loader2, ArrowRight } from "lucide-react";
 import { processCommand } from '@/ai/flows/process-command-flow';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/contexts/auth-context';
 
 export function CommandInput() {
     const [command, setCommand] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const { toast } = useToast();
+    const { user } = useAuth();
 
     const handleProcessCommand = async () => {
-        if (!command.trim()) return;
+        if (!command.trim() || !user) return;
 
         setIsLoading(true);
         try {
-            const result = await processCommand({ command });
+            const result = await processCommand({ command, userId: user.uid });
             toast({
                 title: result.success ? 'Comando executado!' : 'Opa!',
                 description: result.message,

@@ -15,6 +15,7 @@ import { format } from 'date-fns';
 
 const ProcessCommandInputSchema = z.object({
   command: z.string().describe('The natural language command from the user.'),
+  userId: z.string().describe('The unique ID of the user performing the action.'),
   context: z.object({
     currentDate: z.string().describe('The current date in YYYY-MM-DD format.'),
   }).optional(),
@@ -56,22 +57,23 @@ Sua tarefa é analisar o 'Comando do usuário' e decidir qual ferramenta chamar.
 
 **Contexto Disponível:**
 - Data Atual: ${input.context?.currentDate} (use isso para resolver datas relativas como 'hoje' ou 'amanhã').
+- ID do Usuário: ${input.userId} (você DEVE passar este ID para todas as ferramentas que o exigirem).
 
 **Diretrizes das Ferramentas:**
 
 1.  **addTransaction:**
     - Use para comandos que envolvam registrar gastos ou ganhos.
-    - Ex: "adicione uma despesa de R$25 com lanche" -> \`addTransaction({ description: 'Lanche', amount: 25, type: 'expense', category: 'Alimentação', account: 'Conta Corrente' })\`
+    - Ex: "adicione uma despesa de R$25 com lanche" -> \`addTransaction({ userId: "${input.userId}", description: 'Lanche', amount: 25, type: 'expense', category: 'Alimentação', account: 'Conta Corrente' })\`
     - Seja proativo: infira a categoria a partir da descrição. Use 'Outros' se não tiver certeza.
 
 2.  **createTask:**
     - Use para comandos que peçam para criar uma tarefa ou um item em uma lista de 'a fazer'.
-    - Ex: "adicione uma tarefa para comprar leite" -> \`createTask({ text: 'Comprar leite' })\`
-    - Ex: "lembrete para ligar para o médico" -> \`createTask({ text: 'Ligar para o médico' })\`
+    - Ex: "adicione uma tarefa para comprar leite" -> \`createTask({ userId: "${input.userId}", text: 'Comprar leite' })\`
+    - Ex: "lembrete para ligar para o médico" -> \`createTask({ userId: "${input.userId}", text: 'Ligar para o médico' })\`
 
 3.  **createCalendarEvent:**
     - Use para comandos que envolvam agendar um evento, compromisso ou reserva com data e/ou hora.
-    - Ex: "agende um jantar para amanhã às 20h" -> \`createCalendarEvent({ title: 'Jantar', date: <data_de_amanha>, time: '20:00', category: 'Social' })\`
+    - Ex: "agende um jantar para amanhã às 20h" -> \`createCalendarEvent({ userId: "${input.userId}", title: 'Jantar', date: <data_de_amanha>, time: '20:00', category: 'Social' })\`
     - Título: Seja conciso (ex: "Jantar", "Reunião", "Cinema").
     - Data: Converta "hoje", "amanhã", "dia 25" para o formato 'YYYY-MM-DD'.
     - Categoria: Infira a categoria ('Social', 'Trabalho', 'Lazer', 'Pessoal'). Use 'Pessoal' como padrão.

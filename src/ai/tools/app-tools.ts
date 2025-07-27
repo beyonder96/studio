@@ -10,24 +10,14 @@ import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
 import { getDatabase, ref, push, set } from 'firebase/database';
 import { app as firebaseApp } from '@/lib/firebase';
-import { auth } from '@/lib/firebase';
-import { addMonths, format } from 'date-fns';
-
-async function getUserId(): Promise<string | null> {
-  // In a real app, you would get the current user's ID.
-  // We'll simulate this for now, but this needs to be implemented.
-  if (auth.currentUser) {
-    return auth.currentUser.uid;
-  }
-  return null;
-}
-
+import { format } from 'date-fns';
 
 export const createCalendarEvent = ai.defineTool(
   {
     name: 'createCalendarEvent',
     description: 'Creates a new event in the couple\'s shared calendar. Use this to schedule dates or appointments.',
     inputSchema: z.object({
+      userId: z.string().describe("The user's unique ID."),
       title: z.string().describe('The title of the calendar event.'),
       date: z.string().describe('The date of the event in YYYY-MM-DD format.'),
       time: z.string().optional().describe('The time of the event in HH:MM format.'),
@@ -41,14 +31,13 @@ export const createCalendarEvent = ai.defineTool(
   },
   async (input) => {
     try {
-      const userId = await getUserId();
-      if (!userId) {
-          console.warn("User not authenticated, cannot create calendar event.");
+      if (!input.userId) {
+          console.warn("User ID is missing, cannot create calendar event.");
           return { success: false };
       }
       
       const db = getDatabase(firebaseApp);
-      const appointmentsRef = ref(db, `users/${userId}/appointments`);
+      const appointmentsRef = ref(db, `users/${input.userId}/appointments`);
       const newEventRef = push(appointmentsRef);
       
       await set(newEventRef, {
@@ -73,6 +62,7 @@ export const createTask = ai.defineTool(
     name: 'createTask',
     description: 'Adds a new task to the couple\'s shared to-do list. Use this for actions the couple needs to take.',
     inputSchema: z.object({
+      userId: z.string().describe("The user's unique ID."),
       text: z.string().describe('The description of the task to be created.'),
     }),
     outputSchema: z.object({
@@ -82,14 +72,13 @@ export const createTask = ai.defineTool(
   },
   async (input) => {
     try {
-        const userId = await getUserId();
-        if (!userId) {
-            console.warn("User not authenticated, cannot create task.");
+        if (!input.userId) {
+            console.warn("User ID is missing, cannot create task.");
             return { success: false };
         }
 
         const db = getDatabase(firebaseApp);
-        const tasksRef = ref(db, `users/${userId}/tasks`);
+        const tasksRef = ref(db, `users/${input.userId}/tasks`);
         const newTaskRef = push(tasksRef);
 
         await set(newTaskRef, {
@@ -110,6 +99,7 @@ export const addTransaction = ai.defineTool(
       name: 'addTransaction',
       description: 'Adds a new income or expense transaction to the user\'s finance records.',
       inputSchema: z.object({
+        userId: z.string().describe("The user's unique ID."),
         description: z.string().describe('A brief description of the transaction. Ex: "Almoço", "Gasolina", "Salário"'),
         amount: z.number().describe('The value of the transaction. Always a positive number.'),
         type: z.enum(['income', 'expense']).describe('The type of transaction: "income" for earnings, "expense" for spendings.'),
@@ -123,20 +113,22 @@ export const addTransaction = ai.defineTool(
     },
     async (input) => {
       try {
-        const userId = await getUserId();
-        if (!userId) {
-            console.warn("User not authenticated, cannot add transaction.");
+        if (!input.userId) {
+            console.warn("User ID is missing, cannot add transaction.");
             return { success: false };
         }
         
         const db = getDatabase(firebaseApp);
-        const transactionsRef = ref(db, `users/${userId}/transactions`);
+        const transactionsRef = ref(db, `users/${input.userId}/transactions`);
         const newTransactionRef = push(transactionsRef);
   
         const transactionData = {
-          ...input,
+          description: input.description,
           amount: input.type === 'expense' ? -Math.abs(input.amount) : Math.abs(input.amount),
           date: format(new Date(), 'yyyy-MM-dd'),
+          type: input.type,
+          category: input.category,
+          account: input.account
         };
   
         await set(newTransactionRef, transactionData);
@@ -153,6 +145,7 @@ export const recordSpendingFeedback = ai.defineTool({
     name: 'recordSpendingFeedback',
     description: 'Records user feedback on a particular spending category.',
     inputSchema: z.object({
+        userId: z.string().describe("The user's unique ID."),
         category: z.string().describe('The spending category to record feedback for.'),
         sentiment: z.enum(['positive', 'negative', 'neutral']).describe('The user\'s sentiment about spending in this category.'),
         reason: z.string().optional().describe('The user\'s reason for this sentiment.'),
@@ -161,14 +154,13 @@ export const recordSpendingFeedback = ai.defineTool({
         success: z.boolean(),
     }),
 }, async (input) => {
-    const userId = await getUserId();
-    if (!userId) {
-        console.warn("User not authenticated, cannot record spending feedback.");
+    if (!input.userId) {
+        console.warn("User ID is missing, cannot record spending feedback.");
         return { success: false };
     }
     const db = getDatabase(firebaseApp);
-    const feedbackRef = ref(db, `users/${userId}/spendingFeedback`);
+    const feedbackRef = ref(db, `users/${input.userId}/spendingFeedback`);
     const newFeedbackRef = push(feedbackRef);
-    await set(newFeedbackRef, { ...input, timestamp: new Date().toISOString() });
+    await set(newFeedbackRef, { category: input.category, sentiment: input.sentiment, reason: input.reason, timestamp: new Date().toISOString() });
     return { success: true };
 });
