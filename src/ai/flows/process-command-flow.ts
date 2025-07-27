@@ -49,7 +49,7 @@ const processCommandFlow = ai.defineFlow(
   async (input) => {
     
     const llmResponse = await ai.generate({
-        model: 'googleai/gemini-2.5-pro-preview',
+        model: 'googleai/gemini-1.5-pro-latest',
         tools: [addTransaction, createTask, createCalendarEvent],
         system: `Você é um assistente pessoal para um casal, extremamente eficiente em interpretar comandos em linguagem natural e usar ferramentas para executar ações no aplicativo. Responda sempre em português do Brasil.
 
