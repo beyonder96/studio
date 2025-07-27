@@ -11,6 +11,7 @@ import { z } from 'genkit';
 import { getDatabase, ref, push, set } from 'firebase/database';
 import { app as firebaseApp } from '@/lib/firebase';
 import { auth } from '@/lib/firebase';
+import { addMonths, format } from 'date-fns';
 
 async function getUserId(): Promise<string> {
   // In a real app, you would get the current user's ID.
@@ -104,6 +105,49 @@ export const createTask = ai.defineTool(
     }
   }
 );
+
+export const addTransaction = ai.defineTool(
+    {
+      name: 'addTransaction',
+      description: 'Adds a new income or expense transaction to the user\'s finance records.',
+      inputSchema: z.object({
+        description: z.string().describe('A brief description of the transaction. Ex: "Almoço", "Gasolina", "Salário"'),
+        amount: z.number().describe('The value of the transaction. Always a positive number.'),
+        type: z.enum(['income', 'expense']).describe('The type of transaction: "income" for earnings, "expense" for spendings.'),
+        category: z.string().describe('The category of the transaction. Ex: "Alimentação", "Transporte", "Moradia", "Salário".'),
+        account: z.string().describe('The name of the account or credit card to use. Ex: "Conta Corrente", "Cartão Principal".'),
+      }),
+      outputSchema: z.object({
+        success: z.boolean(),
+        transactionId: z.string().optional(),
+      }),
+    },
+    async (input) => {
+      try {
+        const userId = await getUserId();
+        if (userId === 'GHOST_USER') {
+            return { success: false };
+        }
+        
+        const db = getDatabase(firebaseApp);
+        const transactionsRef = ref(db, `users/${userId}/transactions`);
+        const newTransactionRef = push(transactionsRef);
+  
+        const transactionData = {
+          ...input,
+          amount: input.type === 'expense' ? -Math.abs(input.amount) : Math.abs(input.amount),
+          date: format(new Date(), 'yyyy-MM-dd'),
+        };
+  
+        await set(newTransactionRef, transactionData);
+  
+        return { success: true, transactionId: newTransactionRef.key || undefined };
+      } catch (error) {
+        console.error("Failed to add transaction:", error);
+        return { success: false };
+      }
+    }
+  );
 
 export const recordSpendingFeedback = ai.defineTool({
     name: 'recordSpendingFeedback',

@@ -20,6 +20,7 @@ import { useRouter } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
 import { useAuth } from '@/contexts/auth-context';
 import { WeatherOverview } from '@/components/dashboard/weather-overview';
+import { CommandInput } from '@/components/dashboard/command-input';
 
 
 const DateDisplay = () => {
@@ -108,6 +109,7 @@ export default function Home() {
                   <DashboardHeader />
                   <UserNav />
                 </div>
+                <CommandInput />
                 <TransactionsOverview />
                 <DateDisplay />
                 <WeatherOverview />
