@@ -11,7 +11,7 @@ import { format, isSameDay, startOfToday, parseISO, startOfMonth, endOfMonth } f
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { Button, buttonVariants } from '@/components/ui/button';
-import { ArrowLeft, Calendar as CalendarIcon, DollarSign, CalendarCheck, PlusCircle, Edit, Trash2, Globe } from 'lucide-react';
+import { Calendar as CalendarIcon, DollarSign, CalendarCheck, PlusCircle, Edit, Trash2, Globe } from 'lucide-react';
 import { AddAppointmentDialog } from '@/components/calendar/add-appointment-dialog';
 import { useAuth } from '@/contexts/auth-context';
 
@@ -87,10 +87,6 @@ export default function CalendarPage() {
             return 0;
         });
   }, [selectedDate, allEventsForMonth]);
-
-  const handleBackClick = () => {
-    window.history.back();
-  };
 
   const openAddDialog = () => {
     setEditingAppointment(null);
@@ -188,8 +184,9 @@ export default function CalendarPage() {
                                         <li key={event.id}>
                                             <div className="flex items-center gap-4 border p-3 rounded-lg hover:bg-muted/50 transition-colors">
                                                 <div className={cn(
-                                                    "flex h-10 w-10 items-center justify-center rounded-lg text-lg",
-                                                    event.type === 'transaction' ? 'bg-blue-100 dark:bg-blue-900/50' : 'bg-purple-100 dark:bg-purple-900/50',
+                                                    "flex h-10 w-10 items-center justify-center rounded-lg text-lg shrink-0",
+                                                    event.type === 'transaction' && 'bg-blue-100 dark:bg-blue-900/50',
+                                                    event.type === 'appointment' && !event.isGoogleEvent && 'bg-purple-100 dark:bg-purple-900/50',
                                                     event.isGoogleEvent && 'bg-green-100 dark:bg-green-900/50'
                                                 )}>
                                                 {event.type === 'transaction' ? 
@@ -221,7 +218,7 @@ export default function CalendarPage() {
                                                         <Button variant="ghost" size="icon" onClick={() => openEditDialog(event.raw as Appointment)}>
                                                         <Edit className="h-4 w-4" />
                                                         </Button>
-                                                        <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={() => deleteAppointment(event.raw.id)}>
+                                                        <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={() => deleteAppointment((event.raw as Appointment).id)}>
                                                         <Trash2 className="h-4 w-4" />
                                                         </Button>
                                                     </div>
