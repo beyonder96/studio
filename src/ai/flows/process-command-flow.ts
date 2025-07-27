@@ -83,7 +83,7 @@ Sua tarefa é analisar o 'Comando do usuário' e decidir qual ferramenta chamar.
         prompt: `Comando do usuário: "${input.command}"`,
     });
 
-    const responseText = llmResponse.text();
+    const responseText = llmResponse.text;
 
     // If the response text is empty or very short, it likely failed or did nothing.
     // A successful tool call usually results in a confirmation message.
