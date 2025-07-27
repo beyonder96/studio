@@ -164,3 +164,4 @@ export const recordSpendingFeedback = ai.defineTool({
     await set(newFeedbackRef, { category: input.category, sentiment: input.sentiment, reason: input.reason, timestamp: new Date().toISOString() });
     return { success: true };
 });
+

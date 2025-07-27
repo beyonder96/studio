@@ -76,7 +76,7 @@ export function AddAppointmentDialog({ isOpen, onClose, onSave, appointment, sel
       } else {
         reset({
           title: '',
-          date: selectedDate ? format(selectedDate, 'yyyy-MM-dd') : '',
+          date: selectedDate ? format(selectedDate, 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd'),
           time: '',
           category: '',
           notes: '',
@@ -157,4 +157,3 @@ export function AddAppointmentDialog({ isOpen, onClose, onSave, appointment, sel
     </Dialog>
   );
 }
-
