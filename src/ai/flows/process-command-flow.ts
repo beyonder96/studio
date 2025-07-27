@@ -83,11 +83,20 @@ Sua tarefa é analisar o 'Comando do usuário' e decidir qual ferramenta chamar.
         prompt: `Comando do usuário: "${input.command}"`,
     });
 
-    const toolRequest = llmResponse.choices[0]?.finishReason === 'toolCode';
+    const responseText = llmResponse.text();
 
+    // If the response text is empty or very short, it likely failed or did nothing.
+    // A successful tool call usually results in a confirmation message.
+    if (!responseText || responseText.trim().length < 5) {
+      return {
+        success: false,
+        message: "Desculpe, não consegui entender o comando. Tente algo como 'adicionar uma tarefa para comprar pão' ou 'agendar um jantar para sábado'."
+      };
+    }
+    
     return {
-      success: toolRequest,
-      message: llmResponse.text(),
+      success: true,
+      message: responseText,
     };
   }
 );
