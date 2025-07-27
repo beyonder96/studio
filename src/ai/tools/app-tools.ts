@@ -17,7 +17,7 @@ export const createCalendarEvent = ai.defineTool(
     name: 'createCalendarEvent',
     description: 'Creates a new event in the couple\'s shared calendar. Use this to schedule dates or appointments.',
     inputSchema: z.object({
-      userId: z.string().describe("The user's unique ID."),
+      userId: z.string().describe("The user's unique ID. This MUST be provided."),
       title: z.string().describe('The title of the calendar event.'),
       date: z.string().describe('The date of the event in YYYY-MM-DD format.'),
       time: z.string().optional().describe('The time of the event in HH:MM format.'),
@@ -62,7 +62,7 @@ export const createTask = ai.defineTool(
     name: 'createTask',
     description: 'Adds a new task to the couple\'s shared to-do list. Use this for actions the couple needs to take.',
     inputSchema: z.object({
-      userId: z.string().describe("The user's unique ID."),
+      userId: z.string().describe("The user's unique ID. This MUST be provided."),
       text: z.string().describe('The description of the task to be created.'),
     }),
     outputSchema: z.object({
@@ -99,7 +99,7 @@ export const addTransaction = ai.defineTool(
       name: 'addTransaction',
       description: 'Adds a new income or expense transaction to the user\'s finance records.',
       inputSchema: z.object({
-        userId: z.string().describe("The user's unique ID."),
+        userId: z.string().describe("The user's unique ID. This MUST be provided."),
         description: z.string().describe('A brief description of the transaction. Ex: "Almoço", "Gasolina", "Salário"'),
         amount: z.number().describe('The value of the transaction. Always a positive number.'),
         type: z.enum(['income', 'expense']).describe('The type of transaction: "income" for earnings, "expense" for spendings.'),
@@ -145,7 +145,7 @@ export const recordSpendingFeedback = ai.defineTool({
     name: 'recordSpendingFeedback',
     description: 'Records user feedback on a particular spending category.',
     inputSchema: z.object({
-        userId: z.string().describe("The user's unique ID."),
+        userId: z.string().describe("The user's unique ID. This MUST be provided."),
         category: z.string().describe('The spending category to record feedback for.'),
         sentiment: z.enum(['positive', 'negative', 'neutral']).describe('The user\'s sentiment about spending in this category.'),
         reason: z.string().optional().describe('The user\'s reason for this sentiment.'),
@@ -164,4 +164,3 @@ export const recordSpendingFeedback = ai.defineTool({
     await set(newFeedbackRef, { category: input.category, sentiment: input.sentiment, reason: input.reason, timestamp: new Date().toISOString() });
     return { success: true };
 });
-
