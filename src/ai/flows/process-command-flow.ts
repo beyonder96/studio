@@ -85,20 +85,12 @@ Sua tarefa é analisar o 'Comando do usuário' e decidir qual ferramenta chamar.
         prompt: `Comando do usuário: "${input.command}"`,
     });
 
-    const choice = llmResponse.choices[0];
-
-    if (!choice) {
-        return {
-            success: false,
-            message: "Desculpe, não consegui processar sua solicitação. Tente novamente."
-        }
-    }
-
-    const toolRequest = choice.message.toolRequest;
+    const toolRequest = llmResponse.toolRequest;
+    const textResponse = llmResponse.text;
     
     return {
       success: !!toolRequest,
-      message: choice.message.text || "Desculpe, não consegui entender o comando. Tente algo como 'adicionar uma tarefa para comprar pão' ou 'agendar um jantar para sábado'."
+      message: textResponse || "Desculpe, não consegui entender o comando. Tente algo como 'adicionar uma tarefa para comprar pão' ou 'agendar um jantar para sábado'."
     };
   }
 );
