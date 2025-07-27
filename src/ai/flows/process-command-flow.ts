@@ -48,7 +48,7 @@ const processCommandFlow = ai.defineFlow(
     tools: [addTransaction, createTask, createCalendarEvent],
   },
   async (input) => {
-    const { output, history } = await ai.generate({
+    const response = await ai.generate({
         prompt: `Você é um assistente pessoal para um casal. Sua tarefa é interpretar o comando do usuário e usar as ferramentas disponíveis para executá-lo.
 
         Comando do usuário: "${input.command}"
@@ -63,6 +63,9 @@ const processCommandFlow = ai.defineFlow(
         Responda sempre em português do Brasil.`,
         history: [], // For this simple command flow, we don't need conversation history
     });
+    
+    const history = response.history || [];
+    const output = response.output;
 
     const toolCalls = history.filter(h => h.role === 'model' && h.content.some(c => !!c.toolRequest));
     
