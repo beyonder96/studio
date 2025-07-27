@@ -9,6 +9,7 @@ import { addMonths, format, isSameMonth, startOfMonth } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from './auth-context';
 import { app as firebaseApp } from '@/lib/firebase';
+import { getCalendarEvents } from '@/ai/tools/app-tools';
 
 // --- Default Data for New Users ---
 const initialTransactions: Transaction[] = [
@@ -39,7 +40,7 @@ const allAchievements: Achievement[] = [
 
 export type Account = { id: string; name: string; balance: number; type: 'checking' | 'savings'; }
 export type Card = { id: string; name: string; limit: number; dueDay: number; }
-export type Appointment = { id: string; title: string; date: string; time?: string; category: string; notes?: string; };
+export type Appointment = { id: string; title: string; date: string; time?: string; category: string; notes?: string; googleEventId?: string; };
 export type PantryCategory = string;
 export type PantryItem = { id: string; name: string; quantity: number; pantryCategory: PantryCategory; }
 export type Task = { id: string; text: string; completed: boolean; };
@@ -113,6 +114,7 @@ type FinanceContextType = {
   addAppointment: (appointment: Omit<Appointment, 'id'>) => void;
   updateAppointment: (id: string, appointment: Partial<Omit<Appointment, 'id'>>) => void;
   deleteAppointment: (id: string) => void;
+  fetchGoogleCalendarEvents: (userId: string, timeMin: string, timeMax: string) => Promise<void>;
   toast: ReturnType<typeof useToast>['toast'];
   shoppingLists: ShoppingList[];
   selectedListId: string | null;
@@ -151,11 +153,11 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
   const [goals, setGoals] = useState<Goal[]>([]);
   const [wishes, setWishes] = useState<Wish[]>([]);
   const [appointments, setAppointments] = useState<Appointment[]>([]);
-  const [shoppingLists, setShoppingLists] = useState<ShoppingList[]>([]);
   const [memories, setMemories] = useState<Memory[]>([]);
   const [achievements, setAchievements] = useState<Achievement[]>([]);
   
   const [isSensitiveDataVisible, setIsSensitiveDataVisible] = useState(true);
+  const [shoppingLists, setShoppingLists] = useState<ShoppingList[]>([]);
   const [selectedListId, setSelectedListId] = useState<string | null>(null);
 
   const selectedList = shoppingLists.find(l => l.id === selectedListId) || null;
@@ -600,6 +602,41 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
     remove(getDbRef(`appointments/${id}`));
   };
   
+  const fetchGoogleCalendarEvents = useCallback(async (userId: string, timeMin: string, timeMax: string) => {
+    try {
+        const googleEvents = await getCalendarEvents({ userId, timeMin, timeMax });
+        const existingGoogleEventIds = new Set(appointments.filter(a => a.googleEventId).map(a => a.googleEventId));
+        
+        const newAppointments = googleEvents
+            .filter(gEvent => gEvent.id && !existingGoogleEventIds.has(gEvent.id))
+            .map(gEvent => ({
+                id: gEvent.id!,
+                googleEventId: gEvent.id,
+                title: gEvent.title,
+                date: gEvent.date,
+                time: gEvent.time,
+                category: 'Google',
+                notes: gEvent.notes,
+            }));
+        
+        if (newAppointments.length > 0) {
+            const updates: { [key: string]: any } = {};
+            newAppointments.forEach(appt => {
+                const newId = push(getDbRef('appointments')).key!;
+                updates[`appointments/${newId}`] = { ...appt, id: undefined }; // Don't save firebase key as id field
+            });
+            update(getDbRef(''), updates);
+        }
+    } catch (error) {
+        console.error("Failed to fetch or merge Google Calendar events:", error);
+        toast({
+            variant: "destructive",
+            title: "Erro ao Sincronizar Calendário",
+            description: "Não foi possível buscar os eventos do Google Calendar."
+        });
+    }
+}, [appointments, getDbRef, toast]);
+  
   const addAccount = (account: Omit<Account, 'id'>) => {
     if(!user) return;
     const newId = push(getDbRef('accounts')).key!;
@@ -786,6 +823,7 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
     goals, addGoal, updateGoal, deleteGoal, addGoalProgress, toggleGoalCompleted,
     wishes, addWish, updateWish, deleteWish, toggleWishPurchased,
     appointments, appointmentCategories, addAppointment, updateAppointment, deleteAppointment,
+    fetchGoogleCalendarEvents,
     toast,
     shoppingLists, selectedListId, setSelectedListId, selectedList,
     handleSetPrice, handleCheckboxChange, handleDeleteItem, handleUpdateItem,

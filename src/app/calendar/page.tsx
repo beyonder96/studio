@@ -1,18 +1,19 @@
 
 'use client';
 
-import { useState, useMemo, useContext } from 'react';
+import { useState, useMemo, useContext, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Calendar } from '@/components/ui/calendar';
 import { Badge } from '@/components/ui/badge';
 import { FinanceContext, Appointment } from '@/contexts/finance-context';
 import type { Transaction } from '@/components/finance/transactions-table';
-import { format, isSameDay, startOfToday, parseISO } from 'date-fns';
+import { format, isSameDay, startOfToday, parseISO, startOfMonth, endOfMonth } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { Button, buttonVariants } from '@/components/ui/button';
-import { ArrowLeft, Calendar as CalendarIcon, DollarSign, CalendarCheck, PlusCircle, Edit, Trash2 } from 'lucide-react';
+import { ArrowLeft, Calendar as CalendarIcon, DollarSign, CalendarCheck, PlusCircle, Edit, Trash2, Globe } from 'lucide-react';
 import { AddAppointmentDialog } from '@/components/calendar/add-appointment-dialog';
+import { useAuth } from '@/contexts/auth-context';
 
 type CalendarEvent = {
   id: string;
@@ -23,13 +24,32 @@ type CalendarEvent = {
   amount?: number;
   date: Date;
   raw: Transaction | Appointment;
+  isGoogleEvent?: boolean;
 };
 
 export default function CalendarPage() {
+  const { user } = useAuth();
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(startOfToday());
-  const { transactions, appointments, formatCurrency, addAppointment, updateAppointment, deleteAppointment } = useContext(FinanceContext);
+  const { 
+    transactions, 
+    appointments, 
+    formatCurrency, 
+    addAppointment, 
+    updateAppointment, 
+    deleteAppointment,
+    fetchGoogleCalendarEvents
+   } = useContext(FinanceContext);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingAppointment, setEditingAppointment] = useState<Appointment | null>(null);
+
+  useEffect(() => {
+    if (user) {
+        const today = new Date();
+        const timeMin = startOfMonth(today).toISOString();
+        const timeMax = endOfMonth(today).toISOString();
+        fetchGoogleCalendarEvents(user.uid, timeMin, timeMax);
+    }
+  }, [user, fetchGoogleCalendarEvents]);
 
   const allEventsForMonth = useMemo(() => {
     const transactionEvents: CalendarEvent[] = transactions.map((t: Transaction) => ({
@@ -43,13 +63,14 @@ export default function CalendarPage() {
     }));
 
     const appointmentEvents: CalendarEvent[] = appointments.map((a: Appointment) => ({
-      id: `appt-${a.id}`,
+      id: a.googleEventId ? `gcal-${a.googleEventId}` : `appt-${a.id}`,
       title: a.title,
       type: 'appointment',
       category: a.category,
       date: parseISO(a.date + 'T00:00:00'),
       time: a.time,
-      raw: a
+      raw: a,
+      isGoogleEvent: !!a.googleEventId,
     }));
     
     return [...transactionEvents, ...appointmentEvents];
@@ -168,10 +189,13 @@ export default function CalendarPage() {
                                             <div className="flex items-center gap-4 border p-3 rounded-lg hover:bg-muted/50 transition-colors">
                                                 <div className={cn(
                                                     "flex h-10 w-10 items-center justify-center rounded-lg text-lg",
-                                                    event.type === 'transaction' ? 'bg-blue-100 dark:bg-blue-900/50' : 'bg-purple-100 dark:bg-purple-900/50'
+                                                    event.type === 'transaction' ? 'bg-blue-100 dark:bg-blue-900/50' : 'bg-purple-100 dark:bg-purple-900/50',
+                                                    event.isGoogleEvent && 'bg-green-100 dark:bg-green-900/50'
                                                 )}>
                                                 {event.type === 'transaction' ? 
                                                     <DollarSign className="h-5 w-5 text-blue-500" /> :
+                                                    event.isGoogleEvent ?
+                                                    <Globe className="h-5 w-5 text-green-500" /> :
                                                     <CalendarCheck className="h-5 w-5 text-purple-500" />
                                                 }
                                                 </div>
@@ -192,7 +216,7 @@ export default function CalendarPage() {
                                                         {formatCurrency(event.amount)}
                                                     </p>
                                                 )}
-                                                {event.type === 'appointment' && (
+                                                {event.type === 'appointment' && !event.isGoogleEvent && (
                                                     <div className="flex items-center gap-1">
                                                         <Button variant="ghost" size="icon" onClick={() => openEditDialog(event.raw as Appointment)}>
                                                         <Edit className="h-4 w-4" />

@@ -1,4 +1,3 @@
-
 'use server';
 /**
  * @fileOverview Application-specific tools for Genkit AI flows.
@@ -12,7 +11,6 @@ import { getDatabase, ref, push, set } from 'firebase/database';
 import { app as firebaseApp } from '@/lib/firebase';
 import { format, parseISO } from 'date-fns';
 import { google } from 'googleapis';
-import { get } from 'http';
 
 // This will be used to store the OAuth2 client.
 // In a real app, you'd manage tokens more robustly (e.g., in a database).
@@ -48,6 +46,70 @@ function getGoogleAuth(userId: string) {
     
     return oauth2Client;
 }
+
+export const getCalendarEvents = ai.defineTool({
+    name: 'getCalendarEvents',
+    description: 'Fetches events from the user\'s primary Google Calendar for a given time range.',
+    inputSchema: z.object({
+        userId: z.string().describe("The user's unique ID. This MUST be provided."),
+        timeMin: z.string().describe('The start of the time range in ISO 8601 format.'),
+        timeMax: z.string().describe('The end of the time range in ISO 8601 format.'),
+    }),
+    outputSchema: z.array(z.object({
+        id: z.string(),
+        title: z.string(),
+        date: z.string(),
+        time: z.string().optional(),
+        category: z.string(),
+        notes: z.string().optional(),
+    })),
+}, async (input) => {
+    try {
+        if (!input.userId) {
+            console.warn("User ID is missing, cannot fetch calendar events.");
+            return [];
+        }
+
+        const auth = getGoogleAuth(input.userId);
+        if (!auth) {
+            console.error("Google Auth failed. Cannot fetch Google Calendar events.");
+            return [];
+        }
+
+        const calendar = google.calendar({ version: 'v3', auth });
+        const response = await calendar.events.list({
+            calendarId: 'primary',
+            timeMin: input.timeMin,
+            timeMax: input.timeMax,
+            singleEvents: true,
+            orderBy: 'startTime',
+        });
+
+        const events = response.data.items;
+        if (!events || events.length === 0) {
+            return [];
+        }
+
+        return events.map(event => {
+            const start = event.start?.dateTime || event.start?.date;
+            if (!start) return null;
+            
+            const date = new Date(start);
+            return {
+                id: event.id || '',
+                title: event.summary || 'Sem Título',
+                date: format(date, 'yyyy-MM-dd'),
+                time: event.start?.dateTime ? format(date, 'HH:mm') : undefined,
+                category: 'Google',
+                notes: event.description || '',
+            };
+        }).filter(Boolean) as any;
+
+    } catch (error) {
+        console.error("Failed to fetch Google Calendar events:", error);
+        return [];
+    }
+});
 
 
 export const createCalendarEvent = ai.defineTool(
@@ -247,3 +309,55 @@ export const recordSpendingFeedback = ai.defineTool({
     await set(newFeedbackRef, { category: input.category, sentiment: input.sentiment, reason: input.reason, timestamp: new Date().toISOString() });
     return { success: true };
 });
+
+export const addItemToShoppingList = ai.defineTool(
+  {
+    name: 'addItemToShoppingList',
+    description: "Adds an item to the user's shopping list. If no list exists, it creates one.",
+    inputSchema: z.object({
+      userId: z.string().describe("The user's unique ID. This MUST be provided."),
+      itemName: z.string().describe("The name of the item to add, e.g., 'leite' ou '2 pacotes de arroz'."),
+      quantity: z.number().optional().describe("The quantity of the item. Defaults to 1."),
+    }),
+    outputSchema: z.object({
+      success: z.boolean(),
+      listId: z.string().optional(),
+      itemId: z.string().optional(),
+    }),
+  },
+  async (input) => {
+      if (!input.userId) {
+          console.warn("User ID is missing, cannot add item to shopping list.");
+          return { success: false };
+      }
+      const db = getDatabase(firebaseApp);
+      const shoppingListsRef = ref(db, `users/${input.userId}/shoppingLists`);
+
+      return new Promise((resolve) => {
+          onValue(shoppingListsRef, async (snapshot) => {
+              const lists = snapshot.val();
+              let targetListId: string;
+
+              if (lists && Object.keys(lists).length > 0) {
+                  // Use the first existing list
+                  targetListId = Object.keys(lists)[0];
+              } else {
+                  // Create a new list if none exist
+                  const newListRef = push(shoppingListsRef);
+                  targetListId = newListRef.key!;
+                  await set(newListRef, { name: 'Lista de Compras', shared: false, items: {} });
+              }
+              
+              const itemsRef = ref(db, `users/${input.userId}/shoppingLists/${targetListId}/items`);
+              const newItemRef = push(itemsRef);
+              await set(newItemRef, {
+                  name: input.itemName,
+                  quantity: input.quantity || 1,
+                  checked: false,
+              });
+
+              resolve({ success: true, listId: targetListId, itemId: newItemRef.key! });
+          }, { onlyOnce: true }); // Important to prevent multiple triggers
+      });
+  }
+);
