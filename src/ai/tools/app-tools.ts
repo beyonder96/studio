@@ -13,16 +13,13 @@ import { app as firebaseApp } from '@/lib/firebase';
 import { auth } from '@/lib/firebase';
 import { addMonths, format } from 'date-fns';
 
-async function getUserId(): Promise<string> {
+async function getUserId(): Promise<string | null> {
   // In a real app, you would get the current user's ID.
   // We'll simulate this for now, but this needs to be implemented.
   if (auth.currentUser) {
     return auth.currentUser.uid;
   }
-  // This is a fallback and should be handled more gracefully
-  // in a production environment (e.g., by throwing an error).
-  console.warn("User not authenticated, operations will not be saved.");
-  return 'GHOST_USER';
+  return null;
 }
 
 
@@ -45,7 +42,8 @@ export const createCalendarEvent = ai.defineTool(
   async (input) => {
     try {
       const userId = await getUserId();
-      if (userId === 'GHOST_USER') {
+      if (!userId) {
+          console.warn("User not authenticated, cannot create calendar event.");
           return { success: false };
       }
       
@@ -85,7 +83,8 @@ export const createTask = ai.defineTool(
   async (input) => {
     try {
         const userId = await getUserId();
-        if (userId === 'GHOST_USER') {
+        if (!userId) {
+            console.warn("User not authenticated, cannot create task.");
             return { success: false };
         }
 
@@ -125,7 +124,8 @@ export const addTransaction = ai.defineTool(
     async (input) => {
       try {
         const userId = await getUserId();
-        if (userId === 'GHOST_USER') {
+        if (!userId) {
+            console.warn("User not authenticated, cannot add transaction.");
             return { success: false };
         }
         
@@ -162,7 +162,8 @@ export const recordSpendingFeedback = ai.defineTool({
     }),
 }, async (input) => {
     const userId = await getUserId();
-    if (userId === 'GHOST_USER') {
+    if (!userId) {
+        console.warn("User not authenticated, cannot record spending feedback.");
         return { success: false };
     }
     const db = getDatabase(firebaseApp);
