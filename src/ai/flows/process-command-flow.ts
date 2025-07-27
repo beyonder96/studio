@@ -28,12 +28,15 @@ const ProcessCommandOutputSchema = z.object({
 export type ProcessCommandOutput = z.infer<typeof ProcessCommandOutputSchema>;
 
 export async function processCommand(input: ProcessCommandInput): Promise<ProcessCommandOutput> {
-  const { output } = await processCommandFlow.run({
-    input,
+  // Pass the input directly, merged with the context.
+  const flowInput = {
+    ...input,
     context: {
-        currentDate: format(new Date(), 'yyyy-MM-dd')
-    }
-  });
+      ...input.context,
+      currentDate: format(new Date(), 'yyyy-MM-dd'),
+    },
+  };
+  const { output } = await processCommandFlow.run(flowInput);
   return output!;
 }
 
