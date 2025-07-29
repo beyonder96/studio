@@ -1,3 +1,4 @@
+
 'use server';
 /**
  * @fileOverview Application-specific tools for Genkit AI flows.
@@ -46,6 +47,71 @@ function getGoogleAuth(userId: string) {
     
     return oauth2Client;
 }
+
+
+export const getCalendarEvents = ai.defineTool(
+  {
+    name: 'getCalendarEvents',
+    description: "Fetches events from the user's primary Google Calendar for a given time range.",
+    inputSchema: z.object({
+      userId: z.string().describe("The user's unique ID. This MUST be provided."),
+      timeMin: z.string().describe('The start of the time range, in ISO 8601 format.'),
+      timeMax: z.string().describe('The end of the time range, in ISO 8601 format.'),
+    }),
+    outputSchema: z.array(z.object({
+      id: z.string(),
+      title: z.string(),
+      date: z.string(),
+      time: z.string().optional(),
+      notes: z.string().optional(),
+    })),
+  },
+  async (input) => {
+    try {
+      if (!input.userId) {
+          console.warn("User ID is missing, cannot fetch calendar events.");
+          return [];
+      }
+      
+      const auth = getGoogleAuth(input.userId);
+      if (!auth) {
+          console.error("Google Auth failed. Cannot fetch Google Calendar events.");
+          return [];
+      }
+
+      const calendar = google.calendar({ version: 'v3', auth });
+      const response = await calendar.events.list({
+        calendarId: 'primary',
+        timeMin: input.timeMin,
+        timeMax: input.timeMax,
+        singleEvents: true,
+        orderBy: 'startTime',
+      });
+      
+      const events = response.data.items || [];
+
+      return events.map(event => {
+        const start = event.start?.dateTime || event.start?.date;
+        if (!start) return null; // Skip events without a start date
+
+        const startDate = parseISO(start);
+        
+        return {
+            id: event.id || crypto.randomUUID(),
+            title: event.summary || 'Sem Título',
+            date: format(startDate, 'yyyy-MM-dd'),
+            time: event.start?.dateTime ? format(startDate, 'HH:mm') : undefined,
+            notes: event.description || '',
+        }
+      }).filter(Boolean); // Remove null entries
+
+    } catch (error) {
+        console.error("Failed to fetch Google Calendar events:", error);
+        return [];
+    }
+  }
+);
+
 
 export const createCalendarEvent = ai.defineTool(
   {
