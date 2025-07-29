@@ -6,12 +6,11 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Calendar } from '@/components/ui/calendar';
 import { Badge } from '@/components/ui/badge';
 import { FinanceContext, Appointment } from '@/contexts/finance-context';
-import type { Transaction } from '@/components/finance/transactions-table';
 import { format, isSameDay, startOfToday, parseISO, startOfMonth, endOfMonth } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { Button, buttonVariants } from '@/components/ui/button';
-import { Calendar as CalendarIcon, DollarSign, CalendarCheck, PlusCircle, Edit, Trash2, Globe } from 'lucide-react';
+import { Calendar as CalendarIcon, CalendarCheck, PlusCircle, Edit, Trash2, Globe } from 'lucide-react';
 import { AddAppointmentDialog } from '@/components/calendar/add-appointment-dialog';
 import { useAuth } from '@/contexts/auth-context';
 
@@ -19,11 +18,10 @@ type CalendarEvent = {
   id: string;
   title: string;
   time?: string;
-  type: 'transaction' | 'appointment';
+  type: 'appointment';
   category: string;
-  amount?: number;
   date: Date;
-  raw: Transaction | Appointment;
+  raw: Appointment;
   isGoogleEvent?: boolean;
 };
 
@@ -31,9 +29,7 @@ export default function CalendarPage() {
   const { user } = useAuth();
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(startOfToday());
   const { 
-    transactions, 
     appointments, 
-    formatCurrency, 
     addAppointment, 
     updateAppointment, 
     deleteAppointment,
@@ -52,16 +48,6 @@ export default function CalendarPage() {
   }, [user, fetchGoogleCalendarEvents]);
 
   const allEventsForMonth = useMemo(() => {
-    const transactionEvents: CalendarEvent[] = transactions.map((t: Transaction) => ({
-      id: `trans-${t.id}`,
-      title: t.description,
-      type: 'transaction',
-      category: t.category,
-      amount: t.amount,
-      date: parseISO(t.date + 'T00:00:00'),
-      raw: t
-    }));
-
     const appointmentEvents: CalendarEvent[] = appointments.map((a: Appointment) => ({
       id: a.googleEventId ? `gcal-${a.googleEventId}` : `appt-${a.id}`,
       title: a.title,
@@ -73,8 +59,8 @@ export default function CalendarPage() {
       isGoogleEvent: !!a.googleEventId,
     }));
     
-    return [...transactionEvents, ...appointmentEvents];
-  }, [transactions, appointments]);
+    return appointmentEvents;
+  }, [appointments]);
   
   const eventsForSelectedDay = useMemo(() => {
     if (!selectedDate) return [];
@@ -185,13 +171,10 @@ export default function CalendarPage() {
                                             <div className="flex items-center gap-4 border p-3 rounded-lg hover:bg-muted/50 transition-colors">
                                                 <div className={cn(
                                                     "flex h-10 w-10 items-center justify-center rounded-lg text-lg shrink-0",
-                                                    event.type === 'transaction' && 'bg-blue-100 dark:bg-blue-900/50',
-                                                    event.type === 'appointment' && !event.isGoogleEvent && 'bg-purple-100 dark:bg-purple-900/50',
+                                                    !event.isGoogleEvent && 'bg-purple-100 dark:bg-purple-900/50',
                                                     event.isGoogleEvent && 'bg-green-100 dark:bg-green-900/50'
                                                 )}>
-                                                {event.type === 'transaction' ? 
-                                                    <DollarSign className="h-5 w-5 text-blue-500" /> :
-                                                    event.isGoogleEvent ?
+                                                {event.isGoogleEvent ?
                                                     <Globe className="h-5 w-5 text-green-500" /> :
                                                     <CalendarCheck className="h-5 w-5 text-purple-500" />
                                                 }
@@ -205,20 +188,12 @@ export default function CalendarPage() {
                                                         )}
                                                     </div>
                                                 </div>
-                                                {event.type === 'transaction' && event.amount && (
-                                                    <p className={cn(
-                                                        'font-mono font-bold',
-                                                        event.amount > 0 ? 'text-green-500' : 'text-red-500'
-                                                    )}>
-                                                        {formatCurrency(event.amount)}
-                                                    </p>
-                                                )}
-                                                {event.type === 'appointment' && !event.isGoogleEvent && (
+                                                {!event.isGoogleEvent && (
                                                     <div className="flex items-center gap-1">
-                                                        <Button variant="ghost" size="icon" onClick={() => openEditDialog(event.raw as Appointment)}>
+                                                        <Button variant="ghost" size="icon" onClick={() => openEditDialog(event.raw)}>
                                                         <Edit className="h-4 w-4" />
                                                         </Button>
-                                                        <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={() => deleteAppointment((event.raw as Appointment).id)}>
+                                                        <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={() => deleteAppointment(event.raw.id)}>
                                                         <Trash2 className="h-4 w-4" />
                                                         </Button>
                                                     </div>
