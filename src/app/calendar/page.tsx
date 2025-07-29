@@ -10,7 +10,7 @@ import { format, isSameDay, startOfToday, parseISO, startOfMonth, endOfMonth } f
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { Button, buttonVariants } from '@/components/ui/button';
-import { Calendar as CalendarIcon, CalendarCheck, PlusCircle, Edit, Trash2, Globe } from 'lucide-react';
+import { Calendar as CalendarIcon, CalendarCheck, PlusCircle, Edit, Trash2, Globe, RefreshCw } from 'lucide-react';
 import { AddAppointmentDialog } from '@/components/calendar/add-appointment-dialog';
 import { useAuth } from '@/contexts/auth-context';
 
@@ -36,16 +36,24 @@ export default function CalendarPage() {
     fetchGoogleCalendarEvents
    } = useContext(FinanceContext);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
   const [editingAppointment, setEditingAppointment] = useState<Appointment | null>(null);
 
+  const handleSync = async () => {
+    if (!user) return;
+    setIsSyncing(true);
+    const today = new Date();
+    const timeMin = startOfMonth(today).toISOString();
+    const timeMax = endOfMonth(today).toISOString();
+    await fetchGoogleCalendarEvents(user.uid, timeMin, timeMax);
+    setIsSyncing(false);
+  };
+
   useEffect(() => {
-    if (user) {
-        const today = new Date();
-        const timeMin = startOfMonth(today).toISOString();
-        const timeMax = endOfMonth(today).toISOString();
-        fetchGoogleCalendarEvents(user.uid, timeMin, timeMax);
-    }
-  }, [user, fetchGoogleCalendarEvents]);
+    // Initial sync on load
+    handleSync();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user]);
 
   const allEventsForMonth = useMemo(() => {
     const appointmentEvents: CalendarEvent[] = appointments.map((a: Appointment) => ({
@@ -97,15 +105,25 @@ export default function CalendarPage() {
     <Card className="bg-white/10 dark:bg-black/10 backdrop-blur-3xl border-white/20 dark:border-black/20 rounded-3xl shadow-2xl">
         <CardContent className="p-4 sm:p-6">
             <div className="flex h-full w-full flex-col">
-            <div className="flex items-center justify-between pb-4 sm:pb-6 border-b">
+            <div className="flex items-center justify-between pb-4 sm:pb-6 border-b flex-wrap gap-2">
                 <div>
                     <h1 className="text-2xl font-bold">Calendário</h1>
                     <p className="text-muted-foreground">Visualize seus compromissos e transações.</p>
                 </div>
-                <Button onClick={openAddDialog}>
-                    <PlusCircle className="mr-2 h-4 w-4" />
-                    Adicionar Evento
-                </Button>
+                <div className="flex items-center gap-2">
+                    <Button variant="outline" onClick={handleSync} disabled={isSyncing}>
+                        {isSyncing ? (
+                            <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                        ) : (
+                             <RefreshCw className="mr-2 h-4 w-4" />
+                        )}
+                        Sincronizar com Google
+                    </Button>
+                    <Button onClick={openAddDialog}>
+                        <PlusCircle className="mr-2 h-4 w-4" />
+                        Adicionar Evento
+                    </Button>
+                </div>
             </div>
 
             <div className="flex flex-1 flex-col md:flex-row gap-4 overflow-auto rounded-lg bg-transparent pt-4 sm:pt-6">
