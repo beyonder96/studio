@@ -2,16 +2,19 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { onAuthStateChanged, User } from 'firebase/auth';
-import { auth } from '@/lib/firebase';
+import { onAuthStateChanged, User, signInWithPopup, getAdditionalUserInfo } from 'firebase/auth';
+import { auth, googleProvider } from '@/lib/firebase';
 import { useFCM } from '@/hooks/use-fcm';
+import { getDatabase, ref, set, get } from 'firebase/database';
+import { app as firebaseApp } from '@/lib/firebase';
 
 type AuthContextType = {
   user: User | null;
   loading: boolean;
+  signInWithGoogle: () => Promise<void>;
 };
 
-const AuthContext = createContext<AuthContextType>({ user: null, loading: true });
+const AuthContext = createContext<AuthContextType>({ user: null, loading: true, signInWithGoogle: async () => {} });
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
@@ -34,8 +37,38 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setLoading(false);
     }
   }, [init]);
+  
+  const signInWithGoogle = async () => {
+    if (!auth) return;
+    try {
+      const result = await signInWithPopup(auth, googleProvider);
+      const user = result.user;
+      const additionalInfo = getAdditionalUserInfo(result);
+      
+      // If new user, create a profile entry
+      if (additionalInfo?.isNewUser) {
+        const db = getDatabase(firebaseApp);
+        const profileRef = ref(db, `users/${user.uid}/profile`);
+        
+        // Check if profile already exists to prevent overwriting
+        const snapshot = await get(profileRef);
+        if (!snapshot.exists()) {
+             const profileData = { 
+                names: user.displayName || "Novo Casal",
+                email: user.email,
+                partnerEmail: '',
+                profileImage: user.photoURL || 'https://placehold.co/600x800.png',
+             };
+             await set(profileRef, profileData);
+        }
+      }
+    } catch (error) {
+      console.error("Error during Google sign-in:", error);
+      throw error;
+    }
+  };
 
-  return <AuthContext.Provider value={{ user, loading }}>{children}</AuthContext.Provider>;
+  return <AuthContext.Provider value={{ user, loading, signInWithGoogle }}>{children}</AuthContext.Provider>;
 };
 
 export const useAuth = () => useContext(AuthContext);

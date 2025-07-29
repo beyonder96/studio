@@ -1,6 +1,7 @@
+
 // Import the functions you need from the SDKs you need
 import { initializeApp, getApps, getApp, FirebaseApp } from "firebase/app";
-import { getAuth, Auth } from "firebase/auth";
+import { getAuth, Auth, GoogleAuthProvider } from "firebase/auth";
 import { getDatabase } from "firebase/database";
 import { getMessaging, Messaging } from "firebase/messaging";
 
@@ -24,6 +25,7 @@ if (!getApps().length) {
 }
 
 const auth: Auth = getAuth(app);
+const googleProvider = new GoogleAuthProvider();
 let messaging: Messaging | null = null;
 
 if (typeof window !== 'undefined') {
@@ -35,4 +37,4 @@ if (typeof window !== 'undefined') {
   }
 }
 
-export { app, auth, messaging };
+export { app, auth, messaging, googleProvider };
