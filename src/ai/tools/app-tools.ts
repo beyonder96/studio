@@ -7,7 +7,7 @@
  */
 import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
-import { getDatabase, ref, push, set } from 'firebase/database';
+import { getDatabase, ref, push, set, onValue } from 'firebase/database';
 import { app as firebaseApp } from '@/lib/firebase';
 import { format, parseISO } from 'date-fns';
 import { google } from 'googleapis';
@@ -47,71 +47,6 @@ function getGoogleAuth(userId: string) {
     return oauth2Client;
 }
 
-export const getCalendarEvents = ai.defineTool({
-    name: 'getCalendarEvents',
-    description: 'Fetches events from the user\'s primary Google Calendar for a given time range.',
-    inputSchema: z.object({
-        userId: z.string().describe("The user's unique ID. This MUST be provided."),
-        timeMin: z.string().describe('The start of the time range in ISO 8601 format.'),
-        timeMax: z.string().describe('The end of the time range in ISO 8601 format.'),
-    }),
-    outputSchema: z.array(z.object({
-        id: z.string(),
-        title: z.string(),
-        date: z.string(),
-        time: z.string().optional(),
-        category: z.string(),
-        notes: z.string().optional(),
-    })),
-}, async (input) => {
-    try {
-        if (!input.userId) {
-            console.warn("User ID is missing, cannot fetch calendar events.");
-            return [];
-        }
-
-        const auth = getGoogleAuth(input.userId);
-        if (!auth) {
-            console.error("Google Auth failed. Cannot fetch Google Calendar events.");
-            return [];
-        }
-
-        const calendar = google.calendar({ version: 'v3', auth });
-        const response = await calendar.events.list({
-            calendarId: 'primary',
-            timeMin: input.timeMin,
-            timeMax: input.timeMax,
-            singleEvents: true,
-            orderBy: 'startTime',
-        });
-
-        const events = response.data.items;
-        if (!events || events.length === 0) {
-            return [];
-        }
-
-        return events.map(event => {
-            const start = event.start?.dateTime || event.start?.date;
-            if (!start) return null;
-            
-            const date = new Date(start);
-            return {
-                id: event.id || '',
-                title: event.summary || 'Sem Título',
-                date: format(date, 'yyyy-MM-dd'),
-                time: event.start?.dateTime ? format(date, 'HH:mm') : undefined,
-                category: 'Google',
-                notes: event.description || '',
-            };
-        }).filter(Boolean) as any;
-
-    } catch (error) {
-        console.error("Failed to fetch Google Calendar events:", error);
-        return [];
-    }
-});
-
-
 export const createCalendarEvent = ai.defineTool(
   {
     name: 'createCalendarEvent',
@@ -141,7 +76,7 @@ export const createCalendarEvent = ai.defineTool(
       if (!auth) {
           console.error("Google Auth failed. Cannot create Google Calendar event.");
           // We could decide to still create it in Firebase, but for sync, let's fail.
-          return { success: false, message: "Google Authentication failed." };
+          return { success: false };
       }
       
       const calendar = google.calendar({ version: 'v3', auth });
