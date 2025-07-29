@@ -5,7 +5,7 @@
 import React, { createContext, useState, ReactNode, useEffect, useCallback } from 'react';
 import { getDatabase, ref, onValue, set, push, remove, update, child } from 'firebase/database';
 import type { Transaction } from '@/components/finance/transactions-table';
-import { addMonths, format, isSameMonth, startOfMonth } from 'date-fns';
+import { addMonths, format, isSameMonth, startOfMonth, endOfMonth, addDays } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from './auth-context';
 import { app as firebaseApp } from '@/lib/firebase';
@@ -114,7 +114,7 @@ type FinanceContextType = {
   addAppointment: (appointment: Omit<Appointment, 'id'>) => void;
   updateAppointment: (id: string, appointment: Partial<Omit<Appointment, 'id'>>) => void;
   deleteAppointment: (id: string) => void;
-  fetchGoogleCalendarEvents: (userId: string, timeMin: string, timeMax: string) => Promise<void>;
+  fetchGoogleCalendarEvents: (userId: string) => Promise<void>;
   toast: ReturnType<typeof useToast>['toast'];
   shoppingLists: ShoppingList[];
   selectedListId: string | null;
@@ -181,7 +181,7 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
     if(memoriesCount >= 10) unlocked.push(allAchievements.find(a => a.id === 'memory10')!);
 
     const currentAchievementIds = achievements.map(a => a.id);
-    const newAchievements = unlocked.filter(a => !currentAchievementIds.includes(a.id));
+    const newAchievements = unlocked.filter(a => a.id && !currentAchievementIds.includes(a.id));
 
     if(newAchievements.length > 0){
         const allNewAchievements = [...achievements, ...newAchievements];
@@ -583,7 +583,7 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
     }
   };
   
-  const [appointmentCategories] = useState<string[]>(['Trabalho', 'Saúde', 'Social', 'Pessoal', 'Outros']);
+  const [appointmentCategories] = useState<string[]>(['Trabalho', 'Saúde', 'Social', 'Pessoal', 'Google', 'Outros']);
 
   // Appointment Management
   const addAppointment = (appointment: Omit<Appointment, 'id'>) => {
@@ -602,8 +602,11 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
     remove(getDbRef(`appointments/${id}`));
   };
   
-  const fetchGoogleCalendarEvents = useCallback(async (userId: string, timeMin: string, timeMax: string) => {
+  const fetchGoogleCalendarEvents = useCallback(async (userId: string) => {
     try {
+        const now = new Date();
+        const timeMin = now.toISOString();
+        const timeMax = addDays(now, 90).toISOString(); // Fetch events for the next 90 days
         const googleEvents = await getCalendarEvents({ userId, timeMin, timeMax });
         const existingGoogleEventIds = new Set(appointments.filter(a => a.googleEventId).map(a => a.googleEventId));
         
@@ -626,6 +629,15 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
                 updates[`appointments/${newId}`] = { ...appt, id: undefined }; // Don't save firebase key as id field
             });
             update(getDbRef(''), updates);
+            toast({
+              title: "Calendário Sincronizado!",
+              description: `${newAppointments.length} novo(s) evento(s) foram adicionados.`
+            });
+        } else {
+             toast({
+              title: "Calendário Sincronizado!",
+              description: `Nenhum novo evento encontrado.`
+            });
         }
     } catch (error) {
         console.error("Failed to fetch or merge Google Calendar events:", error);
@@ -635,7 +647,7 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
             description: "Não foi possível buscar os eventos do Google Calendar."
         });
     }
-}, [appointments, getDbRef, toast]);
+  }, [appointments, getDbRef, toast]);
   
   const addAccount = (account: Omit<Account, 'id'>) => {
     if(!user) return;

@@ -3,13 +3,12 @@
 
 import { useState, useMemo, useContext, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Calendar } from '@/components/ui/calendar';
 import { Badge } from '@/components/ui/badge';
 import { FinanceContext, Appointment } from '@/contexts/finance-context';
-import { format, isSameDay, startOfToday, parseISO, startOfMonth, endOfMonth } from 'date-fns';
+import { format, isSameDay, startOfToday, parseISO, endOfToday, addDays, isTomorrow, isYesterday } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
-import { Button, buttonVariants } from '@/components/ui/button';
+import { Button } from '@/components/ui/button';
 import { Calendar as CalendarIcon, CalendarCheck, PlusCircle, Edit, Trash2, Globe, RefreshCw } from 'lucide-react';
 import { AddAppointmentDialog } from '@/components/calendar/add-appointment-dialog';
 import { useAuth } from '@/contexts/auth-context';
@@ -25,9 +24,17 @@ type CalendarEvent = {
   isGoogleEvent?: boolean;
 };
 
+const getRelativeDate = (date: Date) => {
+    const today = startOfToday();
+    if (isSameDay(date, today)) return 'Hoje';
+    if (isSameDay(date, addDays(today, 1))) return 'Amanhã';
+    if (isSameDay(date, addDays(today, -1))) return 'Ontem';
+    return format(date, "EEEE, dd 'de' MMMM", { locale: ptBR });
+};
+
+
 export default function CalendarPage() {
   const { user } = useAuth();
-  const [selectedDate, setSelectedDate] = useState<Date | undefined>(startOfToday());
   const { 
     appointments, 
     addAppointment, 
@@ -42,10 +49,7 @@ export default function CalendarPage() {
   const handleSync = async () => {
     if (!user) return;
     setIsSyncing(true);
-    const today = new Date();
-    const timeMin = startOfMonth(today).toISOString();
-    const timeMax = endOfMonth(today).toISOString();
-    await fetchGoogleCalendarEvents(user.uid, timeMin, timeMax);
+    await fetchGoogleCalendarEvents(user.uid);
     setIsSyncing(false);
   };
 
@@ -55,32 +59,35 @@ export default function CalendarPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
-  const allEventsForMonth = useMemo(() => {
-    const appointmentEvents: CalendarEvent[] = appointments.map((a: Appointment) => ({
+  const allEvents = useMemo(() => {
+    return appointments.map((a: Appointment) => ({
       id: a.googleEventId ? `gcal-${a.googleEventId}` : `appt-${a.id}`,
       title: a.title,
-      type: 'appointment',
+      type: 'appointment' as 'appointment',
       category: a.category,
       date: parseISO(a.date + 'T00:00:00'),
       time: a.time,
       raw: a,
       isGoogleEvent: !!a.googleEventId,
-    }));
-    
-    return appointmentEvents;
+    }))
+    .sort((a,b) => a.date.getTime() - b.date.getTime());
   }, [appointments]);
   
-  const eventsForSelectedDay = useMemo(() => {
-    if (!selectedDate) return [];
-    return allEventsForMonth
-        .filter(event => isSameDay(event.date, selectedDate))
-        .sort((a,b) => {
-            if (a.time && b.time) return a.time.localeCompare(b.time);
-            if (a.time) return -1;
-            if (b.time) return 1;
-            return 0;
-        });
-  }, [selectedDate, allEventsForMonth]);
+  const groupedEvents = useMemo(() => {
+      const today = startOfToday();
+      const futureEvents = allEvents.filter(event => event.date >= today);
+      
+      return futureEvents.reduce((acc, event) => {
+          const dateString = format(event.date, 'yyyy-MM-dd');
+          if (!acc[dateString]) {
+              acc[dateString] = [];
+          }
+          acc[dateString].push(event);
+          return acc;
+      }, {} as Record<string, CalendarEvent[]>);
+  }, [allEvents]);
+  
+  const sortedGroupKeys = Object.keys(groupedEvents).sort();
 
   const openAddDialog = () => {
     setEditingAppointment(null);
@@ -102,13 +109,12 @@ export default function CalendarPage() {
   };
 
   return (
-    <Card className="bg-white/10 dark:bg-black/10 backdrop-blur-3xl border-white/20 dark:border-black/20 rounded-3xl shadow-2xl">
-        <CardContent className="p-4 sm:p-6">
-            <div className="flex h-full w-full flex-col">
+    <Card className="bg-white/10 dark:bg-black/10 backdrop-blur-3xl border-white/20 dark:border-black/20 rounded-3xl shadow-2xl h-full">
+        <CardContent className="p-4 sm:p-6 h-full flex flex-col">
             <div className="flex items-center justify-between pb-4 sm:pb-6 border-b flex-wrap gap-2">
                 <div>
-                    <h1 className="text-2xl font-bold">Calendário</h1>
-                    <p className="text-muted-foreground">Visualize seus compromissos e transações.</p>
+                    <h1 className="text-2xl font-bold">Agenda</h1>
+                    <p className="text-muted-foreground">Seus próximos compromissos.</p>
                 </div>
                 <div className="flex items-center gap-2">
                     <Button variant="outline" onClick={handleSync} disabled={isSyncing}>
@@ -126,123 +132,70 @@ export default function CalendarPage() {
                 </div>
             </div>
 
-            <div className="flex flex-1 flex-col md:flex-row gap-4 overflow-auto rounded-lg bg-transparent pt-4 sm:pt-6">
-                <div className="w-full md:w-auto md:max-w-sm">
-                    <Card className="bg-transparent">
-                        <CardContent className="p-0 sm:p-0">
-                             <Calendar
-                                mode="single"
-                                selected={selectedDate}
-                                onSelect={setSelectedDate}
-                                className="p-0"
-                                classNames={{
-                                    month: 'space-y-4 w-full',
-                                    table: 'w-full border-collapse',
-                                    head_row: 'grid grid-cols-7',
-                                    head_cell: 'text-muted-foreground rounded-md w-full font-normal text-[0.8rem] justify-center flex',
-                                    row: 'grid grid-cols-7 w-full mt-2',
-                                    cell: 'text-center text-sm p-0 relative focus-within:relative focus-within:z-20 flex justify-center',
-                                    day: cn(
-                                        'h-10 w-10 p-0 font-normal aria-selected:opacity-100 rounded-md',
-                                        buttonVariants({ variant: "ghost" })
-                                    ),
-                                    day_selected: "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground",
-                                }}
-                                locale={ptBR}
-                                modifiers={{ 
-                                    events: allEventsForMonth.map(e => e.date)
-                                }}
-                                modifiersClassNames={{
-                                    events: "bg-primary/10 rounded-full"
-                                }}
-                            />
-                        </CardContent>
-                    </Card>
-                </div>
-                <div className="flex-1">
-                    <Card className="h-full bg-transparent">
-                        <CardHeader>
-                            <CardTitle>
-                                {selectedDate ? (
-                                    <>
-                                    <span className="text-muted-foreground font-normal">Eventos para </span> 
-                                    {format(selectedDate, "d 'de' MMMM", { locale: ptBR })}
-                                    </>
-                                ): (
-                                    "Selecione uma data"
-                                )}
-                            </CardTitle>
-                            <CardDescription>
-                                {eventsForSelectedDay.length > 0 
-                                    ? `Você tem ${eventsForSelectedDay.length} evento(s) hoje.`
-                                    : `Nenhum evento agendado.`
-                                }
-                            </CardDescription>
-                        </CardHeader>
-                        
-                        <CardContent className="pt-0">
-                            {selectedDate ? (
-                                eventsForSelectedDay.length > 0 ? (
-                                <ul className="space-y-3">
-                                    {eventsForSelectedDay.map(event => (
-                                        <li key={event.id}>
-                                            <div className="flex items-center gap-4 border p-3 rounded-lg hover:bg-muted/50 transition-colors">
-                                                <div className={cn(
-                                                    "flex h-10 w-10 items-center justify-center rounded-lg text-lg shrink-0",
-                                                    !event.isGoogleEvent && 'bg-purple-100 dark:bg-purple-900/50',
-                                                    event.isGoogleEvent && 'bg-green-100 dark:bg-green-900/50'
-                                                )}>
-                                                {event.isGoogleEvent ?
-                                                    <Globe className="h-5 w-5 text-green-500" /> :
-                                                    <CalendarCheck className="h-5 w-5 text-purple-500" />
-                                                }
-                                                </div>
-                                                <div className="flex-1">
-                                                    <p className="font-semibold">{event.title}</p>
-                                                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                                                        <Badge variant="secondary" className="font-normal">{event.category}</Badge>
-                                                        {event.time && (
-                                                            <span>• {event.time}</span>
-                                                        )}
-                                                    </div>
-                                                </div>
-                                                {!event.isGoogleEvent && (
-                                                    <div className="flex items-center gap-1">
-                                                        <Button variant="ghost" size="icon" onClick={() => openEditDialog(event.raw)}>
-                                                        <Edit className="h-4 w-4" />
-                                                        </Button>
-                                                        <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={() => deleteAppointment(event.raw.id)}>
-                                                        <Trash2 className="h-4 w-4" />
-                                                        </Button>
-                                                    </div>
-                                                )}
+            <div className="flex-1 overflow-y-auto pt-4 sm:pt-6">
+                 {sortedGroupKeys.length > 0 ? (
+                    <div className="space-y-6">
+                        {sortedGroupKeys.map(dateKey => (
+                            <div key={dateKey}>
+                                <h2 className="font-semibold text-lg mb-3 capitalize text-primary">
+                                    {getRelativeDate(parseISO(dateKey))}
+                                </h2>
+                                <div className="space-y-3 border-l-2 border-primary/20 pl-6">
+                                    {groupedEvents[dateKey]
+                                        .sort((a,b) => (a.time || "23:59").localeCompare(b.time || "23:59"))
+                                        .map(event => (
+                                        <div key={event.id} className="relative flex items-center gap-4 border p-3 rounded-lg hover:bg-muted/50 transition-colors">
+                                             <div className="absolute -left-[35px] top-1/2 -translate-y-1/2 h-3 w-3 rounded-full bg-primary ring-4 ring-background"></div>
+                                            <div className={cn(
+                                                "flex h-10 w-10 items-center justify-center rounded-lg text-lg shrink-0",
+                                                !event.isGoogleEvent && 'bg-purple-100 dark:bg-purple-900/50',
+                                                event.isGoogleEvent && 'bg-green-100 dark:bg-green-900/50'
+                                            )}>
+                                            {event.isGoogleEvent ?
+                                                <Globe className="h-5 w-5 text-green-500" /> :
+                                                <CalendarCheck className="h-5 w-5 text-purple-500" />
+                                            }
                                             </div>
-                                        </li>
+                                            <div className="flex-1">
+                                                <p className="font-semibold">{event.title}</p>
+                                                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                                    <Badge variant="secondary" className="font-normal">{event.category}</Badge>
+                                                    {event.time && (
+                                                        <span>• {event.time}</span>
+                                                    )}
+                                                </div>
+                                            </div>
+                                            {!event.isGoogleEvent && (
+                                                <div className="flex items-center gap-1">
+                                                    <Button variant="ghost" size="icon" onClick={() => openEditDialog(event.raw)}>
+                                                    <Edit className="h-4 w-4" />
+                                                    </Button>
+                                                    <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={() => deleteAppointment(event.raw.id)}>
+                                                    <Trash2 className="h-4 w-4" />
+                                                    </Button>
+                                                </div>
+                                            )}
+                                        </div>
                                     ))}
-                                </ul>
-                                ) : (
-                                <div className="text-center text-muted-foreground py-16 flex flex-col items-center justify-center border-2 border-dashed rounded-lg h-full">
-                                    <CalendarIcon className="h-12 w-12 mb-4" />
-                                    <h3 className="text-lg font-medium">Nenhum evento para este dia.</h3>
-                                    <p className="text-sm">Selecione outra data ou adicione um novo evento.</p>
                                 </div>
-                                )
-                            ) : (
-                                <div className="text-center text-muted-foreground py-16">
-                                    <p>Selecione um dia no calendário para ver os eventos.</p>
-                                </div>
-                            )}
-                        </CardContent>
-                    </Card>
-                </div>
+                            </div>
+                        ))}
+                    </div>
+                ) : (
+                    <div className="text-center text-muted-foreground py-16 flex flex-col items-center justify-center border-2 border-dashed rounded-lg h-full">
+                        <CalendarIcon className="h-12 w-12 mb-4" />
+                        <h3 className="text-lg font-medium">Nenhum evento futuro.</h3>
+                        <p className="text-sm">Sincronize com o Google ou adicione um novo evento.</p>
+                    </div>
+                )}
             </div>
-            </div>
+            
             <AddAppointmentDialog
                 isOpen={isDialogOpen}
                 onClose={() => setIsDialogOpen(false)}
                 onSave={handleSaveAppointment}
                 appointment={editingAppointment}
-                selectedDate={selectedDate}
+                selectedDate={startOfToday()}
             />
         </CardContent>
     </Card>
