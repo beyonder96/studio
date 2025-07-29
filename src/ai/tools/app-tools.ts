@@ -73,34 +73,15 @@ export const getCalendarEvents = ai.defineTool(
           return [];
       }
       
-      const calendar = google.calendar({ 
-          version: 'v3', 
-          auth: process.env.GOOGLE_PLACES_API_KEY // Using API Key for public calendar read
-      });
-
-      // For this to work, the user's primary calendar needs to be public,
-      // or the API key needs to be configured with access to it.
-      // This is a simplification and has security implications.
-      // A full OAuth flow is required for private calendars.
-      const calendarId = 'primary'; // This will likely fail without OAuth. A public calendar ID is needed.
-      const userProfileRef = ref(getDatabase(firebaseApp), `users/${input.userId}/profile`);
-      
-      // We will try to get the user's email to use as calendar ID, which might work for public calendars.
-      const getEmail = () => new Promise<string|null>((resolve) => {
-          onValue(userProfileRef, (snapshot) => {
-              resolve(snapshot.val()?.email || null);
-          }, { onlyOnce: true });
-      });
-
-      const userEmail = await getEmail();
-
-      if (!userEmail) {
-          console.error("Could not retrieve user email for calendar ID.");
+      const auth = getGoogleAuth(input.userId);
+      if (!auth) {
+          console.error("Google Auth failed. Cannot fetch Google Calendar events.");
           return [];
       }
+      const calendar = google.calendar({ version: 'v3', auth });
 
       const response = await calendar.events.list({
-        calendarId: userEmail,
+        calendarId: 'primary',
         timeMin: input.timeMin,
         timeMax: input.timeMax,
         singleEvents: true,
@@ -381,3 +362,5 @@ export const addItemToShoppingList = ai.defineTool(
       });
   }
 );
+
+    
