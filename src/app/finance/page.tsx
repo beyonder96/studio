@@ -4,7 +4,7 @@
 import { useState, useContext, useEffect, useMemo } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { PlusCircle, ArrowUpCircle, ArrowDownCircle, Repeat, Edit, Trash2 } from 'lucide-react';
+import { PlusCircle, ArrowUpCircle, ArrowDownCircle, Repeat, Edit, Trash2, Calendar, Tag, MoreVertical } from 'lucide-react';
 import { TransactionsTable, Transaction } from '@/components/finance/transactions-table';
 import { AddTransactionDialog } from '@/components/finance/add-transaction-dialog';
 import {
@@ -28,6 +28,13 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { cn } from '@/lib/utils';
 
 const frequencyMap = {
   daily: 'Diária',
@@ -191,61 +198,99 @@ export default function FinancePage() {
                         </CardDescription>
                     </CardHeader>
                     <CardContent>
-                        <Table>
-                        <TableHeader>
-                            <TableRow>
-                            <TableHead>Descrição</TableHead>
-                            <TableHead>Categoria</TableHead>
-                            <TableHead>Frequência</TableHead>
-                            <TableHead>Próxima Data</TableHead>
-                            <TableHead className="text-right">Valor</TableHead>
-                            <TableHead className="w-[100px]">Ações</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
+                        {/* Mobile View */}
+                        <div className="space-y-3 sm:hidden">
                             {recurringTransactions.map((transaction) => (
-                            <TableRow key={transaction.id}>
-                                <TableCell className="font-medium">
-                                <div className="flex items-center gap-2">
-                                        <Repeat className="h-4 w-4 text-muted-foreground" />
-                                        <span>{transaction.description}</span>
+                                <Card key={transaction.id} className="bg-background/50">
+                                    <CardContent className="p-4 flex flex-col gap-3">
+                                        <div className="flex items-start justify-between">
+                                            <div className="flex items-center gap-2">
+                                                <Repeat className="h-5 w-5 text-muted-foreground" />
+                                                <p className="font-semibold text-base">{transaction.description}</p>
+                                            </div>
+                                            <p className={cn(
+                                                'font-mono font-semibold text-lg',
+                                                transaction.type === 'income' ? 'text-green-500' : 'text-red-500'
+                                            )}>
+                                                {formatCurrency(transaction.amount)}
+                                            </p>
+                                        </div>
+                                        <div className="flex items-center justify-between text-sm text-muted-foreground">
+                                             <Badge variant="secondary" className="font-normal">{transaction.category}</Badge>
+                                             <div className="flex items-center gap-2">
+                                                <span>{formatDate(transaction.date)}</span>
+                                                <span>•</span>
+                                                <span>{transaction.frequency ? frequencyMap[transaction.frequency] : 'N/A'}</span>
+                                             </div>
+                                        </div>
+                                         <div className="flex items-center justify-end gap-2 border-t pt-2 mt-2">
+                                            <Button variant="ghost" size="sm" onClick={() => openEditDialog(transaction)}>
+                                                <Edit className="mr-2 h-4 w-4" /> Editar
+                                            </Button>
+                                            <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive" onClick={() => setTransactionToDelete(transaction)}>
+                                                <Trash2 className="mr-2 h-4 w-4" /> Excluir
+                                            </Button>
+                                        </div>
+                                    </CardContent>
+                                </Card>
+                            ))}
+                        </div>
+
+                        {/* Desktop View */}
+                        <Table className="hidden sm:table">
+                            <TableHeader>
+                                <TableRow>
+                                <TableHead>Descrição</TableHead>
+                                <TableHead>Categoria</TableHead>
+                                <TableHead>Frequência</TableHead>
+                                <TableHead>Próxima Data</TableHead>
+                                <TableHead className="text-right">Valor</TableHead>
+                                <TableHead className="w-[100px]">Ações</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {recurringTransactions.map((transaction) => (
+                                <TableRow key={transaction.id}>
+                                    <TableCell className="font-medium">
+                                    <div className="flex items-center gap-2">
+                                            <Repeat className="h-4 w-4 text-muted-foreground" />
+                                            <span>{transaction.description}</span>
+                                        </div>
+                                    </TableCell>
+                                    <TableCell>
+                                    <Badge variant="secondary">{transaction.category}</Badge>
+                                    </TableCell>
+                                    <TableCell>
+                                    {transaction.frequency ? frequencyMap[transaction.frequency] : 'N/A'}
+                                    </TableCell>
+                                    <TableCell>{formatDate(transaction.date)}</TableCell>
+                                    <TableCell
+                                    className={`text-right font-medium ${
+                                        transaction.type === 'income' ? 'text-green-500' : 'text-red-500'
+                                    }`}
+                                    >
+                                    {formatCurrency(transaction.amount)}
+                                    </TableCell>
+                                    <TableCell>
+                                    <div className="flex items-center justify-end gap-2">
+                                        <Button variant="ghost" size="icon" onClick={() => openEditDialog(transaction)}>
+                                            <Edit className="h-4 w-4" />
+                                        </Button>
+                                        <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={() => setTransactionToDelete(transaction)}>
+                                            <Trash2 className="h-4 w-4" />
+                                        </Button>
                                     </div>
                                 </TableCell>
-                                <TableCell>
-                                <Badge variant="secondary">{transaction.category}</Badge>
-                                </TableCell>
-                                <TableCell>
-                                {transaction.frequency ? frequencyMap[transaction.frequency] : 'N/A'}
-                                </TableCell>
-                                <TableCell>{formatDate(transaction.date)}</TableCell>
-                                <TableCell
-                                className={`text-right font-medium ${
-                                    transaction.type === 'income' ? 'text-green-500' : 'text-red-500'
-                                }`}
-                                >
-                                {formatCurrency(transaction.amount)}
-                                </TableCell>
-                                <TableCell>
-                                <div className="flex items-center justify-end gap-2">
-                                    <Button variant="ghost" size="icon" onClick={() => openEditDialog(transaction)}>
-                                        <Edit className="h-4 w-4" />
-                                    </Button>
-                                    <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={() => setTransactionToDelete(transaction)}>
-                                        <Trash2 className="h-4 w-4" />
-                                    </Button>
-                                </div>
-                            </TableCell>
-                            </TableRow>
-                            ))}
-                            {recurringTransactions.length === 0 && (
-                                <TableRow>
-                                    <TableCell colSpan={6} className="text-center text-muted-foreground">
-                                        Nenhuma transação recorrente encontrada.
-                                    </TableCell>
                                 </TableRow>
-                            )}
-                        </TableBody>
+                                ))}
+                            </TableBody>
                         </Table>
+                        
+                        {recurringTransactions.length === 0 && (
+                            <div className="text-center text-muted-foreground py-10">
+                                Nenhuma transação recorrente encontrada.
+                            </div>
+                        )}
                     </CardContent>
                 </Card>
 
