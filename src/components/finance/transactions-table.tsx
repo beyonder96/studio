@@ -20,17 +20,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog"
-import { useContext, useState } from 'react';
+import { useContext } from 'react';
 import { FinanceContext } from '@/contexts/finance-context';
 
 
@@ -52,12 +42,11 @@ export type Transaction = {
 type TransactionsTableProps = {
   transactions: Transaction[];
   onEdit: (transaction: Transaction) => void;
-  onDelete: (id: string) => void;
+  onDeleteRequest: (transaction: Transaction) => void;
 };
 
-export function TransactionsTable({ transactions, onEdit, onDelete }: TransactionsTableProps) {
+export function TransactionsTable({ transactions, onEdit, onDeleteRequest }: TransactionsTableProps) {
     const { formatCurrency } = useContext(FinanceContext);
-    const [transactionToDelete, setTransactionToDelete] = useState<Transaction | null>(null);
 
     const formatDate = (dateString: string) => {
         const [year, month, day] = dateString.split('-').map(Number);
@@ -69,17 +58,6 @@ export function TransactionsTable({ transactions, onEdit, onDelete }: Transactio
             year: 'numeric',
             timeZone: 'UTC',
         }).format(date);
-    };
-    
-    const handleDeleteClick = (transaction: Transaction) => {
-        setTransactionToDelete(transaction);
-    };
-
-    const confirmDelete = () => {
-        if(transactionToDelete) {
-            onDelete(transactionToDelete.id);
-            setTransactionToDelete(null);
-        }
     };
 
   return (
@@ -126,7 +104,7 @@ export function TransactionsTable({ transactions, onEdit, onDelete }: Transactio
                                         <Edit className="mr-2 h-4 w-4" />
                                         Editar
                                     </DropdownMenuItem>
-                                    <DropdownMenuItem className="text-destructive" onClick={() => handleDeleteClick(transaction)}>
+                                    <DropdownMenuItem className="text-destructive" onClick={() => onDeleteRequest(transaction)}>
                                         <Trash2 className="mr-2 h-4 w-4" />
                                         Excluir
                                     </DropdownMenuItem>
@@ -178,7 +156,7 @@ export function TransactionsTable({ transactions, onEdit, onDelete }: Transactio
                         <Button variant="outline" size="icon" onClick={() => onEdit(transaction)}>
                         <Edit className="h-4 w-4" />
                         </Button>
-                        <Button variant="outline" size="icon" className="text-destructive hover:text-destructive" onClick={() => handleDeleteClick(transaction)}>
+                        <Button variant="outline" size="icon" className="text-destructive hover:text-destructive" onClick={() => onDeleteRequest(transaction)}>
                         <Trash2 className="h-4 w-4" />
                         </Button>
                     </div>
@@ -195,25 +173,6 @@ export function TransactionsTable({ transactions, onEdit, onDelete }: Transactio
                 <p className="text-sm">Clique em "Adicionar" para criar seu primeiro lançamento.</p>
             </div>
         )}
-
-        <AlertDialog open={!!transactionToDelete} onOpenChange={(open) => !open && setTransactionToDelete(null)}>
-            <AlertDialogContent>
-                <AlertDialogHeader>
-                <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
-                <AlertDialogDescription>
-                    Esta ação não pode ser desfeita. Isso irá excluir permanentemente a transação de 
-                    <span className="font-semibold"> "{transactionToDelete?.description}"</span>.
-                </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                <AlertDialogCancel onClick={() => setTransactionToDelete(null)}>Cancelar</AlertDialogCancel>
-                <AlertDialogAction onClick={confirmDelete} className="bg-destructive hover:bg-destructive/90">
-                    Sim, excluir
-                </AlertDialogAction>
-                </AlertDialogFooter>
-            </AlertDialogContent>
-        </AlertDialog>
-
     </div>
   );
 }

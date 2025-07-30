@@ -4,7 +4,7 @@
 import { useState, useContext, useEffect, useMemo } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { PlusCircle, ArrowUpCircle, ArrowDownCircle, Repeat, Edit, Trash2, Calendar, Tag, MoreVertical } from 'lucide-react';
+import { PlusCircle, ArrowUpCircle, ArrowDownCircle, Repeat, Edit, Trash2 } from 'lucide-react';
 import { TransactionsTable, Transaction } from '@/components/finance/transactions-table';
 import { AddTransactionDialog } from '@/components/finance/add-transaction-dialog';
 import {
@@ -28,12 +28,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
 import { cn } from '@/lib/utils';
 
 const frequencyMap = {
@@ -182,10 +176,7 @@ export default function FinancePage() {
                     <TransactionsTable 
                         transactions={transactions.filter(t => !t.isRecurring)} 
                         onEdit={openEditDialog}
-                        onDelete={(id) => {
-                            const transaction = transactions.find(t => t.id === id);
-                            if (transaction) setTransactionToDelete(transaction);
-                        }}
+                        onDeleteRequest={(transaction) => setTransactionToDelete(transaction)}
                     />
                     </CardContent>
                 </Card>

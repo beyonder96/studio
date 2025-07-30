@@ -5,7 +5,7 @@ import { useState } from 'react';
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Sparkles, Loader2, ArrowRight } from "lucide-react";
-import { processCommand } from '@/ai/flows/process-command-flow';
+import { processChat } from '@/ai/flows/process-chat-flow';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/auth-context';
 
@@ -20,15 +20,13 @@ export function CommandInput() {
 
         setIsLoading(true);
         try {
-            const result = await processCommand({ command, userId: user.uid });
+            const result = await processChat({ command, userId: user.uid });
             toast({
-                title: result.success ? 'Comando executado!' : 'Opa!',
-                description: result.message,
-                variant: result.success ? 'default' : 'destructive',
+                title: 'Assistente',
+                description: result.answer,
             });
-            if (result.success) {
-                setCommand('');
-            }
+            setCommand('');
+            
         } catch (error) {
             console.error("Failed to process command:", error);
             toast({

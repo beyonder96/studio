@@ -8,7 +8,7 @@ import './flows/generate-celebration-plan-flow';
 import './flows/generate-financial-insight-flow';
 import './flows/generate-memory-story-flow';
 import './flows/generate-conversation-starters-flow';
-import './flows/process-command-flow';
+import './flows/process-chat-flow';
 
 
 // Tools will be imported for their side effects in this file.

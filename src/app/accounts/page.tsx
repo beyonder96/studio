@@ -1,16 +1,16 @@
 
 'use client';
 
-import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Card, CardContent } from '@/components/ui/card';
 import { Loader2 } from 'lucide-react';
+import { useEffect } from 'react';
 
 export default function AccountsPage() {
   const router = useRouter();
 
   useEffect(() => {
-    // Redirect to settings page as this page is deprecated
+    // This page is deprecated and redirects to settings
     router.replace('/settings');
   }, [router]);
 
@@ -19,7 +19,7 @@ export default function AccountsPage() {
       <CardContent className="p-4 sm:p-6 h-full">
         <div className="flex flex-col items-center justify-center h-full text-center text-muted-foreground">
             <Loader2 className="h-12 w-12 animate-spin text-primary" />
-            <p className="mt-4 text-lg">Redirecionando...</p>
+            <p className="mt-4 text-lg">Redirecionando para os Ajustes...</p>
         </div>
       </CardContent>
     </Card>
