@@ -607,7 +607,7 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
         const now = new Date();
         const timeMin = now.toISOString();
         const timeMax = addDays(now, 90).toISOString(); // Fetch events for the next 90 days
-        const googleEvents = await getCalendarEvents({ userId, timeMin, timeMax });
+        const googleEvents = await getCalendarEvents({ timeMin, timeMax });
         const existingGoogleEventIds = new Set(appointments.filter(a => a.googleEventId).map(a => a.googleEventId));
         
         const newAppointments = googleEvents

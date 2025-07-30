@@ -9,7 +9,7 @@
 import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
 import { getDatabase, ref, push, set, onValue } from 'firebase/database';
-import { app as firebaseApp } from '@/lib/firebase';
+import { app as firebaseApp, auth } from '@/lib/firebase';
 import { format, parseISO } from 'date-fns';
 import { google } from 'googleapis';
 
@@ -17,28 +17,24 @@ import { google } from 'googleapis';
 // In a real app, you'd manage tokens more robustly (e.g., in a database).
 let oauth2Client: any;
 
-function getGoogleAuth(userId: string) {
+function getGoogleAuth() {
+    // This is a simplified auth flow for demonstration.
+    // In a production app, you would have a more robust token management system.
+    // It assumes the server has been authorized once to get a refresh token.
     if (oauth2Client) return oauth2Client;
     
-    // In a real app, you would fetch the user's stored tokens from a secure database
-    // using their userId. For this example, we'll simulate it.
-    console.log("Simulating fetching Google Auth tokens for user:", userId);
-
-    // This is a placeholder. A real implementation would require a full OAuth2 flow
-    // where the user grants permission and you receive and store their tokens.
-    // To make this work for testing, you would need to go through the OAuth flow
-    // once manually (e.g., via a script) to get a refresh token.
     const REFRESH_TOKEN = process.env.GOOGLE_REFRESH_TOKEN;
+    const CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
+    const CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
     
-    if (!REFRESH_TOKEN) {
-        console.warn("GOOGLE_REFRESH_TOKEN environment variable is not set. Google Calendar API calls will fail.");
+    if (!REFRESH_TOKEN || !CLIENT_ID || !CLIENT_SECRET) {
+        console.warn("Google Calendar API environment variables are not set. API calls will fail.");
         return null;
     }
 
     oauth2Client = new google.auth.OAuth2(
-        process.env.GOOGLE_CLIENT_ID,
-        process.env.GOOGLE_CLIENT_SECRET,
-        process.env.GOOGLE_REDIRECT_URI
+        CLIENT_ID,
+        CLIENT_SECRET
     );
 
     oauth2Client.setCredentials({
@@ -54,7 +50,6 @@ export const getCalendarEvents = ai.defineTool(
     name: 'getCalendarEvents',
     description: "Fetches events from the user's primary Google Calendar for a given time range.",
     inputSchema: z.object({
-      userId: z.string().describe("The user's unique ID. This MUST be provided."),
       timeMin: z.string().describe('The start of the time range, in ISO 8601 format.'),
       timeMax: z.string().describe('The end of the time range, in ISO 8601 format.'),
     }),
@@ -68,17 +63,12 @@ export const getCalendarEvents = ai.defineTool(
   },
   async (input) => {
     try {
-      if (!input.userId) {
-          console.warn("User ID is missing, cannot fetch calendar events.");
-          return [];
-      }
-      
-      const auth = getGoogleAuth(input.userId);
-      if (!auth) {
+      const authClient = getGoogleAuth();
+      if (!authClient) {
           console.error("Google Auth failed. Cannot fetch Google Calendar events.");
           return [];
       }
-      const calendar = google.calendar({ version: 'v3', auth });
+      const calendar = google.calendar({ version: 'v3', auth: authClient });
 
       const response = await calendar.events.list({
         calendarId: 'primary',
@@ -107,6 +97,18 @@ export const getCalendarEvents = ai.defineTool(
 
     } catch (error: any) {
         console.error("Failed to fetch Google Calendar events:", error.message);
+        // This could be a token error, try to refresh it.
+        if (oauth2Client) {
+            try {
+                const { token } = await oauth2Client.getAccessToken();
+                oauth2Client.setCredentials({ access_token: token });
+                 console.log("Google auth token refreshed. Retrying fetch...");
+                // Retry the call once
+                return await getCalendarEvents(input);
+            } catch (refreshError) {
+                console.error("Failed to refresh Google auth token:", refreshError);
+            }
+        }
         return [];
     }
   }
@@ -138,14 +140,13 @@ export const createCalendarEvent = ai.defineTool(
           return { success: false };
       }
       
-      const auth = getGoogleAuth(input.userId);
-      if (!auth) {
+      const authClient = getGoogleAuth();
+      if (!authClient) {
           console.error("Google Auth failed. Cannot create Google Calendar event.");
-          // We could decide to still create it in Firebase, but for sync, let's fail.
           return { success: false };
       }
       
-      const calendar = google.calendar({ version: 'v3', auth });
+      const calendar = google.calendar({ version: 'v3', auth: authClient });
       const eventStartTime = input.time ? parseISO(`${input.date}T${input.time}:00`) : parseISO(input.date);
       const eventEndTime = input.time ? new Date(eventStartTime.getTime() + 60 * 60 * 1000) : new Date(eventStartTime.getTime() + 24 * 60 * 60 * 1000); // 1 hour duration or all-day
 
@@ -174,8 +175,6 @@ export const createCalendarEvent = ai.defineTool(
         console.log('Event created in Google Calendar:', googleEventId);
       } catch (googleError) {
           console.error("Failed to create Google Calendar event:", googleError);
-          // Decide if you still want to create the event in Firebase if Google fails
-          // For now, we will return an error.
           return { success: false };
       }
 
@@ -362,5 +361,3 @@ export const addItemToShoppingList = ai.defineTool(
       });
   }
 );
-
-    
