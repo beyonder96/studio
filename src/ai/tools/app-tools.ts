@@ -44,6 +44,61 @@ function getGoogleAuth() {
     return oauth2Client;
 }
 
+export const getCalendarEvents = ai.defineTool(
+    {
+        name: 'getCalendarEvents',
+        description: 'Retrieves the next 20 events from the primary Google Calendar.',
+        outputSchema: z.array(z.object({
+            id: z.string(),
+            title: z.string(),
+            date: z.string(),
+            time: z.string().optional(),
+            isGoogleEvent: z.boolean(),
+        })),
+    },
+    async () => {
+        const authClient = getGoogleAuth();
+        if (!authClient) {
+            console.error("Google Auth client not available.");
+            return [];
+        }
+
+        const calendar = google.calendar({ version: 'v3', auth: authClient });
+        try {
+            const response = await calendar.events.list({
+                calendarId: 'primary',
+                timeMin: new Date().toISOString(),
+                maxResults: 20,
+                singleEvents: true,
+                orderBy: 'startTime',
+            });
+
+            const events = response.data.items;
+            if (!events || events.length === 0) {
+                return [];
+            }
+
+            return events.map(event => {
+                const start = event.start?.dateTime || event.start?.date;
+                if (!start) return null;
+
+                const date = parseISO(start);
+                return {
+                    id: event.id!,
+                    title: event.summary || 'Sem Título',
+                    date: format(date, 'yyyy-MM-dd'),
+                    time: event.start?.dateTime ? format(date, 'HH:mm') : undefined,
+                    isGoogleEvent: true,
+                };
+            }).filter(Boolean) as any[];
+
+        } catch (error) {
+            console.error("Failed to fetch Google Calendar events:", error);
+            return [];
+        }
+    }
+);
+
 
 export const createCalendarEvent = ai.defineTool(
   {

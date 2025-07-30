@@ -9,9 +9,12 @@ import { format, isSameDay, startOfToday, parseISO, endOfToday, addDays, isTomor
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { Calendar as CalendarIcon, CalendarCheck, PlusCircle, Edit, Trash2, Globe, RefreshCw } from 'lucide-react';
+import { Calendar as CalendarIcon, CalendarCheck, PlusCircle, Edit, Trash2, Globe, RefreshCw, Loader2 } from 'lucide-react';
 import { AddAppointmentDialog } from '@/components/calendar/add-appointment-dialog';
 import { useAuth } from '@/contexts/auth-context';
+import { getCalendarEvents } from '@/ai/tools/app-tools';
+import { useToast } from '@/hooks/use-toast';
+
 
 type CalendarEvent = {
   id: string;
@@ -20,7 +23,7 @@ type CalendarEvent = {
   type: 'appointment';
   category: string;
   date: Date;
-  raw: Appointment;
+  raw: Appointment | { id: string; title: string; date: string; time?: string; isGoogleEvent: boolean };
   isGoogleEvent?: boolean;
 };
 
@@ -41,11 +44,14 @@ export default function CalendarPage() {
     updateAppointment, 
     deleteAppointment,
    } = useContext(FinanceContext);
+  const { toast } = useToast();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingAppointment, setEditingAppointment] = useState<Appointment | null>(null);
+  const [googleEvents, setGoogleEvents] = useState<any[]>([]);
+  const [isSyncing, setIsSyncing] = useState(false);
 
   const allEvents = useMemo(() => {
-    return appointments.map((a: Appointment) => ({
+    const localAppointments = appointments.map((a: Appointment) => ({
       id: a.googleEventId ? `gcal-${a.googleEventId}` : `appt-${a.id}`,
       title: a.title,
       type: 'appointment' as 'appointment',
@@ -54,9 +60,25 @@ export default function CalendarPage() {
       time: a.time,
       raw: a,
       isGoogleEvent: !!a.googleEventId,
-    }))
-    .sort((a,b) => a.date.getTime() - b.date.getTime());
-  }, [appointments]);
+    }));
+
+    const syncedGoogleEvents = googleEvents.map(g => ({
+        id: `gcal-${g.id}`,
+        title: g.title,
+        type: 'appointment' as 'appointment',
+        category: 'Google',
+        date: parseISO(g.date),
+        time: g.time,
+        raw: g,
+        isGoogleEvent: true,
+    }));
+    
+    // Simple deduplication based on id
+    const combined = [...localAppointments, ...syncedGoogleEvents];
+    const uniqueEvents = Array.from(new Map(combined.map(e => [e.id, e])).values());
+
+    return uniqueEvents.sort((a,b) => a.date.getTime() - b.date.getTime());
+  }, [appointments, googleEvents]);
   
   const groupedEvents = useMemo(() => {
       const today = startOfToday();
@@ -93,6 +115,19 @@ export default function CalendarPage() {
     setIsDialogOpen(false);
   };
 
+  const handleSync = async () => {
+    setIsSyncing(true);
+    try {
+        const events = await getCalendarEvents();
+        setGoogleEvents(events);
+        toast({ title: "Sincronização Concluída", description: `${events.length} eventos encontrados no Google Calendar.` });
+    } catch(e) {
+        toast({ variant: "destructive", title: "Erro de Sincronização", description: "Não foi possível buscar os eventos do Google Calendar." });
+    } finally {
+        setIsSyncing(false);
+    }
+  }
+
   return (
     <Card className="bg-white/10 dark:bg-black/10 backdrop-blur-3xl border-white/20 dark:border-black/20 rounded-3xl shadow-2xl h-full">
         <CardContent className="p-4 sm:p-6 h-full flex flex-col">
@@ -102,6 +137,10 @@ export default function CalendarPage() {
                     <p className="text-muted-foreground">Seus próximos compromissos.</p>
                 </div>
                 <div className="flex items-center gap-2">
+                    <Button variant="outline" onClick={handleSync} disabled={isSyncing}>
+                        {isSyncing ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <RefreshCw className="mr-2 h-4 w-4" />}
+                        Sincronizar
+                    </Button>
                     <Button onClick={openAddDialog}>
                         <PlusCircle className="mr-2 h-4 w-4" />
                         Adicionar Evento
@@ -144,10 +183,10 @@ export default function CalendarPage() {
                                             </div>
                                             {!event.isGoogleEvent && (
                                                 <div className="flex items-center gap-1">
-                                                    <Button variant="ghost" size="icon" onClick={() => openEditDialog(event.raw)}>
+                                                    <Button variant="ghost" size="icon" onClick={() => openEditDialog(event.raw as Appointment)}>
                                                     <Edit className="h-4 w-4" />
                                                     </Button>
-                                                    <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={() => deleteAppointment(event.raw.id)}>
+                                                    <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={() => deleteAppointment((event.raw as Appointment).id)}>
                                                     <Trash2 className="h-4 w-4" />
                                                     </Button>
                                                 </div>
@@ -162,7 +201,7 @@ export default function CalendarPage() {
                     <div className="text-center text-muted-foreground py-16 flex flex-col items-center justify-center border-2 border-dashed rounded-lg h-full">
                         <CalendarIcon className="h-12 w-12 mb-4" />
                         <h3 className="text-lg font-medium">Nenhum evento futuro.</h3>
-                        <p className="text-sm">Adicione um novo evento para começar.</p>
+                        <p className="text-sm">Adicione um novo evento ou sincronize com o Google.</p>
                     </div>
                 )}
             </div>
