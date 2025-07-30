@@ -49,7 +49,11 @@ type EditAccountCardDialogProps = {
 export function EditAccountCardDialog({ isOpen, onClose, onSave, item }: EditAccountCardDialogProps) {
   const isEditing = !!item;
   const itemType = item && 'balance' in item ? 'account' : 'card';
-  const [activeTab, setActiveTab] = useState<'account' | 'card'>(isEditing ? itemType : 'account');
+  
+  // Start with 'account' tab if adding new, otherwise based on item being edited.
+  // If adding new, but from the cards page, default to 'card'.
+  // We can't know the origin page here, so the logic in `useEffect` is more important.
+  const [activeTab, setActiveTab] = useState<'account' | 'card'>(item ? itemType : 'account');
   
   const {
     register,
@@ -57,6 +61,7 @@ export function EditAccountCardDialog({ isOpen, onClose, onSave, item }: EditAcc
     control,
     reset,
     formState: { errors },
+    setValue
   } = useForm<AccountCardFormData>({
     resolver: zodResolver(formSchema),
   });
@@ -67,13 +72,15 @@ export function EditAccountCardDialog({ isOpen, onClose, onSave, item }: EditAcc
         // Editing
         const type = 'balance' in item ? 'account' : 'card';
         setActiveTab(type);
+         setValue('type', type);
         reset({
           type,
           name: item.name,
           ...(type === 'account' ? { balance: (item as Account).balance } : { limit: (item as CardType).limit, dueDay: (item as CardType).dueDay }),
         });
       } else {
-        // Adding new
+        // Adding new. Default to the current active tab.
+        setValue('type', activeTab);
         reset({
           type: activeTab,
           name: '',
@@ -81,7 +88,7 @@ export function EditAccountCardDialog({ isOpen, onClose, onSave, item }: EditAcc
         });
       }
     }
-  }, [isOpen, reset, item, activeTab]);
+  }, [isOpen, reset, item, activeTab, setValue]);
 
   const onSubmit = (data: AccountCardFormData) => {
     onSave(data);
@@ -104,7 +111,7 @@ export function EditAccountCardDialog({ isOpen, onClose, onSave, item }: EditAcc
                 </TabsList>
                 <TabsContent value="account" className="pt-4">
                     <div className="space-y-4">
-                        <input type="hidden" {...register('type')} value="account" />
+                        <Controller name="type" control={control} render={({ field }) => <input type="hidden" {...field} value="account" />} />
                         <div className="space-y-2">
                             <Label htmlFor="account-name">Nome da Conta</Label>
                             <Input id="account-name" {...register('name')} placeholder="Ex: Conta Corrente" />
@@ -129,7 +136,7 @@ export function EditAccountCardDialog({ isOpen, onClose, onSave, item }: EditAcc
                 </TabsContent>
                 <TabsContent value="card" className="pt-4">
                      <div className="space-y-4">
-                        <input type="hidden" {...register('type')} value="card" />
+                        <Controller name="type" control={control} render={({ field }) => <input type="hidden" {...field} value="card" />} />
                         <div className="space-y-2">
                             <Label htmlFor="card-name">Nome do Cartão</Label>
                             <Input id="card-name" {...register('name')} placeholder="Ex: Cartão Principal" />

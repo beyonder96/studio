@@ -4,16 +4,28 @@
 import { useState, useContext, useMemo, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Carousel, CarouselContent, CarouselItem, type CarouselApi } from '@/components/ui/carousel';
-import { FinanceContext, Transaction } from '@/contexts/finance-context';
+import { FinanceContext, Transaction, Card as CardType } from '@/contexts/finance-context';
 import { cn } from '@/lib/utils';
 import { AnimatePresence, motion } from 'framer-motion';
 import { addDays, format, setDate } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { TransactionsTable } from '@/components/finance/transactions-table';
 import { Button } from '@/components/ui/button';
-import { PlusCircle, Info, CalendarClock, ShoppingBag } from 'lucide-react';
+import { PlusCircle, Info, CalendarClock, ShoppingBag, Edit, Trash2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/auth-context';
+import { EditAccountCardDialog } from '@/components/settings/edit-account-card-dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import type { Account } from '@/contexts/finance-context';
 
 const GlassCard = ({ cardName }: { cardName: string }) => {
   const { user } = useAuth();
@@ -34,10 +46,23 @@ const GlassCard = ({ cardName }: { cardName: string }) => {
 };
 
 export default function CardsPage() {
-  const { cards, transactions, deleteTransaction, updateTransaction } = useContext(FinanceContext);
+  const { 
+    cards, 
+    transactions, 
+    deleteTransaction, 
+    updateTransaction,
+    addCard,
+    updateCard,
+    deleteCard,
+ } = useContext(FinanceContext);
   const router = useRouter();
   const [api, setApi] = useState<CarouselApi>();
   const [currentCardIndex, setCurrentCardIndex] = useState(0);
+
+  const [isAccountCardDialogOpen, setIsAccountCardDialogOpen] = useState(false);
+  const [editingItem, setEditingItem] = useState<Account | CardType | null>(null);
+  const [cardToDelete, setCardToDelete] = useState<CardType | null>(null);
+
 
   useEffect(() => {
     if (!api) return;
@@ -79,6 +104,35 @@ export default function CardsPage() {
   };
   
   const cardInfo = selectedCard ? getCardInfo(selectedCard.dueDay) : null;
+
+  const openAddDialog = () => {
+    setEditingItem(null);
+    setIsAccountCardDialogOpen(true);
+  }
+
+  const openEditDialog = (item: CardType) => {
+    setEditingItem(item);
+    setIsAccountCardDialogOpen(true);
+  }
+
+  const handleDeleteConfirm = () => {
+    if (!cardToDelete) return;
+    deleteCard(cardToDelete.id);
+    setCardToDelete(null);
+  };
+  
+  const handleSaveAccountCard = (data: ({ type: 'account' | 'card' } & Partial<Account> & Partial<CardType>)) => {
+    if (editingItem) { // Editing existing item
+        if (data.type === 'card' && data.name && data.limit !== undefined && data.dueDay !== undefined) {
+            updateCard(editingItem.id, { name: data.name, limit: data.limit, dueDay: data.dueDay });
+        }
+    } else { // Adding new item
+        if (data.type === 'card' && data.name && data.limit !== undefined && data.dueDay !== undefined) {
+            addCard({ name: data.name, limit: data.limit, dueDay: data.dueDay });
+        }
+    }
+    setIsAccountCardDialogOpen(false);
+  };
   
   if (cards.length === 0) {
       return (
@@ -86,18 +140,31 @@ export default function CardsPage() {
             <CardContent className="p-4 sm:p-6 h-full flex flex-col items-center justify-center text-center">
                 <Info className="h-12 w-12 mb-4 text-primary"/>
                 <h2 className="text-2xl font-bold">Nenhum Cartão de Crédito</h2>
-                <p className="text-muted-foreground mt-2">Adicione seu primeiro cartão de crédito nos Ajustes para começar.</p>
-                <Button className="mt-6" onClick={() => router.push('/settings')}>
+                <p className="text-muted-foreground mt-2">Adicione seu primeiro cartão de crédito para começar.</p>
+                <Button className="mt-6" onClick={openAddDialog}>
                     <PlusCircle className="mr-2 h-4 w-4"/>
                     Adicionar Cartão
                 </Button>
             </CardContent>
+            <EditAccountCardDialog 
+                isOpen={isAccountCardDialogOpen}
+                onClose={() => setIsAccountCardDialogOpen(false)}
+                onSave={handleSaveAccountCard}
+                item={editingItem}
+            />
         </Card>
       )
   }
 
   return (
     <div className="space-y-6">
+        <div className="flex justify-end">
+            <Button onClick={openAddDialog}>
+                <PlusCircle className="mr-2 h-4 w-4"/>
+                Adicionar Cartão
+            </Button>
+        </div>
+
       <Carousel setApi={setApi} className="w-full max-w-md mx-auto">
         <CarouselContent>
           {cards.map((card) => (
@@ -119,10 +186,22 @@ export default function CardsPage() {
         {selectedCard && (
             <Card className="bg-white/10 dark:bg-black/10 backdrop-blur-3xl border-white/20 dark:border-black/20 rounded-3xl shadow-2xl">
                 <CardHeader>
-                    <CardTitle>{selectedCard.name}</CardTitle>
-                    <CardDescription>
-                        Limite de {selectedCard.limit.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
-                    </CardDescription>
+                    <div className="flex justify-between items-start">
+                        <div>
+                            <CardTitle>{selectedCard.name}</CardTitle>
+                            <CardDescription>
+                                Limite de {selectedCard.limit.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                            </CardDescription>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <Button variant="outline" size="icon" onClick={() => openEditDialog(selectedCard)}>
+                                <Edit className="h-4 w-4" />
+                            </Button>
+                             <Button variant="outline" size="icon" className="text-destructive hover:text-destructive" onClick={() => setCardToDelete(selectedCard)}>
+                                <Trash2 className="h-4 w-4" />
+                            </Button>
+                        </div>
+                    </div>
                 </CardHeader>
                 <CardContent className="space-y-6">
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-center">
@@ -151,6 +230,30 @@ export default function CardsPage() {
         )}
         </motion.div>
       </AnimatePresence>
+      <EditAccountCardDialog 
+          isOpen={isAccountCardDialogOpen}
+          onClose={() => setIsAccountCardDialogOpen(false)}
+          onSave={handleSaveAccountCard}
+          item={editingItem}
+      />
+      <AlertDialog open={!!cardToDelete} onOpenChange={(open) => !open && setCardToDelete(null)}>
+        <AlertDialogContent>
+            <AlertDialogHeader>
+                <AlertDialogTitle>Excluir cartão?</AlertDialogTitle>
+                <AlertDialogDescription>
+                    Tem certeza que deseja excluir o cartão "{cardToDelete?.name}"? Todas as transações associadas também serão excluídas.
+                    <br/><br/>
+                    Esta ação não pode ser desfeita.
+                </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+                <AlertDialogCancel onClick={() => setCardToDelete(null)}>Cancelar</AlertDialogCancel>
+                <AlertDialogAction onClick={handleDeleteConfirm} className="bg-destructive hover:bg-destructive/90">
+                    Sim, excluir
+                </AlertDialogAction>
+            </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
