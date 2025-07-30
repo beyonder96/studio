@@ -26,19 +26,22 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import type { Account } from '@/contexts/finance-context';
+import { getDatabase, ref, onValue } from 'firebase/database';
+import { app as firebaseApp } from '@/lib/firebase';
+import { CardBrandLogo } from '@/components/cards/card-brand-logo';
 
-const GlassCard = ({ cardName }: { cardName: string }) => {
-  const { user } = useAuth();
+
+const GlassCard = ({ card }: { card: CardType }) => {
   return (
     <div className="relative w-full aspect-[1.586] rounded-xl bg-black/20 dark:bg-white/20 backdrop-blur-lg shadow-2xl p-6 text-white overflow-hidden">
       <div className="absolute top-0 left-0 w-48 h-48 bg-primary/40 rounded-full -translate-x-1/2 -translate-y-1/4"></div>
       <div className="absolute bottom-0 right-0 w-48 h-48 bg-fuchsia-500/30 rounded-full translate-x-1/2 translate-y-1/4"></div>
       <div className="relative z-10 flex flex-col justify-between h-full">
         <h3 className="text-xl font-semibold">Vida a 2</h3>
-        <p className="text-2xl font-mono tracking-widest">{cardName}</p>
+        <p className="text-2xl font-mono tracking-widest">{card.name}</p>
         <div className="flex justify-between items-end">
-          <p className="text-sm uppercase">{user?.displayName || 'Casal'}</p>
-          <p className="text-lg font-bold">VISA</p>
+          <p className="text-sm uppercase">{card.holder}</p>
+          <CardBrandLogo brand={card.brand} className="h-8" />
         </div>
       </div>
     </div>
@@ -56,12 +59,30 @@ export default function CardsPage() {
     deleteCard,
  } = useContext(FinanceContext);
   const router = useRouter();
+  const { user } = useAuth();
   const [api, setApi] = useState<CarouselApi>();
   const [currentCardIndex, setCurrentCardIndex] = useState(0);
 
   const [isAccountCardDialogOpen, setIsAccountCardDialogOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<Account | CardType | null>(null);
   const [cardToDelete, setCardToDelete] = useState<CardType | null>(null);
+  const [coupleNames, setCoupleNames] = useState<string[]>([]);
+
+  useEffect(() => {
+    if (user) {
+      const db = getDatabase(firebaseApp);
+      const namesRef = ref(db, `users/${user.uid}/profile/names`);
+      const unsubscribe = onValue(namesRef, (snapshot) => {
+        const data = snapshot.val();
+        if (data && typeof data === 'string') {
+          setCoupleNames(data.split(' & ').map((name: string) => name.trim()));
+        } else {
+          setCoupleNames([user.displayName || 'Pessoa 1', 'Pessoa 2']);
+        }
+      });
+      return () => unsubscribe();
+    }
+  }, [user]);
 
 
   useEffect(() => {
@@ -123,12 +144,12 @@ export default function CardsPage() {
   
   const handleSaveAccountCard = (data: ({ type: 'account' | 'card' } & Partial<Account> & Partial<CardType>)) => {
     if (editingItem) { // Editing existing item
-        if (data.type === 'card' && data.name && data.limit !== undefined && data.dueDay !== undefined) {
-            updateCard(editingItem.id, { name: data.name, limit: data.limit, dueDay: data.dueDay });
+        if (data.type === 'card' && data.name && data.limit !== undefined && data.dueDay !== undefined && data.holder && data.brand) {
+            updateCard(editingItem.id, { name: data.name, limit: data.limit, dueDay: data.dueDay, holder: data.holder, brand: data.brand });
         }
     } else { // Adding new item
-        if (data.type === 'card' && data.name && data.limit !== undefined && data.dueDay !== undefined) {
-            addCard({ name: data.name, limit: data.limit, dueDay: data.dueDay });
+        if (data.type === 'card' && data.name && data.limit !== undefined && data.dueDay !== undefined && data.holder && data.brand) {
+            addCard({ name: data.name, limit: data.limit, dueDay: data.dueDay, holder: data.holder, brand: data.brand });
         }
     }
     setIsAccountCardDialogOpen(false);
@@ -152,6 +173,7 @@ export default function CardsPage() {
                 onSave={handleSaveAccountCard}
                 item={editingItem}
                 allowedTypes={['card']}
+                coupleNames={coupleNames}
             />
         </Card>
       )
@@ -170,7 +192,7 @@ export default function CardsPage() {
         <CarouselContent>
           {cards.map((card) => (
             <CarouselItem key={card.id}>
-              <GlassCard cardName={card.name} />
+              <GlassCard card={card} />
             </CarouselItem>
           ))}
         </CarouselContent>
@@ -237,6 +259,7 @@ export default function CardsPage() {
           onSave={handleSaveAccountCard}
           item={editingItem}
           allowedTypes={['card']}
+          coupleNames={coupleNames}
       />
       <AlertDialog open={!!cardToDelete} onOpenChange={(open) => !open && setCardToDelete(null)}>
         <AlertDialogContent>

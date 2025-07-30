@@ -20,7 +20,13 @@ import { CurrencyInput } from '@/components/finance/currency-input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useState, useEffect } from 'react';
 import type { Account, Card as CardType } from '@/contexts/finance-context';
-
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
 const accountSchema = z.object({
   type: z.literal('account'),
@@ -33,6 +39,8 @@ const cardSchema = z.object({
   name: z.string().min(1, 'O nome é obrigatório'),
   limit: z.coerce.number().min(1, 'O limite deve ser maior que zero'),
   dueDay: z.coerce.number().min(1, 'Dia inválido').max(31, 'Dia inválido'),
+  holder: z.string().min(1, 'O titular é obrigatório'),
+  brand: z.enum(['visa', 'mastercard', 'elo', 'amex']),
 });
 
 const formSchema = z.discriminatedUnion('type', [accountSchema, cardSchema]);
@@ -45,9 +53,10 @@ type EditAccountCardDialogProps = {
   onSave: (data: AccountCardFormData) => void;
   item: Account | CardType | null;
   allowedTypes?: ('account' | 'card')[];
+  coupleNames?: string[];
 };
 
-export function EditAccountCardDialog({ isOpen, onClose, onSave, item, allowedTypes = ['account', 'card'] }: EditAccountCardDialogProps) {
+export function EditAccountCardDialog({ isOpen, onClose, onSave, item, allowedTypes = ['account', 'card'], coupleNames = [] }: EditAccountCardDialogProps) {
   const isEditing = !!item;
   const itemType = item && 'balance' in item ? 'account' : 'card';
   
@@ -76,7 +85,7 @@ export function EditAccountCardDialog({ isOpen, onClose, onSave, item, allowedTy
         reset({
           type,
           name: item.name,
-          ...(type === 'account' ? { balance: (item as Account).balance } : { limit: (item as CardType).limit, dueDay: (item as CardType).dueDay }),
+          ...(type === 'account' ? { balance: (item as Account).balance } : { limit: (item as CardType).limit, dueDay: (item as CardType).dueDay, holder: (item as CardType).holder, brand: (item as CardType).brand }),
         });
       } else {
         // Adding new
@@ -84,11 +93,11 @@ export function EditAccountCardDialog({ isOpen, onClose, onSave, item, allowedTy
         reset({
           type: defaultTab,
           name: '',
-          ...(defaultTab === 'account' ? { balance: 0 } : { limit: 1000, dueDay: 10 }),
+          ...(defaultTab === 'account' ? { balance: 0 } : { limit: 1000, dueDay: 10, holder: coupleNames[0] || '', brand: 'visa' }),
         });
       }
     }
-  }, [isOpen, reset, item, allowedTypes, itemType, setValue]);
+  }, [isOpen, reset, item, allowedTypes, itemType, setValue, coupleNames]);
 
   const onSubmit = (data: AccountCardFormData) => {
     onSave(data);
@@ -126,10 +135,55 @@ export function EditAccountCardDialog({ isOpen, onClose, onSave, item, allowedTy
     <div className="space-y-4 pt-4">
         <Controller name="type" control={control} render={({ field }) => <input type="hidden" {...field} value="card" />} />
         <div className="space-y-2">
-            <Label htmlFor="card-name">Nome do Cartão</Label>
+            <Label htmlFor="card-name">Apelido do Cartão</Label>
             <Input id="card-name" {...register('name')} placeholder="Ex: Cartão Principal" />
             {errors.name && errors.type === 'card' && <p className="text-red-500 text-xs mt-1">{errors.name.message}</p>}
         </div>
+
+        <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+                <Label htmlFor="holder">Titular</Label>
+                <Controller
+                    name="holder"
+                    control={control}
+                    render={({ field }) => (
+                    <Select onValueChange={field.onChange} value={field.value}>
+                        <SelectTrigger id="holder">
+                            <SelectValue placeholder="Selecione o titular" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {coupleNames.map(name => (
+                                <SelectItem key={name} value={name}>{name}</SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                    )}
+                />
+                {errors.holder && errors.type === 'card' && <p className="text-red-500 text-xs mt-1">{errors.holder.message}</p>}
+            </div>
+            <div className="space-y-2">
+                <Label htmlFor="brand">Bandeira</Label>
+                 <Controller
+                    name="brand"
+                    control={control}
+                    render={({ field }) => (
+                    <Select onValueChange={field.onChange} value={field.value}>
+                        <SelectTrigger id="brand">
+                            <SelectValue placeholder="Selecione a bandeira" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="visa">Visa</SelectItem>
+                            <SelectItem value="mastercard">Mastercard</SelectItem>
+                            <SelectItem value="elo">Elo</SelectItem>
+                            <SelectItem value="amex">Amex</SelectItem>
+                        </SelectContent>
+                    </Select>
+                    )}
+                />
+                 {errors.brand && errors.type === 'card' && <p className="text-red-500 text-xs mt-1">{errors.brand.message}</p>}
+            </div>
+        </div>
+
         <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
                 <Label htmlFor="limit">Limite</Label>
@@ -169,8 +223,8 @@ export function EditAccountCardDialog({ isOpen, onClose, onSave, item, allowedTy
             {showTabs ? (
                 <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'account' | 'card')} className="w-full">
                     <TabsList className="grid w-full grid-cols-2">
-                        <TabsTrigger value="account" disabled={isEditing && itemType !== 'account'}>Conta</TabsTrigger>
-                        <TabsTrigger value="card" disabled={isEditing && itemType !== 'card'}>Cartão de Crédito</TabsTrigger>
+                        {allowedTypes.includes('account') && <TabsTrigger value="account" disabled={isEditing && itemType !== 'account'}>Conta</TabsTrigger>}
+                        {allowedTypes.includes('card') && <TabsTrigger value="card" disabled={isEditing && itemType !== 'card'}>Cartão de Crédito</TabsTrigger>}
                     </TabsList>
                     <TabsContent value="account">
                         {AccountForm}

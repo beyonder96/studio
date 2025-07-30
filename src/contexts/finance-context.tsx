@@ -17,7 +17,7 @@ const initialTransactions: Transaction[] = [
     { id: '2', description: 'Aluguel', amount: -1500, date: format(new Date(), 'yyyy-MM-10'), type: 'expense', category: 'Moradia', isRecurring: true, frequency: 'monthly' },
 ];
 const initialAccounts = [ { id: 'acc1', name: 'Conta Corrente', balance: 3500, type: 'checking' } ];
-const initialCards = [ { id: 'card1', name: 'Cartão de Crédito', limit: 5000, dueDay: 10 } ];
+const initialCards = [ { id: 'card1', name: 'Cartão de Crédito', limit: 5000, dueDay: 10, holder: 'Pessoa 1', brand: 'visa' } ];
 const initialIncomeCategories = ['Salário', 'Freelance', 'Investimentos', 'Outros'];
 const initialExpenseCategories = ['Alimentação', 'Moradia', 'Transporte', 'Lazer', 'Saúde', 'Educação', 'Compras', 'Transferência', 'Investimento', 'Outros'];
 const initialPantryCategories: PantryCategory[] = [ 'Laticínios', 'Carnes', 'Peixes', 'Frutas e Vegetais', 'Grãos e Cereais', 'Enlatados e Conservas', 'Bebidas', 'Higiene e Limpeza', 'Outros' ];
@@ -39,7 +39,7 @@ const allAchievements: Achievement[] = [
 
 
 export type Account = { id: string; name: string; balance: number; type: 'checking' | 'savings'; }
-export type Card = { id: string; name: string; limit: number; dueDay: number; }
+export type Card = { id: string; name: string; limit: number; dueDay: number; holder: string; brand: 'visa' | 'mastercard' | 'elo' | 'amex'; };
 export type Appointment = { id: string; title: string; date: string; time?: string; category: string; notes?: string; googleEventId?: string; };
 export type PantryCategory = string;
 export type PantryItem = { id: string; name: string; quantity: number; pantryCategory: PantryCategory; }
@@ -851,5 +851,3 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
     </FinanceContext.Provider>
   );
 };
-
-    
