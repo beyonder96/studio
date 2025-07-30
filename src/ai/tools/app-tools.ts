@@ -45,76 +45,6 @@ function getGoogleAuth() {
 }
 
 
-export const getCalendarEvents = ai.defineTool(
-  {
-    name: 'getCalendarEvents',
-    description: "Fetches events from the user's primary Google Calendar for a given time range.",
-    inputSchema: z.object({
-      timeMin: z.string().describe('The start of the time range, in ISO 8601 format.'),
-      timeMax: z.string().describe('The end of the time range, in ISO 8601 format.'),
-    }),
-    outputSchema: z.array(z.object({
-      id: z.string(),
-      title: z.string(),
-      date: z.string(),
-      time: z.string().optional(),
-      notes: z.string().optional(),
-    })),
-  },
-  async (input) => {
-    try {
-      const authClient = getGoogleAuth();
-      if (!authClient) {
-          console.error("Google Auth failed. Cannot fetch Google Calendar events.");
-          return [];
-      }
-      const calendar = google.calendar({ version: 'v3', auth: authClient });
-
-      const response = await calendar.events.list({
-        calendarId: 'primary',
-        timeMin: input.timeMin,
-        timeMax: input.timeMax,
-        singleEvents: true,
-        orderBy: 'startTime',
-      });
-      
-      const events = response.data.items || [];
-
-      return events.map(event => {
-        const start = event.start?.dateTime || event.start?.date;
-        if (!start) return null; // Skip events without a start date
-
-        const startDate = parseISO(start);
-        
-        return {
-            id: event.id || crypto.randomUUID(),
-            title: event.summary || 'Sem Título',
-            date: format(startDate, 'yyyy-MM-dd'),
-            time: event.start?.dateTime ? format(startDate, 'HH:mm') : undefined,
-            notes: event.description || '',
-        }
-      }).filter(Boolean) as any; // Remove null entries and cast
-
-    } catch (error: any) {
-        console.error("Failed to fetch Google Calendar events:", error.message);
-        // This could be a token error, try to refresh it.
-        if (oauth2Client) {
-            try {
-                const { token } = await oauth2Client.getAccessToken();
-                oauth2Client.setCredentials({ access_token: token });
-                 console.log("Google auth token refreshed. Retrying fetch...");
-                // Retry the call once
-                return await getCalendarEvents(input);
-            } catch (refreshError) {
-                console.error("Failed to refresh Google auth token:", refreshError);
-            }
-        }
-        return [];
-    }
-  }
-);
-
-
 export const createCalendarEvent = ai.defineTool(
   {
     name: 'createCalendarEvent',
@@ -141,44 +71,43 @@ export const createCalendarEvent = ai.defineTool(
       }
       
       const authClient = getGoogleAuth();
-      if (!authClient) {
-          console.error("Google Auth failed. Cannot create Google Calendar event.");
-          return { success: false };
-      }
+      let googleEventId: string | null | undefined;
       
-      const calendar = google.calendar({ version: 'v3', auth: authClient });
-      const eventStartTime = input.time ? parseISO(`${input.date}T${input.time}:00`) : parseISO(input.date);
-      const eventEndTime = input.time ? new Date(eventStartTime.getTime() + 60 * 60 * 1000) : new Date(eventStartTime.getTime() + 24 * 60 * 60 * 1000); // 1 hour duration or all-day
+      if (authClient) {
+        const calendar = google.calendar({ version: 'v3', auth: authClient });
+        const eventStartTime = input.time ? parseISO(`${input.date}T${input.time}:00`) : parseISO(input.date);
+        const eventEndTime = input.time ? new Date(eventStartTime.getTime() + 60 * 60 * 1000) : new Date(eventStartTime.getTime() + 24 * 60 * 60 * 1000); // 1 hour duration or all-day
 
-      const event = {
-        summary: input.title,
-        description: input.notes || '',
-        start: {
-          dateTime: input.time ? eventStartTime.toISOString() : undefined,
-          date: !input.time ? input.date : undefined,
-          timeZone: 'America/Sao_Paulo',
-        },
-        end: {
-          dateTime: input.time ? eventEndTime.toISOString() : undefined,
-          date: !input.time ? input.date : undefined,
-          timeZone: 'America/Sao_Paulo',
-        },
-      };
+        const event = {
+          summary: input.title,
+          description: input.notes || '',
+          start: {
+            dateTime: input.time ? eventStartTime.toISOString() : undefined,
+            date: !input.time ? input.date : undefined,
+            timeZone: 'America/Sao_Paulo',
+          },
+          end: {
+            dateTime: input.time ? eventEndTime.toISOString() : undefined,
+            date: !input.time ? input.date : undefined,
+            timeZone: 'America/Sao_Paulo',
+          },
+        };
 
-      let googleEventId;
-      try {
-        const googleResponse = await calendar.events.insert({
-            calendarId: 'primary', // Use the user's primary calendar
-            requestBody: event,
-        });
-        googleEventId = googleResponse.data.id;
-        console.log('Event created in Google Calendar:', googleEventId);
-      } catch (googleError) {
-          console.error("Failed to create Google Calendar event:", googleError);
-          return { success: false };
+        try {
+          const googleResponse = await calendar.events.insert({
+              calendarId: 'primary',
+              requestBody: event,
+          });
+          googleEventId = googleResponse.data.id;
+          console.log('Event created in Google Calendar:', googleEventId);
+        } catch (googleError) {
+            console.error("Failed to create Google Calendar event:", googleError);
+            // Don't block firebase creation if google fails
+        }
       }
 
-      // If Google event creation was successful, create it in Firebase DB as well
+
+      // Create it in Firebase DB
       const db = getDatabase(firebaseApp);
       const appointmentsRef = ref(db, `users/${input.userId}/appointments`);
       const newEventRef = push(appointmentsRef);

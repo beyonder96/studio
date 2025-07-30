@@ -35,6 +35,7 @@ export default function SignupPage() {
   const [names, setNames] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [cpf, setCpf] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   
@@ -45,7 +46,7 @@ export default function SignupPage() {
   }, [loading, user, router]);
 
   const handleSignup = async () => {
-    if (!names || !email || !password) {
+    if (!names || !email || !password || !cpf) {
         toast({
             variant: 'destructive',
             title: 'Campos incompletos',
@@ -66,6 +67,7 @@ export default function SignupPage() {
         const profileData = { 
             names, 
             email: newUser.email,
+            cpf,
             partnerEmail: '',
             profileImage: 'https://placehold.co/600x800.png',
         };
@@ -149,6 +151,18 @@ export default function SignupPage() {
                 placeholder="Ex: Ana & Bruno"
                 value={names}
                 onChange={(e) => setNames(e.target.value)}
+                required
+                disabled={isLoading || isGoogleLoading}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="cpf">Seu CPF</Label>
+            <Input 
+                id="cpf" 
+                type="text" 
+                placeholder="000.000.000-00"
+                value={cpf}
+                onChange={(e) => setCpf(e.target.value)}
                 required
                 disabled={isLoading || isGoogleLoading}
             />

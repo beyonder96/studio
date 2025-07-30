@@ -38,9 +38,16 @@ export function UserNav() {
                     setProfileName(data.names || "Casal");
                     setProfileImage(data.profileImage || "https://placehold.co/80x80.png");
                 }
+            }, (error) => {
+                console.error(error);
+                setProfileName("Casal");
+                setProfileImage("https://placehold.co/80x80.png");
             });
 
             return () => unsubscribe();
+        } else {
+             setProfileName("Casal");
+             setProfileImage("https://placehold.co/80x80.png");
         }
     }, [user]);
     

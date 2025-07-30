@@ -9,7 +9,6 @@ import { addMonths, format, isSameMonth, startOfMonth, endOfMonth, addDays } fro
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from './auth-context';
 import { app as firebaseApp } from '@/lib/firebase';
-import { getCalendarEvents } from '@/ai/tools/app-tools';
 
 // --- Default Data for New Users ---
 const initialTransactions: Transaction[] = [
@@ -114,7 +113,6 @@ type FinanceContextType = {
   addAppointment: (appointment: Omit<Appointment, 'id'>) => void;
   updateAppointment: (id: string, appointment: Partial<Omit<Appointment, 'id'>>) => void;
   deleteAppointment: (id: string) => void;
-  fetchGoogleCalendarEvents: (userId: string) => Promise<void>;
   toast: ReturnType<typeof useToast>['toast'];
   shoppingLists: ShoppingList[];
   selectedListId: string | null;
@@ -602,53 +600,6 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
     remove(getDbRef(`appointments/${id}`));
   };
   
-  const fetchGoogleCalendarEvents = useCallback(async (userId: string) => {
-    try {
-        const now = new Date();
-        const timeMin = now.toISOString();
-        const timeMax = addDays(now, 90).toISOString(); // Fetch events for the next 90 days
-        const googleEvents = await getCalendarEvents({ timeMin, timeMax });
-        const existingGoogleEventIds = new Set(appointments.filter(a => a.googleEventId).map(a => a.googleEventId));
-        
-        const newAppointments = googleEvents
-            .filter(gEvent => gEvent.id && !existingGoogleEventIds.has(gEvent.id))
-            .map(gEvent => ({
-                id: gEvent.id!,
-                googleEventId: gEvent.id,
-                title: gEvent.title,
-                date: gEvent.date,
-                time: gEvent.time,
-                category: 'Google',
-                notes: gEvent.notes,
-            }));
-        
-        if (newAppointments.length > 0) {
-            const updates: { [key: string]: any } = {};
-            newAppointments.forEach(appt => {
-                const newId = push(getDbRef('appointments')).key!;
-                updates[`appointments/${newId}`] = { ...appt, id: undefined }; // Don't save firebase key as id field
-            });
-            update(getDbRef(''), updates);
-            toast({
-              title: "Calendário Sincronizado!",
-              description: `${newAppointments.length} novo(s) evento(s) foram adicionados.`
-            });
-        } else {
-             toast({
-              title: "Calendário Sincronizado!",
-              description: `Nenhum novo evento encontrado.`
-            });
-        }
-    } catch (error) {
-        console.error("Failed to fetch or merge Google Calendar events:", error);
-        toast({
-            variant: "destructive",
-            title: "Erro ao Sincronizar Calendário",
-            description: "Não foi possível buscar os eventos do Google Calendar."
-        });
-    }
-  }, [appointments, getDbRef, toast]);
-  
   const addAccount = (account: Omit<Account, 'id'>) => {
     if(!user) return;
     const newId = push(getDbRef('accounts')).key!;
@@ -835,7 +786,6 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
     goals, addGoal, updateGoal, deleteGoal, addGoalProgress, toggleGoalCompleted,
     wishes, addWish, updateWish, deleteWish, toggleWishPurchased,
     appointments, appointmentCategories, addAppointment, updateAppointment, deleteAppointment,
-    fetchGoogleCalendarEvents,
     toast,
     shoppingLists, selectedListId, setSelectedListId, selectedList,
     handleSetPrice, handleCheckboxChange, handleDeleteItem, handleUpdateItem,

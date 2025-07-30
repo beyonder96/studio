@@ -40,24 +40,9 @@ export default function CalendarPage() {
     addAppointment, 
     updateAppointment, 
     deleteAppointment,
-    fetchGoogleCalendarEvents
    } = useContext(FinanceContext);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [isSyncing, setIsSyncing] = useState(false);
   const [editingAppointment, setEditingAppointment] = useState<Appointment | null>(null);
-
-  const handleSync = async () => {
-    if (!user) return;
-    setIsSyncing(true);
-    await fetchGoogleCalendarEvents(user.uid);
-    setIsSyncing(false);
-  };
-
-  useEffect(() => {
-    // Initial sync on load
-    handleSync();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user]);
 
   const allEvents = useMemo(() => {
     return appointments.map((a: Appointment) => ({
@@ -117,14 +102,6 @@ export default function CalendarPage() {
                     <p className="text-muted-foreground">Seus próximos compromissos.</p>
                 </div>
                 <div className="flex items-center gap-2">
-                    <Button variant="outline" onClick={handleSync} disabled={isSyncing}>
-                        {isSyncing ? (
-                            <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
-                        ) : (
-                             <RefreshCw className="mr-2 h-4 w-4" />
-                        )}
-                        Sincronizar com Google
-                    </Button>
                     <Button onClick={openAddDialog}>
                         <PlusCircle className="mr-2 h-4 w-4" />
                         Adicionar Evento
@@ -185,7 +162,7 @@ export default function CalendarPage() {
                     <div className="text-center text-muted-foreground py-16 flex flex-col items-center justify-center border-2 border-dashed rounded-lg h-full">
                         <CalendarIcon className="h-12 w-12 mb-4" />
                         <h3 className="text-lg font-medium">Nenhum evento futuro.</h3>
-                        <p className="text-sm">Sincronize com o Google ou adicione um novo evento.</p>
+                        <p className="text-sm">Adicione um novo evento para começar.</p>
                     </div>
                 )}
             </div>
