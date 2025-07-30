@@ -12,7 +12,7 @@ import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
 import { Loader2 } from 'lucide-react';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
-import { getDatabase, ref, set } from 'firebase/database';
+import { getDatabase, ref, set, query, orderByChild, equalTo, get } from 'firebase/database';
 import { auth, app as firebaseApp } from '@/lib/firebase';
 import { useAuth } from '@/contexts/auth-context';
 import { Separator } from '@/components/ui/separator';
@@ -58,11 +58,26 @@ export default function SignupPage() {
     setIsLoading(true);
     
     try {
+        const db = getDatabase(firebaseApp);
+        // Check if CPF already exists
+        const usersRef = ref(db, 'users');
+        const q = query(usersRef, orderByChild('profile/cpf'), equalTo(cpf));
+        const snapshot = await get(q);
+
+        if (snapshot.exists()) {
+            toast({
+                variant: 'destructive',
+                title: 'CPF já cadastrado',
+                description: 'Este CPF já está associado a outra conta.',
+            });
+            setIsLoading(false);
+            return;
+        }
+
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
         const newUser = userCredential.user;
 
         // Save profile data to Realtime Database
-        const db = getDatabase(firebaseApp);
         const profileRef = ref(db, `users/${newUser.uid}/profile`);
         const profileData = { 
             names, 

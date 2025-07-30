@@ -9,6 +9,7 @@ import { addMonths, format, isSameMonth, startOfMonth, endOfMonth, addDays } fro
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from './auth-context';
 import { app as firebaseApp } from '@/lib/firebase';
+import { createCalendarEvent } from '@/ai/tools/app-tools';
 
 // --- Default Data for New Users ---
 const initialTransactions: Transaction[] = [
@@ -586,8 +587,18 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
   // Appointment Management
   const addAppointment = (appointment: Omit<Appointment, 'id'>) => {
     if (!user) return;
-    const newId = push(getDbRef('appointments')).key!;
-    set(getDbRef(`appointments/${newId}`), appointment);
+
+    createCalendarEvent({ userId: user.uid, ...appointment }).then(result => {
+        if(result.success && result.googleEventId) {
+            const newAppointment = { ...appointment, googleEventId: result.googleEventId };
+            const newId = push(getDbRef('appointments')).key!;
+            set(getDbRef(`appointments/${newId}`), newAppointment);
+        } else {
+             // Fallback to only save in Firebase if Google API fails
+            const newId = push(getDbRef('appointments')).key!;
+            set(getDbRef(`appointments/${newId}`), appointment);
+        }
+    });
   };
 
   const updateAppointment = (id: string, updatedAppointment: Partial<Omit<Appointment, 'id'>>) => {
