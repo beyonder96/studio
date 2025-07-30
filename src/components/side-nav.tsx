@@ -19,6 +19,7 @@ import {
   X,
   Sparkles,
   GalleryVerticalEnd,
+  CreditCard,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
@@ -33,6 +34,7 @@ import { useAuth } from '@/contexts/auth-context';
 const navItems = [
   { href: '/', icon: LayoutDashboard, label: 'Painel' },
   { href: '/finance', icon: Banknote, label: 'Finanças' },
+  { href: '/cards', icon: CreditCard, label: 'Cartões' },
   { href: '/goals', icon: Target, label: 'Metas' },
   { href: '/wishes', icon: Gift, label: 'Desejos' },
   { href: '/purchases', icon: ShoppingBasket, label: 'Compras' },
@@ -115,17 +117,16 @@ export function SideNav() {
               <nav className="flex-1 p-4 overflow-y-auto">
                 <ul className="space-y-2">
                   {navItems.map((item) => {
-                    const Component = item.disabled ? 'div' : Link;
+                    const Component = Link;
                     return (
                         <li key={item.href}>
-                        <Component href={item.href} onClick={!item.disabled ? handleLinkClick : undefined} className={cn(item.disabled && "cursor-not-allowed")}>
+                        <Component href={item.href} onClick={handleLinkClick}>
                             <div
                             className={cn(
                                 'flex items-center gap-4 p-3 rounded-lg transition-colors text-foreground',
-                                isActive(item.href) && !item.disabled
+                                isActive(item.href)
                                 ? 'bg-primary/20 text-primary font-semibold'
-                                : 'hover:bg-muted',
-                                item.disabled && "opacity-50"
+                                : 'hover:bg-muted'
                             )}
                             >
                             <item.icon className="h-5 w-5" />
