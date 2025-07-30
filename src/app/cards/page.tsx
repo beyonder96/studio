@@ -151,6 +151,7 @@ export default function CardsPage() {
                 onClose={() => setIsAccountCardDialogOpen(false)}
                 onSave={handleSaveAccountCard}
                 item={editingItem}
+                allowedTypes={['card']}
             />
         </Card>
       )
@@ -222,7 +223,7 @@ export default function CardsPage() {
                         <TransactionsTable 
                             transactions={cardTransactions}
                             onEdit={handleEditTransaction}
-                            onDelete={deleteTransaction}
+                            onDeleteRequest={deleteTransaction}
                         />
                     </div>
                 </CardContent>
@@ -235,6 +236,7 @@ export default function CardsPage() {
           onClose={() => setIsAccountCardDialogOpen(false)}
           onSave={handleSaveAccountCard}
           item={editingItem}
+          allowedTypes={['card']}
       />
       <AlertDialog open={!!cardToDelete} onOpenChange={(open) => !open && setCardToDelete(null)}>
         <AlertDialogContent>

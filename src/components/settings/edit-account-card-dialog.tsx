@@ -44,16 +44,14 @@ type EditAccountCardDialogProps = {
   onClose: () => void;
   onSave: (data: AccountCardFormData) => void;
   item: Account | CardType | null;
+  allowedTypes?: ('account' | 'card')[];
 };
 
-export function EditAccountCardDialog({ isOpen, onClose, onSave, item }: EditAccountCardDialogProps) {
+export function EditAccountCardDialog({ isOpen, onClose, onSave, item, allowedTypes = ['account', 'card'] }: EditAccountCardDialogProps) {
   const isEditing = !!item;
   const itemType = item && 'balance' in item ? 'account' : 'card';
   
-  // Start with 'account' tab if adding new, otherwise based on item being edited.
-  // If adding new, but from the cards page, default to 'card'.
-  // We can't know the origin page here, so the logic in `useEffect` is more important.
-  const [activeTab, setActiveTab] = useState<'account' | 'card'>(item ? itemType : 'account');
+  const [activeTab, setActiveTab] = useState<'account' | 'card'>(item ? itemType : allowedTypes[0]);
   
   const {
     register,
@@ -68,105 +66,123 @@ export function EditAccountCardDialog({ isOpen, onClose, onSave, item }: EditAcc
 
   useEffect(() => {
     if (isOpen) {
+      const defaultTab = item ? itemType : allowedTypes[0];
+      setActiveTab(defaultTab);
+      
       if (item) {
         // Editing
         const type = 'balance' in item ? 'account' : 'card';
-        setActiveTab(type);
-         setValue('type', type);
+        setValue('type', type);
         reset({
           type,
           name: item.name,
           ...(type === 'account' ? { balance: (item as Account).balance } : { limit: (item as CardType).limit, dueDay: (item as CardType).dueDay }),
         });
       } else {
-        // Adding new. Default to the current active tab.
-        setValue('type', activeTab);
+        // Adding new
+        setValue('type', defaultTab);
         reset({
-          type: activeTab,
+          type: defaultTab,
           name: '',
-          ...(activeTab === 'account' ? { balance: 0 } : { limit: 1000, dueDay: 10 }),
+          ...(defaultTab === 'account' ? { balance: 0 } : { limit: 1000, dueDay: 10 }),
         });
       }
     }
-  }, [isOpen, reset, item, activeTab, setValue]);
+  }, [isOpen, reset, item, allowedTypes, itemType, setValue]);
 
   const onSubmit = (data: AccountCardFormData) => {
     onSave(data);
   };
+  
+  const showTabs = allowedTypes.length > 1 && !isEditing;
+
+  const AccountForm = (
+    <div className="space-y-4 pt-4">
+        <Controller name="type" control={control} render={({ field }) => <input type="hidden" {...field} value="account" />} />
+        <div className="space-y-2">
+            <Label htmlFor="account-name">Nome da Conta</Label>
+            <Input id="account-name" {...register('name')} placeholder="Ex: Conta Corrente" />
+            {errors.name && errors.type === 'account' && <p className="text-red-500 text-xs mt-1">{errors.name.message}</p>}
+        </div>
+        <div className="space-y-2">
+            <Label htmlFor="balance">{isEditing ? "Saldo Atual" : "Saldo Inicial"}</Label>
+            <Controller
+                name="balance"
+                control={control}
+                render={({ field }) => (
+                <CurrencyInput
+                    id="balance"
+                    value={field.value || 0}
+                    onValueChange={(value) => field.onChange(value)}
+                />
+                )}
+            />
+             {errors.balance && errors.type === 'account' && <p className="text-red-500 text-xs mt-1">{errors.balance.message}</p>}
+        </div>
+    </div>
+  );
+
+  const CardForm = (
+    <div className="space-y-4 pt-4">
+        <Controller name="type" control={control} render={({ field }) => <input type="hidden" {...field} value="card" />} />
+        <div className="space-y-2">
+            <Label htmlFor="card-name">Nome do Cartão</Label>
+            <Input id="card-name" {...register('name')} placeholder="Ex: Cartão Principal" />
+            {errors.name && errors.type === 'card' && <p className="text-red-500 text-xs mt-1">{errors.name.message}</p>}
+        </div>
+        <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+                <Label htmlFor="limit">Limite</Label>
+                 <Controller
+                    name="limit"
+                    control={control}
+                    render={({ field }) => (
+                    <CurrencyInput
+                        id="limit"
+                        value={field.value || 0}
+                        onValueChange={(value) => field.onChange(value)}
+                    />
+                    )}
+                />
+                 {errors.limit && errors.type === 'card' && <p className="text-red-500 text-xs mt-1">{errors.limit.message}</p>}
+            </div>
+             <div className="space-y-2">
+                <Label htmlFor="dueDay">Dia do Vencimento</Label>
+                <Input id="dueDay" type="number" {...register('dueDay')} min="1" max="31" />
+                {errors.dueDay && errors.type === 'card' && <p className="text-red-500 text-xs mt-1">{errors.dueDay.message}</p>}
+            </div>
+        </div>
+    </div>
+  );
+
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>{isEditing ? (itemType === 'account' ? 'Editar Conta' : 'Editar Cartão') : 'Adicionar Conta ou Cartão'}</DialogTitle>
+          <DialogTitle>{isEditing ? (itemType === 'account' ? 'Editar Conta' : 'Editar Cartão') : 'Adicionar'}</DialogTitle>
            <DialogDescription>
             {isEditing ? 'Atualize as informações abaixo.' : 'Selecione o tipo e preencha as informações.'}
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit(onSubmit)}>
-            <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'account' | 'card')} className="w-full">
-                <TabsList className="grid w-full grid-cols-2">
-                    <TabsTrigger value="account" disabled={isEditing && itemType !== 'account'}>Conta</TabsTrigger>
-                    <TabsTrigger value="card" disabled={isEditing && itemType !== 'card'}>Cartão de Crédito</TabsTrigger>
-                </TabsList>
-                <TabsContent value="account" className="pt-4">
-                    <div className="space-y-4">
-                        <Controller name="type" control={control} render={({ field }) => <input type="hidden" {...field} value="account" />} />
-                        <div className="space-y-2">
-                            <Label htmlFor="account-name">Nome da Conta</Label>
-                            <Input id="account-name" {...register('name')} placeholder="Ex: Conta Corrente" />
-                            {errors.name && errors.type === 'account' && <p className="text-red-500 text-xs mt-1">{errors.name.message}</p>}
-                        </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="balance">{isEditing ? "Saldo Atual" : "Saldo Inicial"}</Label>
-                            <Controller
-                                name="balance"
-                                control={control}
-                                render={({ field }) => (
-                                <CurrencyInput
-                                    id="balance"
-                                    value={field.value || 0}
-                                    onValueChange={(value) => field.onChange(value)}
-                                />
-                                )}
-                            />
-                             {errors.balance && errors.type === 'account' && <p className="text-red-500 text-xs mt-1">{errors.balance.message}</p>}
-                        </div>
-                    </div>
-                </TabsContent>
-                <TabsContent value="card" className="pt-4">
-                     <div className="space-y-4">
-                        <Controller name="type" control={control} render={({ field }) => <input type="hidden" {...field} value="card" />} />
-                        <div className="space-y-2">
-                            <Label htmlFor="card-name">Nome do Cartão</Label>
-                            <Input id="card-name" {...register('name')} placeholder="Ex: Cartão Principal" />
-                            {errors.name && errors.type === 'card' && <p className="text-red-500 text-xs mt-1">{errors.name.message}</p>}
-                        </div>
-                        <div className="grid grid-cols-2 gap-4">
-                            <div className="space-y-2">
-                                <Label htmlFor="limit">Limite</Label>
-                                 <Controller
-                                    name="limit"
-                                    control={control}
-                                    render={({ field }) => (
-                                    <CurrencyInput
-                                        id="limit"
-                                        value={field.value || 0}
-                                        onValueChange={(value) => field.onChange(value)}
-                                    />
-                                    )}
-                                />
-                                 {errors.limit && errors.type === 'card' && <p className="text-red-500 text-xs mt-1">{errors.limit.message}</p>}
-                            </div>
-                             <div className="space-y-2">
-                                <Label htmlFor="dueDay">Dia do Vencimento</Label>
-                                <Input id="dueDay" type="number" {...register('dueDay')} min="1" max="31" />
-                                {errors.dueDay && errors.type === 'card' && <p className="text-red-500 text-xs mt-1">{errors.dueDay.message}</p>}
-                            </div>
-                        </div>
-                    </div>
-                </TabsContent>
-            </Tabs>
+            {showTabs ? (
+                <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'account' | 'card')} className="w-full">
+                    <TabsList className="grid w-full grid-cols-2">
+                        <TabsTrigger value="account" disabled={isEditing && itemType !== 'account'}>Conta</TabsTrigger>
+                        <TabsTrigger value="card" disabled={isEditing && itemType !== 'card'}>Cartão de Crédito</TabsTrigger>
+                    </TabsList>
+                    <TabsContent value="account">
+                        {AccountForm}
+                    </TabsContent>
+                    <TabsContent value="card">
+                        {CardForm}
+                    </TabsContent>
+                </Tabs>
+            ) : (
+                 activeTab === 'account' ? AccountForm : CardForm
+            )}
+
           <DialogFooter className="pt-6">
             <DialogClose asChild>
               <Button type="button" variant="secondary" onClick={onClose}>
