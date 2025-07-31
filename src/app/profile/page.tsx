@@ -84,12 +84,7 @@ const getSinceText = (isoDate?: string): string => {
     const nowUTC = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
 
     const totalDays = Math.max(0, Math.floor((nowUTC.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)));
-    const years = Math.floor(totalDays / 365.25);
-    const remainingDays = totalDays - Math.floor(years * 365.25);
-
-    if (years > 0) {
-        return `Juntos há ${years} ano${years > 1 ? 's' : ''} e ${remainingDays} dia${remainingDays !== 1 ? 's' : ''}`;
-    }
+    
     return `Juntos há ${totalDays} dia${totalDays !== 1 ? 's' : ''}`;
 }
 
