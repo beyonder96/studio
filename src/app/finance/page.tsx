@@ -29,6 +29,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { cn } from '@/lib/utils';
+import { Checkbox } from '@/components/ui/checkbox';
 
 const frequencyMap = {
   daily: 'Diária',
@@ -45,6 +46,7 @@ export default function FinancePage() {
     updateTransaction,
     deleteTransaction,
     deleteRecurringTransaction,
+    toggleTransactionPaid,
     totalIncome,
     totalExpenses,
     formatCurrency,
@@ -177,6 +179,7 @@ export default function FinancePage() {
                         transactions={transactions.filter(t => !t.isRecurring)} 
                         onEdit={openEditDialog}
                         onDeleteRequest={(transaction) => setTransactionToDelete(transaction)}
+                        onTogglePaid={toggleTransactionPaid}
                     />
                     </CardContent>
                 </Card>

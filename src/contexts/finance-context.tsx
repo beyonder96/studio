@@ -13,8 +13,8 @@ import { createCalendarEvent } from '@/ai/tools/app-tools';
 
 // --- Default Data for New Users ---
 const initialTransactions: Transaction[] = [
-    { id: '1', description: 'Salário', amount: 5000, date: format(new Date(), 'yyyy-MM-dd'), type: 'income', category: 'Salário', isRecurring: true, frequency: 'monthly' },
-    { id: '2', description: 'Aluguel', amount: -1500, date: format(new Date(), 'yyyy-MM-10'), type: 'expense', category: 'Moradia', isRecurring: true, frequency: 'monthly' },
+    { id: '1', description: 'Salário', amount: 5000, date: format(new Date(), 'yyyy-MM-dd'), type: 'income', category: 'Salário', paid: true, isRecurring: true, frequency: 'monthly' },
+    { id: '2', description: 'Aluguel', amount: -1500, date: format(new Date(), 'yyyy-MM-10'), type: 'expense', category: 'Moradia', paid: false, isRecurring: true, frequency: 'monthly' },
 ];
 const initialAccounts = [ { id: 'acc1', name: 'Conta Corrente', balance: 3500, type: 'checking' as const } ];
 const initialCards = [ { id: 'card1', name: 'Cartão de Crédito', limit: 5000, dueDay: 10, holder: 'Pessoa 1', brand: 'visa' as const } ];
@@ -65,6 +65,7 @@ type FinanceContextType = {
   addTransaction: (transaction: Omit<Transaction, 'id'>, installments?: number) => void;
   updateTransaction: (id: string, transaction: Partial<Omit<Transaction, 'id'>>) => void;
   deleteTransaction: (id: string) => void;
+  toggleTransactionPaid: (id: string, currentStatus: boolean) => void;
   deleteRecurringTransaction: (id: string) => void;
   accounts: Account[];
   addAccount: (account: Omit<Account, 'id'>) => void;
@@ -293,21 +294,23 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
     const updates: { [key: string]: any } = {};
     const rootRef = getDbRef('');
 
-    if (transaction.type === 'transfer') {
-        const fromAccount = accounts.find(a => a.name === transaction.fromAccount);
-        const toAccount = accounts.find(a => a.name === transaction.toAccount);
-        if (fromAccount && toAccount) {
-            updates[`accounts/${fromAccount.id}/balance`] = fromAccount.balance - transaction.amount;
-            updates[`accounts/${toAccount.id}/balance`] = toAccount.balance + transaction.amount;
-            const newId = push(child(rootRef, 'transactions')).key!;
-            updates[`transactions/${newId}`] = transaction;
-        }
-    } else if (transaction.account && !cards.some(c => c.name === transaction.account)) {
-        const targetAccount = accounts.find(a => a.name === transaction.account);
-        if (targetAccount) {
-            updates[`accounts/${targetAccount.id}/balance`] = targetAccount.balance + (transaction.amount || 0);
+    // Handle Balance Update if the transaction is paid
+    if (transaction.paid) {
+        if (transaction.type === 'transfer') {
+            const fromAccount = accounts.find(a => a.name === transaction.fromAccount);
+            const toAccount = accounts.find(a => a.name === transaction.toAccount);
+            if (fromAccount && toAccount) {
+                updates[`accounts/${fromAccount.id}/balance`] = fromAccount.balance - transaction.amount;
+                updates[`accounts/${toAccount.id}/balance`] = toAccount.balance + transaction.amount;
+            }
+        } else if (transaction.account && !cards.some(c => c.name === transaction.account)) {
+            const targetAccount = accounts.find(a => a.name === transaction.account);
+            if (targetAccount) {
+                updates[`accounts/${targetAccount.id}/balance`] = targetAccount.balance + (transaction.amount || 0);
+            }
         }
     }
+
 
     if (transaction.type !== 'transfer' && installments > 1 && transaction.account && cards.some(c => c.name === transaction.account)) {
         const installmentAmount = (transaction.amount || 0) / installments;
@@ -319,6 +322,7 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
                 ...transaction,
                 amount: installmentAmount,
                 date: format(installmentDate, 'yyyy-MM-dd'),
+                paid: false, // Future installments are not paid yet
                 installmentGroupId,
                 currentInstallment: i,
                 totalInstallments: installments,
@@ -342,20 +346,46 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
     if (!originalTransaction) return;
 
     const updates: { [key: string]: any } = {};
-    
-    if (originalTransaction.account && !cards.some(c => c.name === originalTransaction.account)) {
-      const account = accounts.find(acc => acc.name === originalTransaction.account);
-      if (account) {
-        // Revert old amount and apply new amount
-        const balanceWithoutOld = account.balance - originalTransaction.amount;
-        const newBalance = balanceWithoutOld + (updatedTransaction.amount ?? 0);
-        updates[`accounts/${account.id}/balance`] = newBalance;
-      }
-    }
 
+    // Only adjust balance if the 'paid' status is true for either original or updated
+    if (originalTransaction.paid || updatedTransaction.paid) {
+        const account = accounts.find(acc => acc.name === originalTransaction.account);
+        if (account && !cards.some(c => c.name === account.name)) {
+            let balanceChange = 0;
+            // If it was paid, revert the old amount
+            if (originalTransaction.paid) {
+                balanceChange -= originalTransaction.amount;
+            }
+            // If it's now paid, apply the new amount
+            if (updatedTransaction.paid) {
+                balanceChange += updatedTransaction.amount ?? originalTransaction.amount;
+            }
+            updates[`accounts/${account.id}/balance`] = account.balance + balanceChange;
+        }
+    }
+    
     updates[`transactions/${id}`] = { ...originalTransaction, ...updatedTransaction };
     update(getDbRef(''), updates);
   };
+  
+  const toggleTransactionPaid = (id: string, currentStatus: boolean) => {
+    if (!user) return;
+    const transaction = transactions.find(t => t.id === id);
+    if (!transaction) return;
+    
+    const updates: { [key: string]: any } = {};
+    updates[`transactions/${id}/paid`] = !currentStatus;
+
+    if (transaction.account && !cards.some(c => c.name === transaction.account)) {
+        const account = accounts.find(acc => acc.name === transaction.account);
+        if (account) {
+            const amount = transaction.amount;
+            const newBalance = currentStatus ? account.balance - amount : account.balance + amount;
+            updates[`accounts/${account.id}/balance`] = newBalance;
+        }
+    }
+    update(getDbRef(''), updates);
+  }
 
   const deleteTransaction = (id: string) => {
     if (!user) return;
@@ -365,7 +395,7 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
     const updates: { [key: string]: any } = {};
     updates[`transactions/${id}`] = null;
 
-    if (transactionToDelete.account && !cards.some(c => c.name === transactionToDelete.account)) {
+    if (transactionToDelete.paid && transactionToDelete.account && !cards.some(c => c.name === transactionToDelete.account)) {
         const account = accounts.find(acc => acc.name === transactionToDelete.account);
         if (account) {
             updates[`accounts/${account.id}/balance`] = account.balance - transactionToDelete.amount;
@@ -383,14 +413,14 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
   const totalIncome = useCallback(() => {
     const today = new Date();
     return transactions
-      .filter((t) => t.type === 'income' && isSameMonth(new Date(t.date + 'T00:00:00'), today))
+      .filter((t) => t.type === 'income' && t.paid && isSameMonth(new Date(t.date + 'T00:00:00'), today))
       .reduce((sum, t) => sum + t.amount, 0);
   }, [transactions]);
 
   const totalExpenses = useCallback(() => {
     const today = new Date();
     return transactions
-      .filter((t) => t.type === 'expense' && isSameMonth(new Date(t.date + 'T00:00:00'), today))
+      .filter((t) => t.type === 'expense' && t.paid && isSameMonth(new Date(t.date + 'T00:00:00'), today))
       .reduce((sum, t) => sum + t.amount, 0);
   }, [transactions]);
 
@@ -571,22 +601,25 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
           }
 
           const newGoalAmount = goal.currentAmount + amount;
-          const newAccountBalance = account.balance - amount;
 
           const updates: { [key: string]: any } = {};
           updates[`goals/${goalId}/currentAmount`] = newGoalAmount;
-          updates[`accounts/${accountId}/balance`] = newAccountBalance;
-
-          const newTransactionId = push(getDbRef('transactions')).key!;
+          
           const newTransaction: Omit<Transaction, 'id'> = {
             description: `Contribuição para meta: ${goal.name}`,
             amount: -Math.abs(amount),
             date: format(new Date(), 'yyyy-MM-dd'),
             type: 'expense',
             category: 'Investimento',
-            account: account.name
+            account: account.name,
+            paid: true, // This transaction is immediately settled
           };
+          
+          const newTransactionId = push(getDbRef('transactions')).key!;
           updates[`transactions/${newTransactionId}`] = newTransaction;
+
+          // Also update the account balance
+          updates[`accounts/${accountId}/balance`] = account.balance - amount;
           
           update(getDbRef(''), updates);
           
@@ -807,6 +840,7 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
             description: `Compra: ${list.name}`,
             amount: -totalCost, // as an expense
             type: 'expense',
+            paid: true, // Purchase is immediately settled
             date: format(new Date(), 'yyyy-MM-dd'),
         };
         addTransaction(purchaseTransaction);
@@ -846,6 +880,7 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
         type: 'expense',
         category: 'Pagamento de Fatura',
         account: account.name,
+        paid: true,
     };
     const debitTransId = push(getDbRef('transactions')).key!;
     updates[`transactions/${debitTransId}`] = debitTransaction;
@@ -858,6 +893,7 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
         type: 'income',
         category: 'Pagamento de Fatura',
         account: card.name,
+        paid: true,
     };
     const creditTransId = push(getDbRef('transactions')).key!;
     updates[`transactions/${creditTransId}`] = creditTransaction;
@@ -875,7 +911,7 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const value = {
-    transactions, addTransaction, updateTransaction, deleteTransaction, deleteRecurringTransaction,
+    transactions, addTransaction, updateTransaction, deleteTransaction, toggleTransactionPaid, deleteRecurringTransaction,
     accounts, addAccount, updateAccount, deleteAccount, 
     cards, addCard, updateCard, deleteCard, 
     incomeCategories, expenseCategories, updateIncomeCategory, updateExpenseCategory,

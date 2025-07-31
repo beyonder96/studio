@@ -11,7 +11,7 @@ import {
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Edit, Trash2, Repeat, MoreVertical } from 'lucide-react';
+import { Edit, Trash2, Repeat, MoreVertical, CheckCircle, Circle } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 import {
@@ -32,6 +32,7 @@ export type Transaction = {
   type: 'income' | 'expense' | 'transfer';
   category: string;
   account?: string;
+  paid?: boolean;
   isRecurring?: boolean;
   frequency?: 'daily' | 'weekly' | 'monthly' | 'annual';
   installmentGroupId?: string;
@@ -43,9 +44,10 @@ type TransactionsTableProps = {
   transactions: Transaction[];
   onEdit: (transaction: Transaction) => void;
   onDeleteRequest: (transaction: Transaction) => void;
+  onTogglePaid: (id: string, currentStatus: boolean) => void;
 };
 
-export function TransactionsTable({ transactions, onEdit, onDeleteRequest }: TransactionsTableProps) {
+export function TransactionsTable({ transactions, onEdit, onDeleteRequest, onTogglePaid }: TransactionsTableProps) {
     const { formatCurrency } = useContext(FinanceContext);
 
     const formatDate = (dateString: string) => {
@@ -67,28 +69,34 @@ export function TransactionsTable({ transactions, onEdit, onDeleteRequest }: Tra
             {transactions.map((transaction) => (
                 <Card key={transaction.id} className="bg-transparent">
                     <CardContent className="p-4 flex items-center justify-between gap-4">
-                       <div className="flex-1 space-y-2 overflow-hidden">
-                            <div className="flex items-center gap-2">
-                                {transaction.isRecurring && <Repeat className="h-4 w-4 text-muted-foreground flex-shrink-0" />}
-                                <p className="font-semibold text-base truncate">
-                                  {transaction.description}
-                                </p>
-                            </div>
-                            <div className="flex items-center gap-2 text-sm text-muted-foreground flex-wrap">
-                                <Badge variant="secondary" className="font-normal">{transaction.category}</Badge>
-                                <span>•</span>
-                                <span>{formatDate(transaction.date)}</span>
-                            </div>
-                            {transaction.totalInstallments && (
-                                <p className="text-xs text-muted-foreground">
-                                    Parcela {transaction.currentInstallment}/{transaction.totalInstallments}
-                                </p>
-                            )}
+                       <div className="flex items-center gap-3">
+                           <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => onTogglePaid(transaction.id, !!transaction.paid)}>
+                                {transaction.paid ? <CheckCircle className="h-5 w-5 text-green-500" /> : <Circle className="h-5 w-5 text-muted-foreground"/>}
+                           </Button>
+                           <div className="flex-1 space-y-2 overflow-hidden">
+                                <div className="flex items-center gap-2">
+                                    {transaction.isRecurring && <Repeat className="h-4 w-4 text-muted-foreground flex-shrink-0" />}
+                                    <p className="font-semibold text-base truncate">
+                                      {transaction.description}
+                                    </p>
+                                </div>
+                                <div className="flex items-center gap-2 text-sm text-muted-foreground flex-wrap">
+                                    <Badge variant="secondary" className="font-normal">{transaction.category}</Badge>
+                                    <span>•</span>
+                                    <span>{formatDate(transaction.date)}</span>
+                                </div>
+                                {transaction.totalInstallments && (
+                                    <p className="text-xs text-muted-foreground">
+                                        Parcela {transaction.currentInstallment}/{transaction.totalInstallments}
+                                    </p>
+                                )}
+                           </div>
                        </div>
                        <div className="flex flex-col items-end gap-2">
                            <p className={cn(
                                 'font-mono text-base font-semibold',
-                                transaction.type === 'income' ? 'text-green-500' : 'text-red-500'
+                                transaction.type === 'income' ? 'text-green-500' : 'text-red-500',
+                                !transaction.paid && 'opacity-50'
                             )}>
                                 {formatCurrency(transaction.amount)}
                             </p>
@@ -121,6 +129,7 @@ export function TransactionsTable({ transactions, onEdit, onDeleteRequest }: Tra
             <Table>
             <TableHeader>
                 <TableRow>
+                <TableHead className="w-12">Status</TableHead>
                 <TableHead>Descrição</TableHead>
                 <TableHead>Categoria</TableHead>
                 <TableHead>Data</TableHead>
@@ -130,7 +139,12 @@ export function TransactionsTable({ transactions, onEdit, onDeleteRequest }: Tra
             </TableHeader>
             <TableBody>
                 {transactions.map((transaction) => (
-                <TableRow key={transaction.id}>
+                <TableRow key={transaction.id} data-state={!transaction.paid ? 'pending' : 'paid'} className="data-[state=pending]:opacity-60">
+                    <TableCell>
+                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => onTogglePaid(transaction.id, !!transaction.paid)}>
+                           {transaction.paid ? <CheckCircle className="h-5 w-5 text-green-500" /> : <Circle className="h-5 w-5 text-muted-foreground"/>}
+                        </Button>
+                    </TableCell>
                     <TableCell className="font-medium">
                         <div className="flex items-center gap-2">
                             {transaction.isRecurring && <Repeat className="h-4 w-4 text-muted-foreground" />}

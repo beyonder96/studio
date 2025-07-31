@@ -39,6 +39,7 @@ const transactionSchema = z.object({
   account: z.string().optional(),
   fromAccount: z.string().optional(),
   toAccount: z.string().optional(),
+  paid: z.boolean().optional(),
   isRecurring: z.boolean().optional(),
   frequency: z.enum(['daily', 'weekly', 'monthly', 'annual']).optional(),
   installments: z.coerce.number().min(1).optional(),
@@ -108,6 +109,7 @@ export function AddTransactionDialog({
       account: '',
       fromAccount: '',
       toAccount: '',
+      paid: true,
       isRecurring: false,
       installments: 1,
     },
@@ -131,6 +133,7 @@ export function AddTransactionDialog({
             description: '',
             category: '',
             account: '',
+            paid: true,
             isRecurring: false,
             installments: 1,
           });
@@ -336,6 +339,25 @@ export function AddTransactionDialog({
                         </div>
                    </div>
                  )}
+
+                 <div className="grid grid-cols-1 md:grid-cols-4 items-center gap-4">
+                    <Label htmlFor="paid" className="md:text-right">
+                        {transactionType === 'income' ? 'Recebido' : 'Pago'}
+                    </Label>
+                     <div className="md:col-span-3 flex items-center">
+                        <Controller
+                            name="paid"
+                            control={control}
+                            render={({ field }) => (
+                            <Switch
+                                    id="paid"
+                                    checked={field.value}
+                                    onCheckedChange={field.onChange}
+                                />
+                            )}
+                        />
+                    </div>
+                </div>
 
 
                 <div className="grid grid-cols-1 md:grid-cols-4 items-center gap-4">
