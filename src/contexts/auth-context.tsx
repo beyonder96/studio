@@ -2,7 +2,7 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
-import { onAuthStateChanged, User, signInWithPopup, getAdditionalUserInfo, GoogleAuthProvider, AuthCredential } from 'firebase/auth';
+import { onAuthStateChanged, User, signInWithPopup, getAdditionalUserInfo, GoogleAuthProvider, AuthCredential, UserCredential } from 'firebase/auth';
 import { auth, googleProvider } from '@/lib/firebase';
 import { useFCM } from '@/hooks/use-fcm';
 import { getDatabase, ref, set, get } from 'firebase/database';
@@ -11,7 +11,7 @@ import { app as firebaseApp } from '@/lib/firebase';
 type AuthContextType = {
   user: User | null;
   loading: boolean;
-  signInWithGoogle: () => Promise<{ user: User, credential?: AuthCredential | null }>;
+  signInWithGoogle: () => Promise<UserCredential>;
   getAccessToken: () => Promise<string | null>;
 };
 
@@ -52,12 +52,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   }, []);
 
-  const signInWithGoogle = async () => {
+  const signInWithGoogle = async (): Promise<UserCredential> => {
     if (!auth) throw new Error("Firebase Auth not initialized");
     try {
       const result = await signInWithPopup(auth, googleProvider);
       const user = result.user;
-      const credential = GoogleAuthProvider.credentialFromResult(result);
       const additionalInfo = getAdditionalUserInfo(result);
       
       // If new user, create a profile entry
@@ -77,7 +76,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
              await set(profileRef, profileData);
         }
       }
-      return { user, credential };
+      return result;
 
     } catch (error) {
       console.error("Error during Google sign-in:", error);

@@ -111,7 +111,7 @@ export default function CalendarPage() {
     let accessToken: string | undefined | null;
     try {
         const result = await signInWithGoogle();
-        const credential = GoogleAuthProvider.credentialFromResult(result.credential as any);
+        const credential = GoogleAuthProvider.credentialFromResult(result);
         accessToken = credential?.accessToken;
     } catch (e) {
         console.error("Could not get access token for saving event", e);
@@ -133,9 +133,10 @@ export default function CalendarPage() {
 
     try {
         const result = await signInWithGoogle();
-        const credential = GoogleAuthProvider.credentialFromResult(result.credential as any);
+        const credential = GoogleAuthProvider.credentialFromResult(result);
         accessToken = credential?.accessToken;
     } catch (e) {
+        console.error("Error signing in with Google:", e);
         toast({ variant: "destructive", title: "Erro de Login", description: "Não foi possível autenticar com o Google." });
         setIsSyncing(false);
         return;
@@ -152,6 +153,7 @@ export default function CalendarPage() {
         setGoogleEvents(events);
         toast({ title: "Sincronização Concluída", description: `${events.length} eventos encontrados no Google Calendar.` });
     } catch(e) {
+        console.error("Error fetching Google Calendar events:", e);
         toast({ variant: "destructive", title: "Erro de Sincronização", description: "Não foi possível buscar os eventos do Google Calendar." });
     } finally {
         setIsSyncing(false);
