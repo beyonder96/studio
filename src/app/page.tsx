@@ -12,16 +12,18 @@ import { MonthOverview } from '@/components/dashboard/month-overview';
 import { ShoppingListOverview } from '@/components/dashboard/shopping-list-overview';
 import { JourneyCard } from '@/components/dashboard/journey-card';
 import { useContext, useState, useEffect, useMemo } from 'react';
-import { FinanceContext, Appointment } from '@/contexts/finance-context';
+import { FinanceContext, Account } from '@/contexts/finance-context';
 import { AddAppointmentDialog } from '@/components/calendar/add-appointment-dialog';
 import { ptBR } from 'date-fns/locale';
 import { format } from 'date-fns';
 import { useRouter } from 'next/navigation';
-import { Loader2, ArrowUpCircle, ArrowDownCircle } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import { useAuth } from '@/contexts/auth-context';
 import { WeatherOverview } from '@/components/dashboard/weather-overview';
 import { CommandInput } from '@/components/dashboard/command-input';
 import { CardHeader, CardTitle } from '@/components/ui/card';
+import { Carousel, CarouselContent, CarouselItem } from '@/components/ui/carousel';
+import { BalanceCard } from '@/components/dashboard/balance-card';
 
 
 const DateDisplay = () => {
@@ -54,43 +56,21 @@ const DateDisplay = () => {
 export default function Home() {
   const router = useRouter();
   const { user, loading } = useAuth();
-  const { transactions, appointments, addAppointment, totalIncome, totalExpenses, formatCurrency } = useContext(FinanceContext);
+  const { accounts, addAppointment } = useContext(FinanceContext);
 
   const [isAppointmentDialogOpen, setIsAppointmentDialogOpen] = useState(false);
   const [selectedDateForAppointment, setSelectedDateForAppointment] = useState<Date | undefined>();
-  const [clientReady, setClientReady] = useState(false);
-
-  useEffect(() => {
-    // This effect runs only on the client, ensuring `new Date()` doesn't cause a hydration mismatch.
-    setClientReady(true);
-  }, []);
-
+  
   useEffect(() => {
     if (!loading && !user) {
       router.replace('/login');
     }
   }, [user, loading, router]);
   
-  const today = clientReady ? new Date() : undefined;
-  
-  const eventDates = useMemo(() => {
-      const allEvents = [...transactions, ...appointments];
-      return allEvents.map(event => new Date(event.date + 'T00:00:00'));
-  }, [transactions, appointments]);
-
-
-  const handleDateSelect = (date: Date | undefined) => {
-    setSelectedDateForAppointment(date);
-    setIsAppointmentDialogOpen(true);
-  };
-  
   const handleSaveAppointment = (data: Omit<Appointment, 'id'>) => {
     addAppointment(data);
     setIsAppointmentDialogOpen(false);
   };
-  
-  const monthlyIncome = totalIncome();
-  const monthlyExpenses = totalExpenses();
   
   if (loading || !user) {
     return (
@@ -112,38 +92,23 @@ export default function Home() {
               <UserNav />
             </div>
             <CommandInput />
-             <Card className="bg-white/10 dark:bg-black/10 backdrop-blur-lg">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">Receitas no Mês</CardTitle>
-                    <ArrowUpCircle className="h-5 w-5 text-green-500" />
-                </CardHeader>
-                <CardContent>
-                    <div className="text-2xl font-bold text-green-500">
-                        {formatCurrency(monthlyIncome)}
-                    </div>
-                </CardContent>
-            </Card>
-             <Card className="bg-white/10 dark:bg-black/10 backdrop-blur-lg">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">Despesas no Mês</CardTitle>
-                    <ArrowDownCircle className="h-5 w-5 text-red-500" />
-                </CardHeader>
-                <CardContent>
-                    <div className="text-2xl font-bold text-red-500">
-                        {formatCurrency(monthlyExpenses)}
-                    </div>
-                </CardContent>
-            </Card>
-            <Card className="bg-white/10 dark:bg-black/10 backdrop-blur-lg">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">Balanço Mensal</CardTitle>
-                </CardHeader>
-                <CardContent>
-                    <div className="text-2xl font-bold">
-                        {formatCurrency(monthlyIncome + monthlyExpenses)}
-                    </div>
-                </CardContent>
-            </Card>
+
+            <Carousel
+              opts={{
+                align: "start",
+                loop: true,
+              }}
+              className="w-full"
+            >
+              <CarouselContent>
+                {accounts.map((account) => (
+                  <CarouselItem key={account.id}>
+                    <BalanceCard account={account} />
+                  </CarouselItem>
+                ))}
+              </CarouselContent>
+            </Carousel>
+            
             <TransactionsOverview />
           </div>
 
