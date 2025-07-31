@@ -282,7 +282,7 @@ export default function CardsPage() {
             card={cardToPay}
         />
        )}
-      <AlertDialog open={!!cardToDelete} onOpenChange={(open) => !open && setCardToDelete(null)}>
+      <AlertDialog open={!!cardToDelete} onOpenChange={(open) => !open ? setCardToDelete(null) : null}>
         <AlertDialogContent>
             <AlertDialogHeader>
                 <AlertDialogTitle>Excluir cartão?</AlertDialogTitle>

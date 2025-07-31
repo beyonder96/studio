@@ -196,7 +196,7 @@ export default function WishesPage() {
                 wish={editingWish}
             />
             
-            <AlertDialog open={!!wishToDelete} onOpenChange={(open) => !open && setWishToDelete(null)}>
+            <AlertDialog open={!!wishToDelete} onOpenChange={(open) => !open ? setWishToDelete(null) : null}>
                     <AlertDialogContent>
                         <AlertDialogHeader>
                             <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>

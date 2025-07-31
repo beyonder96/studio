@@ -225,7 +225,7 @@ export default function GoalsPage() {
               goal={editingGoal}
             />
             
-            <AlertDialog open={!!goalToDelete} onOpenChange={(open) => !open && setGoalToDelete(null)}>
+            <AlertDialog open={!!goalToDelete} onOpenChange={(open) => !open ? setGoalToDelete(null) : null}>
               <AlertDialogContent>
                 <AlertDialogHeader>
                   <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>

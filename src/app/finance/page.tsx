@@ -295,7 +295,7 @@ export default function FinancePage() {
                     transaction={editingTransaction}
                 />
                 
-                <AlertDialog open={!!transactionToDelete} onOpenChange={(open) => !open && setTransactionToDelete(null)}>
+                <AlertDialog open={!!transactionToDelete} onOpenChange={(open) => !open ? setTransactionToDelete(null) : null}>
                     <AlertDialogContent>
                         <AlertDialogHeader>
                         <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>

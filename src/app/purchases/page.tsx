@@ -457,7 +457,7 @@ export default function PurchasesPage() {
                     onAddItem={onAddItem}
                 />
                 
-                <AlertDialog open={!!listToDelete} onOpenChange={(open) => !open && setListToDelete(null)}>
+                <AlertDialog open={!!listToDelete} onOpenChange={(open) => !open ? setListToDelete(null) : null}>
                     <AlertDialogContent>
                         <AlertDialogHeader>
                             <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
@@ -475,7 +475,7 @@ export default function PurchasesPage() {
                     </AlertDialogContent>
                 </AlertDialog>
                 
-                <AlertDialog open={!!listToClear} onOpenChange={(open) => !open && setListToClear(null)}>
+                <AlertDialog open={!!listToClear} onOpenChange={(open) => !open ? setListToClear(null) : null}>
                     <AlertDialogContent>
                         <AlertDialogHeader>
                             <AlertDialogTitle>Limpar itens concluídos?</AlertDialogTitle>
@@ -499,4 +499,3 @@ export default function PurchasesPage() {
     </Card>
   );
 }
-

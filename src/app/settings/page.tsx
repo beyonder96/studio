@@ -376,7 +376,7 @@ export default function SettingsPage() {
             onSave={handleSaveCategory}
             category={itemToEdit}
         />
-         <AlertDialog open={!!itemToDelete} onOpenChange={(open) => !open && setItemToDelete(null)}>
+         <AlertDialog open={!!itemToDelete} onOpenChange={(open) => !open ? setItemToDelete(null) : null}>
             <AlertDialogContent>
                 <AlertDialogHeader>
                     <AlertDialogTitle>Excluir {itemToDelete?.type.includes('Category') ? 'categoria' : (itemToDelete?.type === 'account' ? 'conta' : 'cartão')}?</AlertDialogTitle>
