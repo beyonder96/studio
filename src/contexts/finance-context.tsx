@@ -16,10 +16,10 @@ const initialTransactions: Transaction[] = [
     { id: '1', description: 'Salário', amount: 5000, date: format(new Date(), 'yyyy-MM-dd'), type: 'income', category: 'Salário', isRecurring: true, frequency: 'monthly' },
     { id: '2', description: 'Aluguel', amount: -1500, date: format(new Date(), 'yyyy-MM-10'), type: 'expense', category: 'Moradia', isRecurring: true, frequency: 'monthly' },
 ];
-const initialAccounts = [ { id: 'acc1', name: 'Conta Corrente', balance: 3500, type: 'checking' } ];
+const initialAccounts = [ { id: 'acc1', name: 'Conta Corrente', balance: 3500, type: 'checking' as const } ];
 const initialCards = [ { id: 'card1', name: 'Cartão de Crédito', limit: 5000, dueDay: 10, holder: 'Pessoa 1', brand: 'visa' as const } ];
 const initialIncomeCategories = ['Salário', 'Freelance', 'Investimentos', 'Outros'];
-const initialExpenseCategories = ['Alimentação', 'Moradia', 'Transporte', 'Lazer', 'Saúde', 'Educação', 'Compras', 'Transferência', 'Investimento', 'Outros'];
+const initialExpenseCategories = ['Alimentação', 'Moradia', 'Transporte', 'Lazer', 'Saúde', 'Educação', 'Compras', 'Transferência', 'Investimento', 'Outros', 'Pagamento de Fatura'];
 const initialPantryCategories: PantryCategory[] = [ 'Laticínios', 'Carnes', 'Peixes', 'Frutas e Vegetais', 'Grãos e Cereais', 'Enlatados e Conservas', 'Bebidas', 'Higiene e Limpeza', 'Outros' ];
 const initialPantryItems: PantryItem[] = [];
 const initialTasks: Task[] = [ { id: 'task1', text: 'Pagar conta de luz', completed: false } ];
@@ -38,7 +38,7 @@ const allAchievements: Achievement[] = [
 ];
 
 
-export type Account = { id: string; name: string; balance: number; type: 'checking' | 'savings'; }
+export type Account = { id: string; name: string; balance: number; type: 'checking' | 'savings' | 'voucher'; }
 export type Card = { id: string; name: string; limit: number; dueDay: number; holder: string; brand: 'visa' | 'mastercard' | 'elo' | 'amex'; };
 export type Appointment = { id: string; title: string; date: string; time?: string; category: string; notes?: string; googleEventId?: string; accessToken?: string; };
 export type PantryCategory = string;
@@ -130,6 +130,7 @@ type FinanceContextType = {
   handleStartRenameList: (list: ShoppingList) => void;
   handleRenameList: (listId: string, newName: string, callback: () => void) => void;
   handleFinishList: (list: ShoppingList, transactionDetails: Omit<Transaction, 'id' | 'amount' | 'description'>) => void;
+  handlePayCardBill: (card: Card, amount: number, accountId: string) => void;
   memories: Memory[];
   addMemory: (memory: Omit<Memory, 'id'>) => void;
   achievements: Achievement[];
@@ -291,7 +292,6 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
 
     const updates: { [key: string]: any } = {};
 
-    // Do not update balance for credit card transactions
     const targetAccount = accounts.find(a => a.name === transaction.account);
     if (targetAccount) {
         const newBalance = targetAccount.balance + (transaction.amount || 0);
@@ -337,8 +337,6 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
   
   const deleteRecurringTransaction = (id: string) => {
     if (!user) return;
-    // For now, recurring transactions are just single entries with a flag.
-    // So deleting it is the same as deleting a normal transaction.
     remove(getDbRef(`transactions/${id}`));
   };
 
@@ -761,11 +759,9 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
   const handleFinishList = useCallback((list: ShoppingList, transactionDetails: Omit<Transaction, 'id' | 'amount' | 'description'>) => {
      if (!user) return;
 
-     // 1. Calculate total cost from checked items
      const totalCost = list.items.reduce((sum, item) => item.checked && item.price ? sum + item.price : sum, 0);
 
      if (totalCost > 0) {
-        // 2. Create the transaction
         const purchaseTransaction: Omit<Transaction, 'id'> = {
             ...transactionDetails,
             description: `Compra: ${list.name}`,
@@ -776,15 +772,60 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
         addTransaction(purchaseTransaction);
      }
      
-     // 3. Add checked items to pantry
      const itemsToAdd = list.items.filter(item => item.checked);
      if(itemsToAdd.length > 0) {
         addItemsToPantry(itemsToAdd);
      }
      
-     // 4. Clear completed items from the list
      handleClearCompletedItems(list.id);
   }, [user, addTransaction, addItemsToPantry, handleClearCompletedItems]);
+
+  const handlePayCardBill = useCallback((card: Card, amount: number, accountId: string) => {
+    if(!user) return;
+    const account = accounts.find(a => a.id === accountId);
+    if(!account) {
+        toast({ variant: 'destructive', title: 'Conta não encontrada' });
+        return;
+    }
+    if(account.balance < amount) {
+        toast({ variant: 'destructive', title: 'Saldo insuficiente', description: `A conta ${account.name} não possui saldo para o pagamento.`});
+        return;
+    }
+    
+    const updates: { [key: string]: any } = {};
+
+    // 1. Debit from bank account
+    const newBalance = account.balance - amount;
+    updates[`accounts/${accountId}/balance`] = newBalance;
+    
+    // 2. Create debit transaction for bank account
+    const debitTransaction: Omit<Transaction, 'id'> = {
+        description: `Pagamento Fatura ${card.name}`,
+        amount: -amount,
+        date: format(new Date(), 'yyyy-MM-dd'),
+        type: 'expense',
+        category: 'Pagamento de Fatura',
+        account: account.name,
+    };
+    const debitTransId = push(getDbRef('transactions')).key!;
+    updates[`transactions/${debitTransId}`] = debitTransaction;
+    
+    // 3. Create credit transaction for the card
+    const creditTransaction: Omit<Transaction, 'id'> = {
+        description: `Pagamento Recebido`,
+        amount: amount,
+        date: format(new Date(), 'yyyy-MM-dd'),
+        type: 'income',
+        category: 'Pagamento de Fatura',
+        account: card.name,
+    };
+    const creditTransId = push(getDbRef('transactions')).key!;
+    updates[`transactions/${creditTransId}`] = creditTransaction;
+
+    update(getDbRef(''), updates);
+    toast({ title: 'Fatura Paga!', description: `O pagamento de ${formatCurrency(amount)} para o cartão ${card.name} foi registrado.`})
+
+  }, [user, accounts, getDbRef, toast, formatCurrency]);
 
   // Memory Management
   const addMemory = (memory: Omit<Memory, 'id'>) => {
@@ -812,6 +853,7 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
     handleSetPrice, handleCheckboxChange, handleDeleteItem, handleUpdateItem,
     handleClearCompletedItems, handleAddItemToList, handleCreateListSave,
     handleDeleteList, handleStartRenameList, handleRenameList, handleFinishList,
+    handlePayCardBill,
     memories, addMemory,
     achievements,
     googleEvents, setGoogleEvents

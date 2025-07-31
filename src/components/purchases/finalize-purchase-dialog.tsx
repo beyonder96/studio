@@ -44,7 +44,7 @@ export function FinalizePurchaseDialog({ isOpen, onClose, onConfirm, list }: Fin
   const { expenseCategories, accounts, cards, formatCurrency } = useContext(FinanceContext);
   
   const combinedAccounts = useMemo(() => [
-      ...accounts.map(a => ({...a, type: 'account', id: a.name })), 
+      ...accounts.map(a => ({...a, type: 'account', id: a.name, name: `${a.name} (${a.type === 'voucher' ? 'Vale' : 'Conta'})` })), 
       ...cards.map(c => ({...c, type: 'card', id: c.name }))
     ], [accounts, cards]);
 
@@ -150,3 +150,5 @@ export function FinalizePurchaseDialog({ isOpen, onClose, onConfirm, list }: Fin
     </Dialog>
   );
 }
+
+    

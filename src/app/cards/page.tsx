@@ -11,7 +11,7 @@ import { addDays, format, setDate } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { TransactionsTable } from '@/components/finance/transactions-table';
 import { Button } from '@/components/ui/button';
-import { PlusCircle, Info, CalendarClock, ShoppingBag, Edit, Trash2 } from 'lucide-react';
+import { PlusCircle, Info, CalendarClock, ShoppingBag, Edit, Trash2, CreditCard } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/auth-context';
 import { EditAccountCardDialog } from '@/components/settings/edit-account-card-dialog';
@@ -29,6 +29,7 @@ import type { Account } from '@/contexts/finance-context';
 import { getDatabase, ref, onValue } from 'firebase/database';
 import { app as firebaseApp } from '@/lib/firebase';
 import { CardBrandLogo } from '@/components/cards/card-brand-logo';
+import { PayBillDialog } from '@/components/cards/pay-bill-dialog';
 
 
 const GlassCard = ({ card }: { card: CardType }) => {
@@ -57,6 +58,7 @@ export default function CardsPage() {
     addCard,
     updateCard,
     deleteCard,
+    handlePayCardBill,
  } = useContext(FinanceContext);
   const router = useRouter();
   const { user } = useAuth();
@@ -64,6 +66,8 @@ export default function CardsPage() {
   const [currentCardIndex, setCurrentCardIndex] = useState(0);
 
   const [isAccountCardDialogOpen, setIsAccountCardDialogOpen] = useState(false);
+  const [isPayBillDialogOpen, setIsPayBillDialogOpen] = useState(false);
+  const [cardToPay, setCardToPay] = useState<CardType | null>(null);
   const [editingItem, setEditingItem] = useState<Account | CardType | null>(null);
   const [cardToDelete, setCardToDelete] = useState<CardType | null>(null);
   const [coupleNames, setCoupleNames] = useState<string[]>([]);
@@ -105,7 +109,7 @@ export default function CardsPage() {
 
   const cardTransactions = useMemo(() => {
     if (!selectedCard) return [];
-    return transactions.filter(t => t.account === selectedCard.name && t.type === 'expense');
+    return transactions.filter(t => t.account === selectedCard.name);
   }, [selectedCard, transactions]);
   
   const handleEditTransaction = (transaction: Transaction) => {
@@ -134,6 +138,11 @@ export default function CardsPage() {
   const openEditDialog = (item: CardType) => {
     setEditingItem(item);
     setIsAccountCardDialogOpen(true);
+  }
+
+  const openPayBillDialog = (card: CardType) => {
+    setCardToPay(card);
+    setIsPayBillDialogOpen(true);
   }
 
   const handleDeleteConfirm = () => {
@@ -227,7 +236,7 @@ export default function CardsPage() {
                     </div>
                 </CardHeader>
                 <CardContent className="space-y-6">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-center">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-center">
                         <Card className="bg-transparent p-4">
                             <CalendarClock className="h-8 w-8 mx-auto text-primary mb-2"/>
                             <p className="font-semibold">Vencimento da Fatura</p>
@@ -238,6 +247,10 @@ export default function CardsPage() {
                             <p className="font-semibold">Melhor Dia de Compra</p>
                             <p className="text-muted-foreground">{cardInfo?.bestPurchaseDate}</p>
                         </Card>
+                        <Button className="h-full" onClick={() => openPayBillDialog(selectedCard)}>
+                            <CreditCard className="mr-2 h-4 w-4" />
+                            Pagar Fatura
+                        </Button>
                     </div>
 
                     <div>
@@ -261,6 +274,14 @@ export default function CardsPage() {
           allowedTypes={['card']}
           coupleNames={coupleNames}
       />
+       {cardToPay && (
+        <PayBillDialog
+            isOpen={isPayBillDialogOpen}
+            onClose={() => setIsPayBillDialogOpen(false)}
+            onSave={handlePayCardBill}
+            card={cardToPay}
+        />
+       )}
       <AlertDialog open={!!cardToDelete} onOpenChange={(open) => !open && setCardToDelete(null)}>
         <AlertDialogContent>
             <AlertDialogHeader>
@@ -282,3 +303,5 @@ export default function CardsPage() {
     </div>
   );
 }
+
+    

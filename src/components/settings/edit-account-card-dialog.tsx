@@ -32,6 +32,7 @@ const accountSchema = z.object({
   type: z.literal('account'),
   name: z.string().min(1, 'O nome é obrigatório'),
   balance: z.coerce.number().min(0, 'O saldo inicial não pode ser negativo'),
+  accountType: z.enum(['checking', 'savings', 'voucher']).default('checking'),
 });
 
 const cardSchema = z.object({
@@ -85,7 +86,7 @@ export function EditAccountCardDialog({ isOpen, onClose, onSave, item, allowedTy
         reset({
           type,
           name: item.name,
-          ...(type === 'account' ? { balance: (item as Account).balance } : { limit: (item as CardType).limit, dueDay: (item as CardType).dueDay, holder: (item as CardType).holder, brand: (item as CardType).brand }),
+          ...(type === 'account' ? { balance: (item as Account).balance, accountType: (item as Account).type } : { limit: (item as CardType).limit, dueDay: (item as CardType).dueDay, holder: (item as CardType).holder, brand: (item as CardType).brand }),
         });
       } else {
         // Adding new
@@ -93,7 +94,7 @@ export function EditAccountCardDialog({ isOpen, onClose, onSave, item, allowedTy
         reset({
           type: defaultTab,
           name: '',
-          ...(defaultTab === 'account' ? { balance: 0 } : { limit: 1000, dueDay: 10, holder: coupleNames[0] || '', brand: 'visa' }),
+          ...(defaultTab === 'account' ? { balance: 0, accountType: 'checking' } : { limit: 1000, dueDay: 10, holder: coupleNames[0] || '', brand: 'visa' }),
         });
       }
     }
@@ -110,23 +111,45 @@ export function EditAccountCardDialog({ isOpen, onClose, onSave, item, allowedTy
         <Controller name="type" control={control} render={({ field }) => <input type="hidden" {...field} value="account" />} />
         <div className="space-y-2">
             <Label htmlFor="account-name">Nome da Conta</Label>
-            <Input id="account-name" {...register('name')} placeholder="Ex: Conta Corrente" />
+            <Input id="account-name" {...register('name')} placeholder="Ex: Conta Corrente, Vale Refeição" />
             {errors.name && errors.type === 'account' && <p className="text-red-500 text-xs mt-1">{errors.name.message}</p>}
         </div>
-        <div className="space-y-2">
-            <Label htmlFor="balance">{isEditing ? "Saldo Atual" : "Saldo Inicial"}</Label>
-            <Controller
-                name="balance"
-                control={control}
-                render={({ field }) => (
-                <CurrencyInput
-                    id="balance"
-                    value={field.value || 0}
-                    onValueChange={(value) => field.onChange(value)}
+        <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+                <Label htmlFor="balance">{isEditing ? "Saldo Atual" : "Saldo Inicial"}</Label>
+                <Controller
+                    name="balance"
+                    control={control}
+                    render={({ field }) => (
+                    <CurrencyInput
+                        id="balance"
+                        value={field.value || 0}
+                        onValueChange={(value) => field.onChange(value)}
+                    />
+                    )}
                 />
-                )}
-            />
-             {errors.balance && errors.type === 'account' && <p className="text-red-500 text-xs mt-1">{errors.balance.message}</p>}
+                {errors.balance && errors.type === 'account' && <p className="text-red-500 text-xs mt-1">{errors.balance.message}</p>}
+            </div>
+            <div className="space-y-2">
+                <Label htmlFor="accountType">Tipo</Label>
+                <Controller
+                    name="accountType"
+                    control={control}
+                    render={({ field }) => (
+                        <Select onValueChange={field.onChange} value={field.value}>
+                            <SelectTrigger id="accountType">
+                                <SelectValue placeholder="Selecione o tipo" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="checking">Conta Corrente</SelectItem>
+                                <SelectItem value="savings">Poupança</SelectItem>
+                                <SelectItem value="voucher">Vale (Refeição/Alim.)</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    )}
+                />
+                 {errors.accountType && errors.type === 'account' && <p className="text-red-500 text-xs mt-1">{errors.accountType.message}</p>}
+            </div>
         </div>
     </div>
   );
@@ -223,7 +246,7 @@ export function EditAccountCardDialog({ isOpen, onClose, onSave, item, allowedTy
             {showTabs ? (
                 <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'account' | 'card')} className="w-full">
                     <TabsList className="grid w-full grid-cols-2">
-                        {allowedTypes.includes('account') && <TabsTrigger value="account" disabled={isEditing && itemType !== 'account'}>Conta</TabsTrigger>}
+                        {allowedTypes.includes('account') && <TabsTrigger value="account" disabled={isEditing && itemType !== 'account'}>Conta/Vale</TabsTrigger>}
                         {allowedTypes.includes('card') && <TabsTrigger value="card" disabled={isEditing && itemType !== 'card'}>Cartão de Crédito</TabsTrigger>}
                     </TabsList>
                     <TabsContent value="account">
@@ -250,3 +273,5 @@ export function EditAccountCardDialog({ isOpen, onClose, onSave, item, allowedTy
     </Dialog>
   );
 }
+
+    
