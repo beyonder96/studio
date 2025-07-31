@@ -20,6 +20,7 @@ import {
   Sparkles,
   GalleryVerticalEnd,
   CreditCard,
+  Home,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
@@ -30,9 +31,9 @@ import {
 } from "@/components/ui/tooltip";
 import { AnimatePresence, motion } from 'framer-motion';
 import { useAuth } from '@/contexts/auth-context';
+import { LogoIcon } from './dashboard/logo';
 
 const navItems = [
-  { href: '/', icon: LayoutDashboard, label: 'Painel' },
   { href: '/finance', icon: Banknote, label: 'Finanças' },
   { href: '/cards', icon: CreditCard, label: 'Cartões' },
   { href: '/goals', icon: Target, label: 'Metas' },
@@ -55,41 +56,85 @@ export function SideNav() {
   const { user } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
 
-  // Don't render the nav if user is not logged in
-  if (!user) {
+  // Don't render the nav if user is not logged in or on dashboard
+  if (!user || pathname === '/login' || pathname === '/signup') {
     return null;
   }
-
-  const isActive = (href: string) => pathname === href;
-
-  const handleLinkClick = () => {
-    setIsOpen(false);
-  };
   
-  const handleBackdropClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (e.target === e.currentTarget) {
-        setIsOpen(false);
-    }
-  };
+  if (pathname === '/') {
+    // Mobile-only FAB for dashboard
+     return (
+        <div className="fixed bottom-6 right-6 z-40 md:hidden">
+            <button
+            onClick={() => setIsOpen(!isOpen)}
+            className="bg-primary text-primary-foreground p-4 rounded-full shadow-lg transition-transform hover:scale-105 flex items-center justify-center"
+            aria-label="Abrir navegação"
+            >
+                <LayoutDashboard className="h-6 w-6" />
+            </button>
+            <NavPanel isOpen={isOpen} setIsOpen={setIsOpen} />
+        </div>
+    );
+  }
 
-  const panelVariants = {
-    hidden: { x: '100%' },
-    visible: { x: 0 },
-  };
-
+  // Persistent Home button for all other pages
   return (
-    <TooltipProvider delayDuration={0}>
-      <div className="fixed top-1/2 right-0 -translate-y-1/2 z-50">
-        <button
-          onClick={() => setIsOpen(!isOpen)}
-          className="bg-background border-l border-t border-b border-border p-2 rounded-l-2xl shadow-lg transition-transform hover:scale-105"
-          aria-label="Abrir navegação"
-        >
-          <PanelRightOpen className="h-6 w-6 text-muted-foreground" />
-        </button>
-      </div>
+    <>
+        <div className="fixed top-6 left-6 z-40">
+             <TooltipProvider delayDuration={0}>
+                <Tooltip>
+                    <TooltipTrigger asChild>
+                        <Link href="/">
+                            <button
+                                className="bg-background/80 backdrop-blur-sm border border-border p-3 rounded-2xl shadow-lg transition-transform hover:scale-105"
+                                aria-label="Voltar para o Painel"
+                            >
+                                <Home className="h-5 w-5 text-muted-foreground" />
+                            </button>
+                        </Link>
+                    </TooltipTrigger>
+                    <TooltipContent side="right">
+                        <p>Painel Principal</p>
+                    </TooltipContent>
+                </Tooltip>
+            </TooltipProvider>
+        </div>
+        <div className="fixed bottom-6 right-6 z-40">
+             <button
+                onClick={() => setIsOpen(!isOpen)}
+                className="bg-primary text-primary-foreground p-4 rounded-full shadow-lg transition-transform hover:scale-105 flex items-center justify-center"
+                aria-label="Abrir navegação"
+            >
+                <LayoutDashboard className="h-6 w-6" />
+            </button>
+            <NavPanel isOpen={isOpen} setIsOpen={setIsOpen} />
+        </div>
+    </>
+  );
+}
 
-      <AnimatePresence>
+
+const NavPanel = ({ isOpen, setIsOpen }: { isOpen: boolean, setIsOpen: (open: boolean) => void }) => {
+    const pathname = usePathname();
+    const isActive = (href: string) => pathname === href;
+
+    const handleLinkClick = () => {
+        setIsOpen(false);
+    };
+    
+    const handleBackdropClick = (e: React.MouseEvent<HTMLDivElement>) => {
+        if (e.target === e.currentTarget) {
+            setIsOpen(false);
+        }
+    };
+
+    const panelVariants = {
+        hidden: { opacity: 0, y: 20 },
+        visible: { opacity: 1, y: 0 },
+    };
+
+    return (
+        <AnimatePresence>
         {isOpen && (
           <>
             <motion.div
@@ -105,7 +150,7 @@ export function SideNav() {
               animate="visible"
               exit="hidden"
               transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-              className="fixed top-0 right-0 h-full w-64 bg-background border-l border-border shadow-2xl z-50 flex flex-col"
+              className="fixed bottom-20 right-6 w-64 bg-background/80 backdrop-blur-md border border-border rounded-2xl shadow-2xl z-50 flex flex-col overflow-hidden"
             >
               <div className="flex items-center justify-between p-4 border-b">
                  <h2 className="text-lg font-semibold">Navegação</h2>
@@ -114,13 +159,12 @@ export function SideNav() {
                  </button>
               </div>
 
-              <nav className="flex-1 p-4 overflow-y-auto">
-                <ul className="space-y-2">
+              <nav className="flex-1 p-2 overflow-y-auto max-h-[60vh]">
+                <ul className="space-y-1">
                   {navItems.map((item) => {
-                    const Component = Link;
                     return (
                         <li key={item.href}>
-                        <Component href={item.href} onClick={handleLinkClick}>
+                        <Link href={item.href} onClick={handleLinkClick}>
                             <div
                             className={cn(
                                 'flex items-center gap-4 p-3 rounded-lg transition-colors text-foreground',
@@ -132,14 +176,14 @@ export function SideNav() {
                             <item.icon className="h-5 w-5" />
                             <span>{item.label}</span>
                             </div>
-                        </Component>
+                        </Link>
                         </li>
                     )
                   })}
                 </ul>
               </nav>
-               <nav className="p-4 border-t">
-                 <ul className="space-y-2">
+               <nav className="p-2 border-t">
+                 <ul className="space-y-1">
                     {bottomNavItems.map((item) => (
                         <li key={item.href}>
                             <Link href={item.href} onClick={handleLinkClick}>
@@ -163,6 +207,5 @@ export function SideNav() {
           </>
         )}
       </AnimatePresence>
-    </TooltipProvider>
-  );
+    )
 }
