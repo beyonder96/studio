@@ -293,17 +293,23 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
     const updates: { [key: string]: any } = {};
     const rootRef = getDbRef('');
 
-    // Handle account balance update for non-card transactions
-    if (transaction.account && !cards.some(c => c.name === transaction.account)) {
+    if (transaction.type === 'transfer') {
+        const fromAccount = accounts.find(a => a.name === transaction.fromAccount);
+        const toAccount = accounts.find(a => a.name === transaction.toAccount);
+        if (fromAccount && toAccount) {
+            updates[`accounts/${fromAccount.id}/balance`] = fromAccount.balance - transaction.amount;
+            updates[`accounts/${toAccount.id}/balance`] = toAccount.balance + transaction.amount;
+            const newId = push(child(rootRef, 'transactions')).key!;
+            updates[`transactions/${newId}`] = transaction;
+        }
+    } else if (transaction.account && !cards.some(c => c.name === transaction.account)) {
         const targetAccount = accounts.find(a => a.name === transaction.account);
         if (targetAccount) {
-            const newBalance = targetAccount.balance + (transaction.amount || 0);
-            updates[`accounts/${targetAccount.id}/balance`] = newBalance;
+            updates[`accounts/${targetAccount.id}/balance`] = targetAccount.balance + (transaction.amount || 0);
         }
     }
 
-    // Handle installments for card transactions
-    if (installments > 1 && transaction.account && cards.some(c => c.name === transaction.account)) {
+    if (transaction.type !== 'transfer' && installments > 1 && transaction.account && cards.some(c => c.name === transaction.account)) {
         const installmentAmount = (transaction.amount || 0) / installments;
         const installmentGroupId = push(child(rootRef, 'transactions')).key!;
 
@@ -336,13 +342,13 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
     if (!originalTransaction) return;
 
     const updates: { [key: string]: any } = {};
-
-    // Only adjust balance for non-card transactions
+    
     if (originalTransaction.account && !cards.some(c => c.name === originalTransaction.account)) {
       const account = accounts.find(acc => acc.name === originalTransaction.account);
       if (account) {
-        const amountDifference = (updatedTransaction.amount ?? originalTransaction.amount) - originalTransaction.amount;
-        const newBalance = account.balance + amountDifference;
+        // Revert old amount and apply new amount
+        const balanceWithoutOld = account.balance - originalTransaction.amount;
+        const newBalance = balanceWithoutOld + (updatedTransaction.amount ?? 0);
         updates[`accounts/${account.id}/balance`] = newBalance;
       }
     }
@@ -357,14 +363,12 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
     if (!transactionToDelete) return;
 
     const updates: { [key: string]: any } = {};
-    updates[`transactions/${id}`] = null; // Mark for deletion
+    updates[`transactions/${id}`] = null;
 
-    // Revert balance change for non-card transactions
     if (transactionToDelete.account && !cards.some(c => c.name === transactionToDelete.account)) {
         const account = accounts.find(acc => acc.name === transactionToDelete.account);
         if (account) {
-            const newBalance = account.balance - transactionToDelete.amount;
-            updates[`accounts/${account.id}/balance`] = newBalance;
+            updates[`accounts/${account.id}/balance`] = account.balance - transactionToDelete.amount;
         }
     }
 
