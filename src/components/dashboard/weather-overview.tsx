@@ -73,7 +73,7 @@ export function WeatherOverview() {
   }
 
   return (
-    <Card className="bg-transparent text-center p-6">
+    <Card className="bg-white/10 dark:bg-black/10 backdrop-blur-lg text-center p-6">
       {loading && <Loader2 className="h-6 w-6 animate-spin mx-auto" />}
       {!loading && !location && (
         <p className="text-sm text-muted-foreground">Adicione sua cidade no perfil para ver o clima.</p>

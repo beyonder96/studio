@@ -10,10 +10,6 @@ const nextConfig: NextConfig = {
         protocol: 'https',
         hostname: 'placehold.co',
       },
-      {
-        protocol: 'https',
-        hostname: 'openweathermap.org',
-      }
     ],
   },
   typescript: {
@@ -38,7 +34,6 @@ const nextConfig: NextConfig = {
     NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID,
     NEXT_PUBLIC_FIREBASE_VAPID_KEY: process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY,
     GOOGLE_PLACES_API_KEY: process.env.GOOGLE_PLACES_API_KEY,
-    OPENWEATHERMAP_API_KEY: process.env.OPENWEATHERMAP_API_KEY,
   },
 };
 
