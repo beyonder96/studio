@@ -31,7 +31,7 @@ const DateDisplay = () => {
 
   if (!clientReady) {
     return (
-      <Card className="bg-white/10 dark:bg-black/10 border-none shadow-none text-center p-6">
+      <Card className="bg-white/20 dark:bg-black/20 border-border/20 backdrop-blur-lg text-center p-6">
         <Loader2 className="h-6 w-6 animate-spin mx-auto" />
       </Card>
     )
@@ -40,7 +40,7 @@ const DateDisplay = () => {
   const today = new Date();
   
   return (
-      <Card className="bg-white/10 dark:bg-black/10 border-none shadow-none text-center p-6">
+      <Card className="bg-white/20 dark:bg-black/20 border-border/20 backdrop-blur-lg text-center p-6">
           <p className="text-sm text-muted-foreground">Hoje é</p>
           <p className="text-2xl font-bold text-foreground capitalize">
               {format(today, "eeee, dd 'de' MMMM", { locale: ptBR })}
@@ -98,8 +98,8 @@ export default function Home() {
 
   return (
     <>
-      <div className="w-full max-w-7xl mx-auto p-4 sm:p-6 md:p-8">
-        <Card className="bg-white/10 dark:bg-black/10 backdrop-blur-3xl border-white/20 dark:border-black/20 rounded-3xl shadow-2xl">
+      <div className="w-full max-w-7xl mx-auto">
+        <Card className="bg-white/20 dark:bg-black/20 backdrop-blur-lg border-2 border-[hsl(var(--neon-yellow))] shadow-[0_0_15px_hsl(var(--neon-yellow)/0.3)] rounded-3xl">
           <CardContent className="p-4 sm:p-6">
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               
@@ -118,7 +118,7 @@ export default function Home() {
 
               {/* Middle Column */}
               <div className="lg:col-span-1 flex flex-col gap-6">
-                 <h2 className="text-2xl font-bold">Painel Financeiro</h2>
+                 <h2 className="text-2xl font-bold px-6 pt-1">Painel Financeiro</h2>
                  <JourneyCard />
                  <GoalsOverview />
                  <ShoppingListOverview />
@@ -126,7 +126,7 @@ export default function Home() {
 
               {/* Right Column */}
                <div className="lg:col-span-1 flex flex-col gap-6">
-                  <h2 className="text-2xl font-bold">Atividades</h2>
+                  <h2 className="text-2xl font-bold px-6 pt-1">Atividades</h2>
                   <TasksOverview />
                   <CopilotCard />
               </div>

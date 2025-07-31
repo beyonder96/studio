@@ -33,16 +33,6 @@ import type { Account, Card as CardType } from '@/contexts/finance-context';
 import { useFCM } from '@/hooks/use-fcm';
 import { useAuth } from '@/contexts/auth-context';
 
-
-const pastelColors = [
-  { name: 'Amarelo', value: '45 95% 55%' },
-  { name: 'Verde', value: '145 63% 49%' },
-  { name: 'Azul', value: '210 89% 64%' },
-  { name: 'Rosa', value: '340 82% 76%' },
-  { name: 'Roxo', value: '260 82% 76%' },
-  { name: 'Laranja', value: '25 95% 65%' },
-];
-
 type Theme = 'light' | 'dark';
 type ItemToDelete = { type: 'account' | 'card'; id: string; name: string } | { type: 'pantryCategory' | 'incomeCategory' | 'expenseCategory'; name: string };
 type ItemToEdit = { type: 'pantryCategory' | 'incomeCategory' | 'expenseCategory'; name: string } | null;
@@ -72,11 +62,7 @@ export default function SettingsPage() {
   const { permission, requestPermission } = useFCM();
   
   const [isClient, setIsClient] = useState(false);
-  const [savedTheme, setSavedTheme] = useState<Theme>('light');
-  const [savedColor, setSavedColor] = useState<string>(pastelColors[2].value);
-  
-  const [tempTheme, setTempTheme] = useState<Theme>('light');
-  const [tempColor, setTempColor] = useState<string>(pastelColors[2].value);
+  const [theme, setTheme] = useState<Theme>('light');
   
   const [newCategoryName, setNewCategoryName] = useState('');
   
@@ -87,51 +73,24 @@ export default function SettingsPage() {
   const [itemToEdit, setItemToEdit] = useState<ItemToEdit>(null);
 
 
-  // Load theme and color from localStorage only on the client
+  // Load theme from localStorage only on the client
   useEffect(() => {
     setIsClient(true);
     const storedTheme = (localStorage.getItem('app-theme') as Theme) || 'light';
-    const storedColor = localStorage.getItem('app-color') || pastelColors[2].value;
-
-    setSavedTheme(storedTheme);
-    setTempTheme(storedTheme);
-    
-    setSavedColor(storedColor);
-    setTempColor(storedColor);
+    setTheme(storedTheme);
+    document.documentElement.classList.remove('light', 'dark');
+    document.documentElement.classList.add(storedTheme);
   }, []);
 
-  // Apply visual changes immediately based on temporary selections
-  useEffect(() => {
-    if (isClient) {
-      document.documentElement.classList.remove('light', 'dark');
-      document.documentElement.classList.add(tempTheme);
-    }
-  }, [tempTheme, isClient]);
-
-  useEffect(() => {
-    if (isClient) {
-      document.documentElement.style.setProperty('--primary', `hsl(${tempColor})`);
-      const [h, s, l] = tempColor.split(' ').map(v => parseInt(v.replace('%', '')));
-      document.documentElement.style.setProperty('--accent', `hsl(${h} ${s}% ${l + (l < 50 ? 15 : -15)}% / 0.2)`);
-      document.documentElement.style.setProperty('--ring', `hsl(${tempColor})`);
-    }
-  }, [tempColor, isClient]);
-  
-  const handleSaveAppearance = () => {
-    localStorage.setItem('app-theme', tempTheme);
-    localStorage.setItem('app-color', tempColor);
-    
-    setSavedTheme(tempTheme);
-    setSavedColor(tempColor);
-    
+  const handleThemeChange = (newTheme: Theme) => {
+    setTheme(newTheme);
+    localStorage.setItem('app-theme', newTheme);
+    document.documentElement.classList.remove('light', 'dark');
+    document.documentElement.classList.add(newTheme);
     toast({
-        title: 'Aparência Salva!',
-        description: 'Seu novo tema e cor de destaque foram salvos.',
+        title: `Tema alterado para ${newTheme === 'light' ? 'Claro' : 'Escuro'}!`,
     });
   };
-
-  const isAppearanceDirty = tempTheme !== savedTheme || tempColor !== savedColor;
-
 
   const handleAddCategory = () => {
     if(newCategoryName.trim()) {
@@ -200,11 +159,11 @@ export default function SettingsPage() {
 
   return (
     <>
-        <Card className="bg-white/10 dark:bg-black/10 backdrop-blur-3xl border-white/20 dark:border-black/20 rounded-3xl shadow-2xl">
+        <Card>
             <CardContent className="p-4 sm:p-6">
                 <div className="space-y-8">
                 {/* Appearance Settings */}
-                <Card className="bg-transparent">
+                <Card className="bg-transparent border-0 shadow-none">
                     <CardHeader>
                     <CardTitle>Aparência</CardTitle>
                     <CardDescription>Personalize a aparência do aplicativo.</CardDescription>
@@ -213,45 +172,19 @@ export default function SettingsPage() {
                     <div>
                         <Label className="block mb-2 font-medium">Tema</Label>
                         <div className="flex gap-2">
-                        <Button variant={tempTheme === 'light' ? 'secondary' : 'outline'} onClick={() => setTempTheme('light')}>
+                        <Button variant={theme === 'light' ? 'secondary' : 'outline'} onClick={() => handleThemeChange('light')}>
                             <Sun className="mr-2 h-4 w-4" /> Claro
                         </Button>
-                        <Button variant={tempTheme === 'dark' ? 'secondary' : 'outline'} onClick={() => setTempTheme('dark')}>
+                        <Button variant={theme === 'dark' ? 'secondary' : 'outline'} onClick={() => handleThemeChange('dark')}>
                             <Moon className="mr-2 h-4 w-4" /> Escuro
                         </Button>
                         </div>
                     </div>
-                    <div>
-                        <Label className="block mb-2 font-medium">Cor de Destaque</Label>
-                        <div className="flex flex-wrap gap-3">
-                        {isClient && pastelColors.map(color => (
-                            <Button
-                            key={color.name}
-                            variant="outline"
-                            size="icon"
-                            className={`h-10 w-10 rounded-full border-2 flex items-center justify-center ${tempColor === color.value ? 'border-ring' : 'border-transparent'}`}
-                            onClick={() => setTempColor(color.value)}
-                            style={{ backgroundColor: `hsl(${color.value})` }}
-                            aria-label={`Selecionar cor ${color.name}`}
-                            >
-                            {tempColor === color.value && <Check className="h-5 w-5 text-primary-foreground" />}
-                            </Button>
-                        ))}
-                        </div>
-                    </div>
                     </CardContent>
-                     {isAppearanceDirty && (
-                        <CardFooter>
-                            <Button onClick={handleSaveAppearance} variant="secondary">
-                                <Save className="mr-2 h-4 w-4" />
-                                Salvar Alterações de Aparência
-                            </Button>
-                        </CardFooter>
-                    )}
                 </Card>
                 
                 {/* Notifications */}
-                <Card className="bg-transparent">
+                <Card className="bg-transparent border-0 shadow-none">
                     <CardHeader>
                         <CardTitle>Notificações</CardTitle>
                         <CardDescription>Receba alertas sobre tarefas e datas importantes.</CardDescription>
@@ -269,7 +202,7 @@ export default function SettingsPage() {
                 </Card>
 
                 {/* Categories */}
-                <Card className="bg-transparent">
+                <Card className="bg-transparent border-0 shadow-none">
                     <CardHeader>
                         <CardTitle>Categorias de Transação</CardTitle>
                         <CardDescription>Gerencie as categorias de suas receitas e despesas.</CardDescription>
@@ -315,7 +248,7 @@ export default function SettingsPage() {
                 </Card>
                 
                 {/* Pantry Categories */}
-                 <Card className="bg-transparent">
+                 <Card className="bg-transparent border-0 shadow-none">
                     <CardHeader>
                         <CardTitle>Categorias da Despensa</CardTitle>
                         <CardDescription>Gerencie as categorias dos itens da sua despensa.</CardDescription>
@@ -349,7 +282,7 @@ export default function SettingsPage() {
 
 
                 {/* Accounts & Cards */}
-                <Card className="bg-transparent">
+                <Card className="bg-transparent border-0 shadow-none">
                     <CardHeader>
                     <div className="flex items-center justify-between">
                         <div>
