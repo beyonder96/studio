@@ -24,7 +24,7 @@ function getGoogleAuthClient(accessToken: string): OAuth2Client {
 export const getCalendarEvents = ai.defineTool(
     {
         name: 'getCalendarEvents',
-        description: 'Retrieves the next 20 events from the primary Google Calendar using the user\'s access token.',
+        description: 'Retrieves the next 20 events from all of the user\'s Google Calendars using their access token.',
         inputSchema: z.object({
             accessToken: z.string().describe("The user's Google OAuth2 access token."),
         }),
@@ -40,20 +40,30 @@ export const getCalendarEvents = ai.defineTool(
         const authClient = getGoogleAuthClient(accessToken);
         const calendar = google.calendar({ version: 'v3', auth: authClient });
         try {
-            const response = await calendar.events.list({
-                calendarId: 'primary',
-                timeMin: new Date().toISOString(),
-                maxResults: 20,
-                singleEvents: true,
-                orderBy: 'startTime',
-            });
+            // First, get a list of all calendars the user has access to
+            const calendarListResponse = await calendar.calendarList.list();
+            const calendars = calendarListResponse.data.items;
+            if (!calendars) return [];
 
-            const events = response.data.items;
-            if (!events || events.length === 0) {
+            const allEventsPromises = calendars.map(cal => 
+                calendar.events.list({
+                    calendarId: cal.id!,
+                    timeMin: new Date().toISOString(),
+                    maxResults: 20, // Per calendar
+                    singleEvents: true,
+                    orderBy: 'startTime',
+                })
+            );
+
+            const allEventResponses = await Promise.all(allEventsPromises);
+            const allEvents = allEventResponses.flatMap(res => res.data.items || []);
+            
+            if (allEvents.length === 0) {
                 return [];
             }
 
-            return events.map(event => {
+            const formattedEvents = allEvents.map(event => {
+                if (!event) return null;
                 const start = event.start?.dateTime || event.start?.date;
                 if (!start) return null;
 
@@ -65,7 +75,12 @@ export const getCalendarEvents = ai.defineTool(
                     time: event.start?.dateTime ? format(date, 'HH:mm') : undefined,
                     isGoogleEvent: true,
                 };
-            }).filter(Boolean) as any[];
+            }).filter(Boolean);
+            
+            // Sort all events by date and return the top 20 upcoming
+            return formattedEvents
+              .sort((a,b) => parseISO(a.date).getTime() - parseISO(b.date).getTime())
+              .slice(0, 20) as any[];
 
         } catch (error) {
             console.error("Failed to fetch Google Calendar events:", error);
