@@ -17,7 +17,7 @@ const initialTransactions: Transaction[] = [
     { id: '2', description: 'Aluguel', amount: -1500, date: format(new Date(), 'yyyy-MM-10'), type: 'expense', category: 'Moradia', isRecurring: true, frequency: 'monthly' },
 ];
 const initialAccounts = [ { id: 'acc1', name: 'Conta Corrente', balance: 3500, type: 'checking' } ];
-const initialCards = [ { id: 'card1', name: 'Cartão de Crédito', limit: 5000, dueDay: 10, holder: 'Pessoa 1', brand: 'visa' } ];
+const initialCards = [ { id: 'card1', name: 'Cartão de Crédito', limit: 5000, dueDay: 10, holder: 'Pessoa 1', brand: 'visa' as const } ];
 const initialIncomeCategories = ['Salário', 'Freelance', 'Investimentos', 'Outros'];
 const initialExpenseCategories = ['Alimentação', 'Moradia', 'Transporte', 'Lazer', 'Saúde', 'Educação', 'Compras', 'Transferência', 'Investimento', 'Outros'];
 const initialPantryCategories: PantryCategory[] = [ 'Laticínios', 'Carnes', 'Peixes', 'Frutas e Vegetais', 'Grãos e Cereais', 'Enlatados e Conservas', 'Bebidas', 'Higiene e Limpeza', 'Outros' ];
@@ -288,20 +288,24 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
   
   const addTransaction = (transaction: Omit<Transaction, 'id'> & { fromAccount?: string; toAccount?: string }, installments: number = 1) => {
     if (!user) return;
-    if (transaction.type === 'transfer') {
-        toast({ title: "Funcionalidade não implementada", description: "Transferências serão implementadas em breve."});
-        return;
+
+    const updates: { [key: string]: any } = {};
+
+    // Do not update balance for credit card transactions
+    const targetAccount = accounts.find(a => a.name === transaction.account);
+    if (targetAccount) {
+        const newBalance = targetAccount.balance + (transaction.amount || 0);
+        updates[`accounts/${targetAccount.id}/balance`] = newBalance;
     }
 
     if (installments > 1 && transaction.account && cards.some(c => c.name === transaction.account)) {
-      const installmentAmount = transaction.amount / installments;
+      const installmentAmount = (transaction.amount || 0) / installments;
       const installmentGroupId = crypto.randomUUID();
 
       for (let i = 1; i <= installments; i++) {
         const installmentDate = addMonths(new Date(transaction.date + 'T00:00:00'), i - 1);
-        const newTransaction: Transaction = {
+        const newTransaction: Partial<Transaction> = {
           ...transaction,
-          id: crypto.randomUUID(),
           amount: installmentAmount,
           date: format(installmentDate, 'yyyy-MM-dd'),
           installmentGroupId,
@@ -309,14 +313,16 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
           totalInstallments: installments,
           isRecurring: false,
         };
+        delete newTransaction.id;
         const newId = push(getDbRef('transactions')).key!;
-        set(getDbRef(`transactions/${newId}`), {...newTransaction, id: undefined });
+        updates[`transactions/${newId}`] = newTransaction;
       }
     } else {
       const newId = push(getDbRef('transactions')).key!;
-      const newTransaction = { ...transaction };
-      set(getDbRef(`transactions/${newId}`), newTransaction);
+      updates[`transactions/${newId}`] = transaction;
     }
+    
+    update(getDbRef(''), updates);
   };
 
   const updateTransaction = (id: string, updatedTransaction: Partial<Omit<Transaction, 'id'>>) => {
@@ -534,8 +540,8 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
           updates[`accounts/${accountId}/balance`] = newAccountBalance;
 
           const newTransactionId = push(getDbRef('transactions')).key!;
-          const newTransaction = {
-            description: `Investimento para: ${goal.name}`,
+          const newTransaction: Omit<Transaction, 'id'> = {
+            description: `Contribuição para meta: ${goal.name}`,
             amount: -Math.abs(amount),
             date: format(new Date(), 'yyyy-MM-dd'),
             type: 'expense',
