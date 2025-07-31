@@ -7,12 +7,12 @@ import { useAuth } from '@/contexts/auth-context';
 import { getDatabase, ref, onValue } from 'firebase/database';
 import { app as firebaseApp } from '@/lib/firebase';
 import { getCurrentWeather } from '@/ai/tools/weather-tools';
-import { Loader2, Sun, Cloud, CloudRain, Snowflake, Zap, CloudFog } from 'lucide-react';
+import { Loader2, Sun, Cloud, CloudRain, Snowflake, Zap, CloudFog, AlertCircle } from 'lucide-react';
 import Image from 'next/image';
 
 const weatherIconMap: { [key: string]: React.ReactNode } = {
     '01d': <Sun className="h-8 w-8 text-yellow-400" />,
-    '01n': <Sun className="h-8 w-8 text-yellow-400" />, // Using Sun for clear night for simplicity
+    '01n': <Sun className="h-8 w-8 text-yellow-400" />,
     '02d': <Cloud className="h-8 w-8 text-gray-400" />,
     '02n': <Cloud className="h-8 w-8 text-gray-400" />,
     '03d': <Cloud className="h-8 w-8 text-gray-400" />,
@@ -29,6 +29,7 @@ const weatherIconMap: { [key: string]: React.ReactNode } = {
     '13n': <Snowflake className="h-8 w-8 text-blue-200" />,
     '50d': <CloudFog className="h-8 w-8 text-gray-500" />,
     '50n': <CloudFog className="h-8 w-8 text-gray-500" />,
+    'error': <AlertCircle className="h-8 w-8 text-destructive" />,
   };
 
 
@@ -63,8 +64,16 @@ export function WeatherOverview() {
     }
   }, [location]);
 
+  const getWeatherIcon = (iconCode: string) => {
+    // Handle cases where the API call fails and returns a non-standard icon
+    if (!weatherIconMap[iconCode]) {
+        return weatherIconMap['error'];
+    }
+    return weatherIconMap[iconCode];
+  }
+
   return (
-    <Card className="bg-white/10 dark:bg-black/10 border-none shadow-none text-center p-6">
+    <Card className="bg-transparent text-center p-6">
       {loading && <Loader2 className="h-6 w-6 animate-spin mx-auto" />}
       {!loading && !location && (
         <p className="text-sm text-muted-foreground">Adicione sua cidade no perfil para ver o clima.</p>
@@ -79,14 +88,7 @@ export function WeatherOverview() {
             <p className="text-sm text-muted-foreground">{location.split(',')[0]}</p>
           </div>
           <div>
-            {weather.icon && (
-                <Image 
-                    src={`https://openweathermap.org/img/wn/${weather.icon}@2x.png`}
-                    alt={weather.condition}
-                    width={64}
-                    height={64}
-                />
-            )}
+            {getWeatherIcon(weather.icon)}
           </div>
         </div>
       )}
