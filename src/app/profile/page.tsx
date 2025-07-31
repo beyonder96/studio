@@ -77,10 +77,13 @@ const defaultProfileData: ProfileData = {
 
 const getSinceText = (isoDate?: string): string => {
     if (!isoDate || !isValid(parseISO(isoDate))) return 'Defina a data de início';
-    const startDate = parseISO(isoDate);
+
+    const [year, month, day] = isoDate.split('T')[0].split('-').map(Number);
+    const startDate = new Date(Date.UTC(year, month - 1, day));
     const now = new Date();
-    
-    const totalDays = Math.max(0, Math.floor((now.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)));
+    const nowUTC = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+
+    const totalDays = Math.max(0, Math.floor((nowUTC.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)));
     const years = Math.floor(totalDays / 365.25);
     const remainingDays = totalDays - Math.floor(years * 365.25);
 
