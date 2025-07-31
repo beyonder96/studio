@@ -5,22 +5,29 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { HeartHandshake } from 'lucide-react';
-import { differenceInYears, addYears, differenceInDays } from 'date-fns';
+import { differenceInDays, differenceInCalendarYears, addYears, getYear, getMonth, getDate } from 'date-fns';
 import { useAuth } from '@/contexts/auth-context';
 import { getDatabase, ref, onValue } from 'firebase/database';
 import { app as firebaseApp } from '@/lib/firebase';
 
 const getSinceText = (isoDate?: string): { years: number, days: number } => {
     if (!isoDate) return { years: 0, days: 0 };
+    
     const startDate = new Date(isoDate);
     const now = new Date();
-    
-    const totalDays = differenceInDays(now, startDate);
-    if (totalDays < 0) return { years: 0, days: 0 };
 
-    const years = differenceInYears(now, startDate);
-    const dateAfterYears = addYears(startDate, years);
-    const days = differenceInDays(now, dateAfterYears);
+    if (startDate > now) return { years: 0, days: 0 };
+
+    let years = differenceInCalendarYears(now, startDate);
+    const anniversaryThisYear = new Date(now.getFullYear(), startDate.getMonth(), startDate.getDate());
+
+    // If the anniversary in the current year has not happened yet, subtract one year
+    if (now < anniversaryThisYear) {
+        years = years - 1;
+    }
+    
+    const yearsAnniversary = addYears(startDate, years);
+    const days = differenceInDays(now, yearsAnniversary);
 
     return { years, days };
 }
