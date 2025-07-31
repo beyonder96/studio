@@ -11,6 +11,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { SpecialDayAnimation } from '@/components/special-day-animation';
 import { AuthProvider } from '@/contexts/auth-context';
 import { useEffect } from 'react';
+import { Spotlight } from '@/components/ui/spotlight';
 
 export default function RootLayout({
   children,
@@ -46,6 +47,7 @@ export default function RootLayout({
           'min-h-screen bg-background font-sans antialiased',
         )}
       >
+        <Spotlight />
         <AuthProvider>
             <FinanceProvider>
               <SpecialDayAnimation />

@@ -17,14 +17,17 @@ import { AddAppointmentDialog } from '@/components/calendar/add-appointment-dial
 import { ptBR } from 'date-fns/locale';
 import { format } from 'date-fns';
 import { useRouter } from 'next/navigation';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Eye, EyeOff, Moon, Sun } from 'lucide-react';
 import { useAuth } from '@/contexts/auth-context';
 import { WeatherOverview } from '@/components/dashboard/weather-overview';
 import { CommandInput } from '@/components/dashboard/command-input';
 import { CardHeader, CardTitle } from '@/components/ui/card';
 import { Carousel, CarouselContent, CarouselItem } from '@/components/ui/carousel';
 import { BalanceCard } from '@/components/dashboard/balance-card';
+import { Button } from '@/components/ui/button';
+import { useToast } from '@/hooks/use-toast';
 
+type Theme = 'light' | 'dark';
 
 const DateDisplay = () => {
   const [clientReady, setClientReady] = useState(false);
@@ -56,10 +59,33 @@ const DateDisplay = () => {
 export default function Home() {
   const router = useRouter();
   const { user, loading } = useAuth();
-  const { accounts, addAppointment } = useContext(FinanceContext);
+  const { 
+    accounts, 
+    addAppointment,
+    isSensitiveDataVisible,
+    toggleSensitiveDataVisibility,
+   } = useContext(FinanceContext);
+  const { toast } = useToast();
 
   const [isAppointmentDialogOpen, setIsAppointmentDialogOpen] = useState(false);
   const [selectedDateForAppointment, setSelectedDateForAppointment] = useState<Date | undefined>();
+  const [theme, setTheme] = useState<Theme>('light');
+
+  useEffect(() => {
+    const storedTheme = (localStorage.getItem('app-theme') as Theme) || 'light';
+    setTheme(storedTheme);
+  }, []);
+  
+  const handleThemeChange = () => {
+    const newTheme = theme === 'light' ? 'dark' : 'light';
+    setTheme(newTheme);
+    localStorage.setItem('app-theme', newTheme);
+    document.documentElement.classList.remove('light', 'dark');
+    document.documentElement.classList.add(newTheme);
+    toast({
+        title: `Tema alterado para ${newTheme === 'light' ? 'Claro' : 'Escuro'}!`,
+    });
+  };
   
   useEffect(() => {
     if (!loading && !user) {
@@ -89,7 +115,15 @@ export default function Home() {
           <div className="lg:col-span-1 flex flex-col gap-6">
             <div className="flex items-center justify-between">
               <DashboardHeader />
-              <UserNav />
+              <div className="flex items-center gap-2">
+                  <Button variant="ghost" size="icon" onClick={toggleSensitiveDataVisibility}>
+                      {isSensitiveDataVisible ? <Eye className="h-5 w-5" /> : <EyeOff className="h-5 w-5" />}
+                  </Button>
+                   <Button variant="ghost" size="icon" onClick={handleThemeChange}>
+                      {theme === 'light' ? <Moon className="h-5 w-5" /> : <Sun className="h-5 w-5" />}
+                  </Button>
+                  <UserNav />
+              </div>
             </div>
             <CommandInput />
 
