@@ -5,26 +5,23 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { HeartHandshake } from 'lucide-react';
-import { differenceInDays, differenceInCalendarYears, addYears, getYear, getMonth, getDate } from 'date-fns';
+import { differenceInDays } from 'date-fns';
 import { useAuth } from '@/contexts/auth-context';
 import { getDatabase, ref, onValue } from 'firebase/database';
 import { app as firebaseApp } from '@/lib/firebase';
-import { intervalToDuration } from 'date-fns';
 
-const getSinceText = (isoDate?: string): { years: number, days: number } => {
-    if (!isoDate) return { years: 0, days: 0 };
+const getTotalDays = (isoDate?: string): number => {
+    if (!isoDate) return 0;
     
     const startDate = new Date(isoDate);
     const now = new Date();
 
-    if (startDate > now) return { years: 0, days: 0 };
+    if (startDate > now) return 0;
 
-    const duration = intervalToDuration({ start: startDate, end: now });
+    // Use differenceInDays for an accurate day count
+    const totalDays = differenceInDays(now, startDate);
 
-    return { 
-        years: duration.years || 0, 
-        days: duration.days || 0 
-    };
+    return totalDays;
 }
 
 export function JourneyCard() {
@@ -45,11 +42,11 @@ export function JourneyCard() {
     }
   }, [user]);
 
-  const { years, days } = getSinceText(sinceDate);
+  const totalDays = getTotalDays(sinceDate);
 
   return (
     <Link href="/profile" className="block">
-        <Card className="bg-white/10 dark:bg-black/10 border-none shadow-none h-full hover:bg-white/20 dark:hover:bg-black/20 transition-colors">
+        <Card className="bg-white/10 dark:bg-black/10 shadow-none h-full hover:bg-white/20 dark:hover:bg-black/20 transition-colors">
         <CardHeader>
             <CardTitle className="flex items-center gap-2">
                 <HeartHandshake className="h-5 w-5" />
@@ -59,9 +56,8 @@ export function JourneyCard() {
         <CardContent className="text-center">
             {sinceDate ? (
                 <div>
-                    <p className="text-4xl font-bold">{years}<span className="text-2xl font-normal text-muted-foreground"> anos</span></p>
-                    <p className="text-4xl font-bold">{days}<span className="text-2xl font-normal text-muted-foreground"> dias</span></p>
-                    <p className="text-sm text-muted-foreground mt-2">juntos!</p>
+                    <p className="text-6xl font-bold">{totalDays.toLocaleString('pt-BR')}</p>
+                    <p className="text-xl text-muted-foreground mt-1">dias juntos!</p>
                 </div>
             ) : (
             <div className="text-center text-muted-foreground py-4">

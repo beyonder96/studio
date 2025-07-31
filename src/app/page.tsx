@@ -17,10 +17,11 @@ import { AddAppointmentDialog } from '@/components/calendar/add-appointment-dial
 import { ptBR } from 'date-fns/locale';
 import { format } from 'date-fns';
 import { useRouter } from 'next/navigation';
-import { Loader2 } from 'lucide-react';
+import { Loader2, ArrowUpCircle, ArrowDownCircle } from 'lucide-react';
 import { useAuth } from '@/contexts/auth-context';
 import { WeatherOverview } from '@/components/dashboard/weather-overview';
 import { CommandInput } from '@/components/dashboard/command-input';
+import { CardHeader, CardTitle } from '@/components/ui/card';
 
 
 const DateDisplay = () => {
@@ -31,7 +32,7 @@ const DateDisplay = () => {
 
   if (!clientReady) {
     return (
-      <Card className="bg-white/20 dark:bg-black/20 border-border/20 backdrop-blur-lg text-center p-6">
+      <Card className="bg-white/10 dark:bg-black/10 backdrop-blur-lg text-center p-6">
         <Loader2 className="h-6 w-6 animate-spin mx-auto" />
       </Card>
     )
@@ -40,7 +41,7 @@ const DateDisplay = () => {
   const today = new Date();
   
   return (
-      <Card className="bg-white/20 dark:bg-black/20 border-border/20 backdrop-blur-lg text-center p-6">
+      <Card className="bg-white/10 dark:bg-black/10 backdrop-blur-lg text-center p-6">
           <p className="text-sm text-muted-foreground">Hoje é</p>
           <p className="text-2xl font-bold text-foreground capitalize">
               {format(today, "eeee, dd 'de' MMMM", { locale: ptBR })}
@@ -53,7 +54,7 @@ const DateDisplay = () => {
 export default function Home() {
   const router = useRouter();
   const { user, loading } = useAuth();
-  const { transactions, appointments, addAppointment } = useContext(FinanceContext);
+  const { transactions, appointments, addAppointment, totalIncome, totalExpenses, formatCurrency } = useContext(FinanceContext);
 
   const [isAppointmentDialogOpen, setIsAppointmentDialogOpen] = useState(false);
   const [selectedDateForAppointment, setSelectedDateForAppointment] = useState<Date | undefined>();
@@ -88,6 +89,9 @@ export default function Home() {
     setIsAppointmentDialogOpen(false);
   };
   
+  const monthlyIncome = totalIncome();
+  const monthlyExpenses = totalExpenses();
+  
   if (loading || !user) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -99,41 +103,67 @@ export default function Home() {
   return (
     <>
       <div className="w-full max-w-7xl mx-auto">
-        <Card className="bg-white/20 dark:bg-black/20 backdrop-blur-lg border-2 border-[hsl(var(--neon-yellow))] shadow-[0_0_15px_hsl(var(--neon-yellow)/0.3)] rounded-3xl">
-          <CardContent className="p-4 sm:p-6">
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              
-              {/* Left Column */}
-              <div className="lg:col-span-1 flex flex-col gap-6">
-                <div className="flex items-center justify-between">
-                  <DashboardHeader />
-                  <UserNav />
-                </div>
-                <CommandInput />
-                <TransactionsOverview />
-                <DateDisplay />
-                <WeatherOverview />
-                <MonthOverview />
-              </div>
-
-              {/* Middle Column */}
-              <div className="lg:col-span-1 flex flex-col gap-6">
-                 <h2 className="text-2xl font-bold px-6 pt-1">Painel Financeiro</h2>
-                 <JourneyCard />
-                 <GoalsOverview />
-                 <ShoppingListOverview />
-              </div>
-
-              {/* Right Column */}
-               <div className="lg:col-span-1 flex flex-col gap-6">
-                  <h2 className="text-2xl font-bold px-6 pt-1">Atividades</h2>
-                  <TasksOverview />
-                  <CopilotCard />
-              </div>
-
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          
+          {/* Left Column */}
+          <div className="lg:col-span-1 flex flex-col gap-6">
+            <div className="flex items-center justify-between">
+              <DashboardHeader />
+              <UserNav />
             </div>
-          </CardContent>
-        </Card>
+            <CommandInput />
+             <Card className="bg-white/10 dark:bg-black/10 backdrop-blur-lg">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Receitas no Mês</CardTitle>
+                    <ArrowUpCircle className="h-5 w-5 text-green-500" />
+                </CardHeader>
+                <CardContent>
+                    <div className="text-2xl font-bold text-green-500">
+                        {formatCurrency(monthlyIncome)}
+                    </div>
+                </CardContent>
+            </Card>
+             <Card className="bg-white/10 dark:bg-black/10 backdrop-blur-lg">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Despesas no Mês</CardTitle>
+                    <ArrowDownCircle className="h-5 w-5 text-red-500" />
+                </CardHeader>
+                <CardContent>
+                    <div className="text-2xl font-bold text-red-500">
+                        {formatCurrency(monthlyExpenses)}
+                    </div>
+                </CardContent>
+            </Card>
+            <Card className="bg-white/10 dark:bg-black/10 backdrop-blur-lg">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Balanço Mensal</CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <div className="text-2xl font-bold">
+                        {formatCurrency(monthlyIncome + monthlyExpenses)}
+                    </div>
+                </CardContent>
+            </Card>
+            <TransactionsOverview />
+          </div>
+
+          {/* Middle Column */}
+          <div className="lg:col-span-1 flex flex-col gap-6">
+             <JourneyCard />
+             <GoalsOverview />
+             <ShoppingListOverview />
+             <DateDisplay />
+             <WeatherOverview />
+          </div>
+
+          {/* Right Column */}
+           <div className="lg:col-span-1 flex flex-col gap-6">
+              <TasksOverview />
+              <MonthOverview />
+              <CopilotCard />
+          </div>
+
+        </div>
       </div>
 
       <AddAppointmentDialog
