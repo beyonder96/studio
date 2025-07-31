@@ -9,6 +9,7 @@ import { differenceInDays, differenceInCalendarYears, addYears, getYear, getMont
 import { useAuth } from '@/contexts/auth-context';
 import { getDatabase, ref, onValue } from 'firebase/database';
 import { app as firebaseApp } from '@/lib/firebase';
+import { intervalToDuration } from 'date-fns';
 
 const getSinceText = (isoDate?: string): { years: number, days: number } => {
     if (!isoDate) return { years: 0, days: 0 };
@@ -18,18 +19,12 @@ const getSinceText = (isoDate?: string): { years: number, days: number } => {
 
     if (startDate > now) return { years: 0, days: 0 };
 
-    let years = differenceInCalendarYears(now, startDate);
-    const anniversaryThisYear = new Date(now.getFullYear(), startDate.getMonth(), startDate.getDate());
+    const duration = intervalToDuration({ start: startDate, end: now });
 
-    // If the anniversary in the current year has not happened yet, subtract one year
-    if (now < anniversaryThisYear) {
-        years = years - 1;
-    }
-    
-    const yearsAnniversary = addYears(startDate, years);
-    const days = differenceInDays(now, yearsAnniversary);
-
-    return { years, days };
+    return { 
+        years: duration.years || 0, 
+        days: duration.days || 0 
+    };
 }
 
 export function JourneyCard() {
