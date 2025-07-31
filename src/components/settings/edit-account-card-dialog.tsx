@@ -59,9 +59,8 @@ type EditAccountCardDialogProps = {
 
 export function EditAccountCardDialog({ isOpen, onClose, onSave, item, allowedTypes = ['account', 'card'], coupleNames = [] }: EditAccountCardDialogProps) {
   const isEditing = !!item;
-  const itemType = item && 'balance' in item ? 'account' : 'card';
-  
-  const [activeTab, setActiveTab] = useState<'account' | 'card'>(item ? itemType : allowedTypes[0]);
+  const initialTab = item ? ('balance' in item ? 'account' : 'card') : allowedTypes[0];
+  const [activeTab, setActiveTab] = useState<'account' | 'card'>(initialTab);
   
   const {
     register,
@@ -72,33 +71,39 @@ export function EditAccountCardDialog({ isOpen, onClose, onSave, item, allowedTy
     setValue
   } = useForm<AccountCardFormData>({
     resolver: zodResolver(formSchema),
+    // Set default values based on the initial tab to avoid validation errors on mount
+    defaultValues: initialTab === 'account' 
+      ? { type: 'account', name: '', balance: 0, accountType: 'checking' } 
+      : { type: 'card', name: '', limit: 1000, dueDay: 10, holder: '', brand: 'visa' },
   });
 
   useEffect(() => {
     if (isOpen) {
-      const defaultTab = item ? itemType : allowedTypes[0];
-      setActiveTab(defaultTab);
-      
-      if (item) {
-        // Editing
-        const type = 'balance' in item ? 'account' : 'card';
-        setValue('type', type);
-        reset({
-          type,
-          name: item.name,
-          ...(type === 'account' ? { balance: (item as Account).balance, accountType: (item as Account).type } : { limit: (item as CardType).limit, dueDay: (item as CardType).dueDay, holder: (item as CardType).holder, brand: (item as CardType).brand }),
-        });
-      } else {
-        // Adding new
-        setValue('type', defaultTab);
-        reset({
-          type: defaultTab,
-          name: '',
-          ...(defaultTab === 'account' ? { balance: 0, accountType: 'checking' } : { limit: 1000, dueDay: 10, holder: coupleNames[0] || '', brand: 'visa' }),
-        });
-      }
+        const tab = item ? ('balance' in item ? 'account' : 'card') : allowedTypes[0];
+        setActiveTab(tab);
+        setValue('type', tab); // Ensure form type is in sync with tab
+
+        if (item) { // Editing
+            if ('balance' in item) {
+                reset({ type: 'account', name: item.name, balance: item.balance, accountType: item.type });
+            } else {
+                reset({ type: 'card', name: item.name, limit: item.limit, dueDay: item.dueDay, holder: item.holder, brand: item.brand });
+            }
+        } else { // Adding
+             if (tab === 'account') {
+                reset({ type: 'account', name: '', balance: 0, accountType: 'checking' });
+             } else {
+                reset({ type: 'card', name: '', limit: 1000, dueDay: 10, holder: coupleNames[0] || '', brand: 'visa' });
+             }
+        }
     }
-  }, [isOpen, reset, item, allowedTypes, itemType, setValue, coupleNames]);
+  }, [isOpen, item, reset, setValue, allowedTypes, coupleNames]);
+  
+  const handleTabChange = (value: string) => {
+    const newTab = value as 'account' | 'card';
+    setActiveTab(newTab);
+    setValue('type', newTab); // Update the form's type field
+  }
 
   const onSubmit = (data: AccountCardFormData) => {
     onSave(data);
@@ -112,7 +117,7 @@ export function EditAccountCardDialog({ isOpen, onClose, onSave, item, allowedTy
         <div className="space-y-2">
             <Label htmlFor="account-name">Nome da Conta</Label>
             <Input id="account-name" {...register('name')} placeholder="Ex: Conta Corrente, Vale Refeição" />
-            {errors.name && errors.type === 'account' && <p className="text-red-500 text-xs mt-1">{errors.name.message}</p>}
+            {errors.type === 'account' && errors.name && <p className="text-red-500 text-xs mt-1">{errors.name.message}</p>}
         </div>
         <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
@@ -123,12 +128,12 @@ export function EditAccountCardDialog({ isOpen, onClose, onSave, item, allowedTy
                     render={({ field }) => (
                     <CurrencyInput
                         id="balance"
-                        value={field.value || 0}
+                        value={field.value ?? 0}
                         onValueChange={(value) => field.onChange(value)}
                     />
                     )}
                 />
-                {errors.balance && errors.type === 'account' && <p className="text-red-500 text-xs mt-1">{errors.balance.message}</p>}
+                {errors.type === 'account' && errors.balance && <p className="text-red-500 text-xs mt-1">{errors.balance.message}</p>}
             </div>
             <div className="space-y-2">
                 <Label htmlFor="accountType">Tipo</Label>
@@ -148,7 +153,7 @@ export function EditAccountCardDialog({ isOpen, onClose, onSave, item, allowedTy
                         </Select>
                     )}
                 />
-                 {errors.accountType && errors.type === 'account' && <p className="text-red-500 text-xs mt-1">{errors.accountType.message}</p>}
+                 {errors.type === 'account' && errors.accountType && <p className="text-red-500 text-xs mt-1">{errors.accountType.message}</p>}
             </div>
         </div>
     </div>
@@ -160,7 +165,7 @@ export function EditAccountCardDialog({ isOpen, onClose, onSave, item, allowedTy
         <div className="space-y-2">
             <Label htmlFor="card-name">Apelido do Cartão</Label>
             <Input id="card-name" {...register('name')} placeholder="Ex: Cartão Principal" />
-            {errors.name && errors.type === 'card' && <p className="text-red-500 text-xs mt-1">{errors.name.message}</p>}
+            {errors.type === 'card' && errors.name && <p className="text-red-500 text-xs mt-1">{errors.name.message}</p>}
         </div>
 
         <div className="grid grid-cols-2 gap-4">
@@ -182,7 +187,7 @@ export function EditAccountCardDialog({ isOpen, onClose, onSave, item, allowedTy
                     </Select>
                     )}
                 />
-                {errors.holder && errors.type === 'card' && <p className="text-red-500 text-xs mt-1">{errors.holder.message}</p>}
+                {errors.type === 'card' && errors.holder && <p className="text-red-500 text-xs mt-1">{errors.holder.message}</p>}
             </div>
             <div className="space-y-2">
                 <Label htmlFor="brand">Bandeira</Label>
@@ -203,7 +208,7 @@ export function EditAccountCardDialog({ isOpen, onClose, onSave, item, allowedTy
                     </Select>
                     )}
                 />
-                 {errors.brand && errors.type === 'card' && <p className="text-red-500 text-xs mt-1">{errors.brand.message}</p>}
+                 {errors.type === 'card' && errors.brand && <p className="text-red-500 text-xs mt-1">{errors.brand.message}</p>}
             </div>
         </div>
 
@@ -216,17 +221,17 @@ export function EditAccountCardDialog({ isOpen, onClose, onSave, item, allowedTy
                     render={({ field }) => (
                     <CurrencyInput
                         id="limit"
-                        value={field.value || 0}
+                        value={field.value ?? 0}
                         onValueChange={(value) => field.onChange(value)}
                     />
                     )}
                 />
-                 {errors.limit && errors.type === 'card' && <p className="text-red-500 text-xs mt-1">{errors.limit.message}</p>}
+                 {errors.type === 'card' && errors.limit && <p className="text-red-500 text-xs mt-1">{errors.limit.message}</p>}
             </div>
              <div className="space-y-2">
                 <Label htmlFor="dueDay">Dia do Vencimento</Label>
                 <Input id="dueDay" type="number" {...register('dueDay')} min="1" max="31" />
-                {errors.dueDay && errors.type === 'card' && <p className="text-red-500 text-xs mt-1">{errors.dueDay.message}</p>}
+                {errors.type === 'card' && errors.dueDay && <p className="text-red-500 text-xs mt-1">{errors.dueDay.message}</p>}
             </div>
         </div>
     </div>
@@ -237,17 +242,17 @@ export function EditAccountCardDialog({ isOpen, onClose, onSave, item, allowedTy
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>{isEditing ? (itemType === 'account' ? 'Editar Conta' : 'Editar Cartão') : 'Adicionar'}</DialogTitle>
+          <DialogTitle>{isEditing ? (initialTab === 'account' ? 'Editar Conta' : 'Editar Cartão') : 'Adicionar'}</DialogTitle>
            <DialogDescription>
             {isEditing ? 'Atualize as informações abaixo.' : 'Selecione o tipo e preencha as informações.'}
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit(onSubmit)}>
             {showTabs ? (
-                <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'account' | 'card')} className="w-full">
+                <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
                     <TabsList className="grid w-full grid-cols-2">
-                        {allowedTypes.includes('account') && <TabsTrigger value="account" disabled={isEditing && itemType !== 'account'}>Conta/Vale</TabsTrigger>}
-                        {allowedTypes.includes('card') && <TabsTrigger value="card" disabled={isEditing && itemType !== 'card'}>Cartão de Crédito</TabsTrigger>}
+                        {allowedTypes.includes('account') && <TabsTrigger value="account">Conta/Vale</TabsTrigger>}
+                        {allowedTypes.includes('card') && <TabsTrigger value="card">Cartão de Crédito</TabsTrigger>}
                     </TabsList>
                     <TabsContent value="account">
                         {AccountForm}
