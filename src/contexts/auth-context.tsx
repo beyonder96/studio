@@ -55,14 +55,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const signInWithGoogle = async (): Promise<UserCredential> => {
     if (!auth) throw new Error("Firebase Auth not initialized");
+    
     try {
       const result = await signInWithPopup(auth, googleProvider);
       const user = result.user;
       const additionalInfo = getAdditionalUserInfo(result);
       
-      // Store flag to indicate user has connected Google account
-      localStorage.setItem('google_calendar_permission', 'true');
-
       // If new user, create a profile entry
       if (additionalInfo?.isNewUser) {
         const db = getDatabase(firebaseApp);

@@ -59,7 +59,11 @@ export default function CalendarPage() {
         result = await signInWithGoogle();
     } catch (e) {
         console.error("Error signing in with Google:", e);
-        if(showToast) toast({ variant: "destructive", title: "Erro de Login", description: "Não foi possível autenticar com o Google." });
+        if (e instanceof Error && (e as any).code === 'auth/popup-closed-by-user' || (e as any).code === 'auth/cancelled-popup-request') {
+          // Don't show an error toast if user simply closes the popup
+        } else {
+          if(showToast) toast({ variant: "destructive", title: "Erro de Login", description: "Não foi possível autenticar com o Google." });
+        }
         setIsSyncing(false);
         return;
     }
@@ -71,6 +75,7 @@ export default function CalendarPage() {
         return;
     }
     const accessToken = credential.accessToken;
+    localStorage.setItem('google_calendar_permission', 'true');
 
     try {
         const events = await getCalendarEvents({ accessToken });
@@ -83,18 +88,6 @@ export default function CalendarPage() {
         setIsSyncing(false);
     }
   }
-
-  // Automatic sync on load
-  useEffect(() => {
-    // Only sync automatically if there are no google events loaded yet
-    if(user && googleEvents.length === 0){
-        const hasGrantedPermission = localStorage.getItem('google_calendar_permission');
-        if(hasGrantedPermission) {
-             handleSync(false); // Sync silently
-        }
-    }
-  }, [user]);
-
 
   const allEvents = useMemo(() => {
     const localAppointments = appointments.map((a: Appointment) => ({
