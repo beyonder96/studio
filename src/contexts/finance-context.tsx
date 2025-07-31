@@ -287,52 +287,88 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
     return value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
   };
   
-  const addTransaction = (transaction: Omit<Transaction, 'id'> & { fromAccount?: string; toAccount?: string }, installments: number = 1) => {
+  const addTransaction = (transaction: Omit<Transaction, 'id'>, installments: number = 1) => {
     if (!user) return;
-
+    
     const updates: { [key: string]: any } = {};
+    const rootRef = getDbRef('');
 
-    const targetAccount = accounts.find(a => a.name === transaction.account);
-    if (targetAccount) {
-        const newBalance = targetAccount.balance + (transaction.amount || 0);
-        updates[`accounts/${targetAccount.id}/balance`] = newBalance;
+    // Handle account balance update for non-card transactions
+    if (transaction.account && !cards.some(c => c.name === transaction.account)) {
+        const targetAccount = accounts.find(a => a.name === transaction.account);
+        if (targetAccount) {
+            const newBalance = targetAccount.balance + (transaction.amount || 0);
+            updates[`accounts/${targetAccount.id}/balance`] = newBalance;
+        }
     }
 
+    // Handle installments for card transactions
     if (installments > 1 && transaction.account && cards.some(c => c.name === transaction.account)) {
-      const installmentAmount = (transaction.amount || 0) / installments;
-      const installmentGroupId = crypto.randomUUID();
+        const installmentAmount = (transaction.amount || 0) / installments;
+        const installmentGroupId = push(child(rootRef, 'transactions')).key!;
 
-      for (let i = 1; i <= installments; i++) {
-        const installmentDate = addMonths(new Date(transaction.date + 'T00:00:00'), i - 1);
-        const newTransaction: Partial<Transaction> = {
-          ...transaction,
-          amount: installmentAmount,
-          date: format(installmentDate, 'yyyy-MM-dd'),
-          installmentGroupId,
-          currentInstallment: i,
-          totalInstallments: installments,
-          isRecurring: false,
-        };
-        delete newTransaction.id;
-        const newId = push(getDbRef('transactions')).key!;
-        updates[`transactions/${newId}`] = newTransaction;
-      }
+        for (let i = 1; i <= installments; i++) {
+            const installmentDate = addMonths(new Date(transaction.date + 'T00:00:00'), i - 1);
+            const newTransaction: Partial<Transaction> = {
+                ...transaction,
+                amount: installmentAmount,
+                date: format(installmentDate, 'yyyy-MM-dd'),
+                installmentGroupId,
+                currentInstallment: i,
+                totalInstallments: installments,
+                isRecurring: false,
+            };
+            const newId = push(child(rootRef, 'transactions')).key!;
+            updates[`transactions/${newId}`] = newTransaction;
+        }
     } else {
-      const newId = push(getDbRef('transactions')).key!;
-      updates[`transactions/${newId}`] = transaction;
+        const newId = push(child(rootRef, 'transactions')).key!;
+        updates[`transactions/${newId}`] = transaction;
     }
     
-    update(getDbRef(''), updates);
+    update(rootRef, updates);
   };
 
   const updateTransaction = (id: string, updatedTransaction: Partial<Omit<Transaction, 'id'>>) => {
     if (!user) return;
-    update(getDbRef(`transactions/${id}`), updatedTransaction);
+
+    const originalTransaction = transactions.find(t => t.id === id);
+    if (!originalTransaction) return;
+
+    const updates: { [key: string]: any } = {};
+
+    // Only adjust balance for non-card transactions
+    if (originalTransaction.account && !cards.some(c => c.name === originalTransaction.account)) {
+      const account = accounts.find(acc => acc.name === originalTransaction.account);
+      if (account) {
+        const amountDifference = (updatedTransaction.amount ?? originalTransaction.amount) - originalTransaction.amount;
+        const newBalance = account.balance + amountDifference;
+        updates[`accounts/${account.id}/balance`] = newBalance;
+      }
+    }
+
+    updates[`transactions/${id}`] = { ...originalTransaction, ...updatedTransaction };
+    update(getDbRef(''), updates);
   };
 
   const deleteTransaction = (id: string) => {
     if (!user) return;
-    remove(getDbRef(`transactions/${id}`));
+    const transactionToDelete = transactions.find(t => t.id === id);
+    if (!transactionToDelete) return;
+
+    const updates: { [key: string]: any } = {};
+    updates[`transactions/${id}`] = null; // Mark for deletion
+
+    // Revert balance change for non-card transactions
+    if (transactionToDelete.account && !cards.some(c => c.name === transactionToDelete.account)) {
+        const account = accounts.find(acc => acc.name === transactionToDelete.account);
+        if (account) {
+            const newBalance = account.balance - transactionToDelete.amount;
+            updates[`accounts/${account.id}/balance`] = newBalance;
+        }
+    }
+
+    update(getDbRef(''), updates);
   };
   
   const deleteRecurringTransaction = (id: string) => {
