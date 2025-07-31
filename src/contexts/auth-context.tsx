@@ -44,8 +44,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
      // The primary way to get a token is now via signInWithGoogle.
     if (!auth.currentUser) return null;
     try {
-        const token = await auth.currentUser.getIdToken();
-        return token;
+        const credential = await signInWithGoogle();
+        const token = GoogleAuthProvider.credentialFromResult(credential)?.accessToken;
+        return token || null;
     } catch (error) {
         console.error("Error getting ID token:", error);
         return null;
@@ -59,6 +60,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const user = result.user;
       const additionalInfo = getAdditionalUserInfo(result);
       
+      // Store flag to indicate user has connected Google account
+      localStorage.setItem('google_calendar_permission', 'true');
+
       // If new user, create a profile entry
       if (additionalInfo?.isNewUser) {
         const db = getDatabase(firebaseApp);

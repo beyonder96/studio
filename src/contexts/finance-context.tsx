@@ -133,6 +133,8 @@ type FinanceContextType = {
   memories: Memory[];
   addMemory: (memory: Omit<Memory, 'id'>) => void;
   achievements: Achievement[];
+  googleEvents: any[];
+  setGoogleEvents: React.Dispatch<React.SetStateAction<any[]>>;
 };
 
 export const FinanceContext = createContext<FinanceContextType>({} as FinanceContextType);
@@ -158,6 +160,7 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
   const [isSensitiveDataVisible, setIsSensitiveDataVisible] = useState(true);
   const [shoppingLists, setShoppingLists] = useState<ShoppingList[]>([]);
   const [selectedListId, setSelectedListId] = useState<string | null>(null);
+  const [googleEvents, setGoogleEvents] = useState<any[]>([]);
 
   const selectedList = shoppingLists.find(l => l.id === selectedListId) || null;
   
@@ -265,6 +268,7 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
         setAchievements([]);
         setShoppingLists([]);
         setSelectedListId(null);
+        setGoogleEvents([]);
     }
 }, [user, selectedListId]);
 
@@ -803,7 +807,8 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
     handleClearCompletedItems, handleAddItemToList, handleCreateListSave,
     handleDeleteList, handleStartRenameList, handleRenameList, handleFinishList,
     memories, addMemory,
-    achievements
+    achievements,
+    googleEvents, setGoogleEvents
   };
 
   return (

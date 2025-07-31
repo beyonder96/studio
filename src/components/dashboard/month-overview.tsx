@@ -8,7 +8,7 @@ import {
   CardContent,
   CardDescription,
 } from "@/components/ui/card";
-import { MoreHorizontal, Landmark, Briefcase, Heart, CalendarCheck } from "lucide-react";
+import { MoreHorizontal, Landmark, Briefcase, Heart, CalendarCheck, Globe } from "lucide-react";
 import { useContext, useMemo } from "react";
 import { FinanceContext } from "@/contexts/finance-context";
 import { startOfMonth, endOfMonth, isWithinInterval, parseISO, format } from "date-fns";
@@ -24,6 +24,7 @@ const categoryIcons: { [key: string]: React.ReactNode } = {
   'Saúde': <Heart className="h-5 w-5" />,
   'Social': <CalendarCheck className="h-5 w-5" />,
   'Pessoal': <CalendarCheck className="h-5 w-5" />,
+  'Google': <Globe className="h-5 w-5" />,
   'Outros': <MoreHorizontal className="h-5 w-5" />,
 };
 
@@ -37,7 +38,7 @@ type CalendarEvent = {
 };
 
 export function MonthOverview() {
-  const { appointments } = useContext(FinanceContext);
+  const { appointments, googleEvents } = useContext(FinanceContext);
 
   const allEventsForMonth = useMemo(() => {
     const today = new Date();
@@ -52,8 +53,20 @@ export function MonthOverview() {
       icon: categoryIcons[a.category] || <CalendarCheck className="h-5 w-5" />,
     })).filter(e => isWithinInterval(e.date, monthInterval));
     
-    return [...appointmentEvents].sort((a, b) => a.date.getTime() - b.date.getTime()).slice(0, 4); // Limit to 4 events
-  }, [appointments]);
+    const googleCalendarEvents: CalendarEvent[] = googleEvents.map((g: any) => ({
+      id: `gcal-${g.id}`,
+      title: g.title,
+      type: 'appointment' as 'appointment',
+      category: 'Google',
+      date: parseISO(g.date),
+      icon: categoryIcons['Google'] || <Globe className="h-5 w-5" />,
+    })).filter(e => isWithinInterval(e.date, monthInterval));
+
+    const combined = [...appointmentEvents, ...googleCalendarEvents];
+    const uniqueEvents = Array.from(new Map(combined.map(e => [e.id, e])).values());
+
+    return uniqueEvents.sort((a, b) => a.date.getTime() - b.date.getTime()).slice(0, 4);
+  }, [appointments, googleEvents]);
 
 
   return (
@@ -61,7 +74,7 @@ export function MonthOverview() {
     <Card className="h-full bg-white/10 dark:bg-black/10 border-none shadow-none flex flex-col hover:bg-white/20 dark:hover:bg-black/20 transition-colors">
       <CardHeader>
         <CardTitle>Eventos do Mês</CardTitle>
-        <CardDescription>Seus próximos compromissos e transações.</CardDescription>
+        <CardDescription>Seus próximos compromissos.</CardDescription>
       </CardHeader>
       <CardContent className="flex-grow overflow-y-auto">
         {allEventsForMonth.length > 0 ? (

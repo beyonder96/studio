@@ -14,7 +14,7 @@ import { AddAppointmentDialog } from '@/components/calendar/add-appointment-dial
 import { useAuth } from '@/contexts/auth-context';
 import { getCalendarEvents } from '@/ai/tools/app-tools';
 import { useToast } from '@/hooks/use-toast';
-import { GoogleAuthProvider } from 'firebase/auth';
+import { GoogleAuthProvider, UserCredential } from 'firebase/auth';
 
 
 type CalendarEvent = {
@@ -44,12 +44,57 @@ export default function CalendarPage() {
     addAppointment, 
     updateAppointment, 
     deleteAppointment,
+    googleEvents,
+    setGoogleEvents,
    } = useContext(FinanceContext);
   const { toast } = useToast();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingAppointment, setEditingAppointment] = useState<Appointment | null>(null);
-  const [googleEvents, setGoogleEvents] = useState<any[]>([]);
   const [isSyncing, setIsSyncing] = useState(false);
+  
+  const handleSync = async (showToast: boolean = true) => {
+    setIsSyncing(true);
+    let result: UserCredential;
+    try {
+        result = await signInWithGoogle();
+    } catch (e) {
+        console.error("Error signing in with Google:", e);
+        if(showToast) toast({ variant: "destructive", title: "Erro de Login", description: "Não foi possível autenticar com o Google." });
+        setIsSyncing(false);
+        return;
+    }
+
+    const credential = GoogleAuthProvider.credentialFromResult(result);
+    if (!credential?.accessToken) {
+        if(showToast) toast({ variant: "destructive", title: "Erro de Autenticação", description: "Não foi possível obter o token de acesso do Google." });
+        setIsSyncing(false);
+        return;
+    }
+    const accessToken = credential.accessToken;
+
+    try {
+        const events = await getCalendarEvents({ accessToken });
+        setGoogleEvents(events);
+        if(showToast) toast({ title: "Sincronização Concluída", description: `${events.length} eventos encontrados no Google Calendar.` });
+    } catch(e) {
+        console.error("Error fetching Google Calendar events:", e);
+        if(showToast) toast({ variant: "destructive", title: "Erro de Sincronização", description: "Não foi possível buscar os eventos do Google Calendar." });
+    } finally {
+        setIsSyncing(false);
+    }
+  }
+
+  // Automatic sync on load
+  useEffect(() => {
+    // Only sync automatically if there are no google events loaded yet
+    if(user && googleEvents.length === 0){
+        const hasGrantedPermission = localStorage.getItem('google_calendar_permission');
+        if(hasGrantedPermission) {
+             handleSync(false); // Sync silently
+        }
+    }
+  }, [user]);
+
 
   const allEvents = useMemo(() => {
     const localAppointments = appointments.map((a: Appointment) => ({
@@ -127,38 +172,7 @@ export default function CalendarPage() {
     setIsDialogOpen(false);
   };
 
-  const handleSync = async () => {
-    setIsSyncing(true);
-    let accessToken: string | undefined | null;
-
-    try {
-        const result = await signInWithGoogle();
-        const credential = GoogleAuthProvider.credentialFromResult(result);
-        accessToken = credential?.accessToken;
-    } catch (e) {
-        console.error("Error signing in with Google:", e);
-        toast({ variant: "destructive", title: "Erro de Login", description: "Não foi possível autenticar com o Google." });
-        setIsSyncing(false);
-        return;
-    }
-
-    if (!accessToken) {
-        toast({ variant: "destructive", title: "Erro de Autenticação", description: "Não foi possível obter o token de acesso do Google." });
-        setIsSyncing(false);
-        return;
-    }
-
-    try {
-        const events = await getCalendarEvents({ accessToken });
-        setGoogleEvents(events);
-        toast({ title: "Sincronização Concluída", description: `${events.length} eventos encontrados no Google Calendar.` });
-    } catch(e) {
-        console.error("Error fetching Google Calendar events:", e);
-        toast({ variant: "destructive", title: "Erro de Sincronização", description: "Não foi possível buscar os eventos do Google Calendar." });
-    } finally {
-        setIsSyncing(false);
-    }
-  }
+  
 
   return (
     <Card className="bg-white/10 dark:bg-black/10 backdrop-blur-3xl border-white/20 dark:border-black/20 rounded-3xl shadow-2xl h-full">
@@ -169,7 +183,7 @@ export default function CalendarPage() {
                     <p className="text-muted-foreground">Seus próximos compromissos.</p>
                 </div>
                 <div className="flex items-center gap-2">
-                    <Button variant="outline" onClick={handleSync} disabled={isSyncing}>
+                    <Button variant="outline" onClick={() => handleSync()} disabled={isSyncing}>
                         {isSyncing ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <RefreshCw className="mr-2 h-4 w-4" />}
                         Sincronizar com Google
                     </Button>
