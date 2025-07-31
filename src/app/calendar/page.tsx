@@ -14,6 +14,7 @@ import { AddAppointmentDialog } from '@/components/calendar/add-appointment-dial
 import { useAuth } from '@/contexts/auth-context';
 import { getCalendarEvents } from '@/ai/tools/app-tools';
 import { useToast } from '@/hooks/use-toast';
+import { GoogleAuthProvider } from 'firebase/auth';
 
 
 type CalendarEvent = {
@@ -37,7 +38,7 @@ const getRelativeDate = (date: Date) => {
 
 
 export default function CalendarPage() {
-  const { user, getAccessToken } = useAuth();
+  const { user, signInWithGoogle } = useAuth();
   const { 
     appointments, 
     addAppointment, 
@@ -107,7 +108,15 @@ export default function CalendarPage() {
   };
 
   const handleSaveAppointment = async (data: Omit<Appointment, 'id'> & { id?: string }) => {
-    const accessToken = await getAccessToken();
+    let accessToken: string | undefined | null;
+    try {
+        const result = await signInWithGoogle();
+        const credential = GoogleAuthProvider.credentialFromResult(result.credential as any);
+        accessToken = credential?.accessToken;
+    } catch (e) {
+        console.error("Could not get access token for saving event", e);
+    }
+
     const dataWithToken = { ...data, accessToken: accessToken || undefined };
     
     if (data.id) {
@@ -120,9 +129,20 @@ export default function CalendarPage() {
 
   const handleSync = async () => {
     setIsSyncing(true);
-    const accessToken = await getAccessToken();
+    let accessToken: string | undefined | null;
+
+    try {
+        const result = await signInWithGoogle();
+        const credential = GoogleAuthProvider.credentialFromResult(result.credential as any);
+        accessToken = credential?.accessToken;
+    } catch (e) {
+        toast({ variant: "destructive", title: "Erro de Login", description: "Não foi possível autenticar com o Google." });
+        setIsSyncing(false);
+        return;
+    }
+
     if (!accessToken) {
-        toast({ variant: "destructive", title: "Erro de Autenticação", description: "Faça login com o Google para sincronizar o calendário." });
+        toast({ variant: "destructive", title: "Erro de Autenticação", description: "Não foi possível obter o token de acesso do Google." });
         setIsSyncing(false);
         return;
     }
@@ -149,7 +169,7 @@ export default function CalendarPage() {
                 <div className="flex items-center gap-2">
                     <Button variant="outline" onClick={handleSync} disabled={isSyncing}>
                         {isSyncing ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <RefreshCw className="mr-2 h-4 w-4" />}
-                        Sincronizar
+                        Sincronizar com Google
                     </Button>
                     <Button onClick={openAddDialog}>
                         <PlusCircle className="mr-2 h-4 w-4" />
