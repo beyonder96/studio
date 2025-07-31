@@ -9,45 +9,25 @@
 import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
 import { getDatabase, ref, push, set, onValue } from 'firebase/database';
-import { app as firebaseApp, auth } from '@/lib/firebase';
+import { app as firebaseApp } from '@/lib/firebase';
 import { format, parseISO } from 'date-fns';
 import { google } from 'googleapis';
+import type {Auth, OAuth2Client} from 'google-auth-library';
 
-// This will be used to store the OAuth2 client.
-// In a real app, you'd manage tokens more robustly (e.g., in a database).
-let oauth2Client: any;
 
-function getGoogleAuth() {
-    // This is a simplified auth flow for demonstration.
-    // In a production app, you would have a more robust token management system.
-    // It assumes the server has been authorized once to get a refresh token.
-    if (oauth2Client) return oauth2Client;
-    
-    const REFRESH_TOKEN = process.env.GOOGLE_REFRESH_TOKEN;
-    const CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
-    const CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
-    
-    if (!REFRESH_TOKEN || !CLIENT_ID || !CLIENT_SECRET) {
-        console.warn("Google Calendar API environment variables are not set. API calls will fail.");
-        return null;
-    }
-
-    oauth2Client = new google.auth.OAuth2(
-        CLIENT_ID,
-        CLIENT_SECRET
-    );
-
-    oauth2Client.setCredentials({
-        refresh_token: REFRESH_TOKEN,
-    });
-    
+function getGoogleAuthClient(accessToken: string): OAuth2Client {
+    const oauth2Client = new google.auth.OAuth2();
+    oauth2Client.setCredentials({ access_token: accessToken });
     return oauth2Client;
 }
 
 export const getCalendarEvents = ai.defineTool(
     {
         name: 'getCalendarEvents',
-        description: 'Retrieves the next 20 events from the primary Google Calendar.',
+        description: 'Retrieves the next 20 events from the primary Google Calendar using the user\'s access token.',
+        inputSchema: z.object({
+            accessToken: z.string().describe("The user's Google OAuth2 access token."),
+        }),
         outputSchema: z.array(z.object({
             id: z.string(),
             title: z.string(),
@@ -56,13 +36,8 @@ export const getCalendarEvents = ai.defineTool(
             isGoogleEvent: z.boolean(),
         })),
     },
-    async () => {
-        const authClient = getGoogleAuth();
-        if (!authClient) {
-            console.error("Google Auth client not available.");
-            return [];
-        }
-
+    async ({ accessToken }) => {
+        const authClient = getGoogleAuthClient(accessToken);
         const calendar = google.calendar({ version: 'v3', auth: authClient });
         try {
             const response = await calendar.events.list({
@@ -94,6 +69,8 @@ export const getCalendarEvents = ai.defineTool(
 
         } catch (error) {
             console.error("Failed to fetch Google Calendar events:", error);
+            // This could be an auth error if the token is invalid or expired.
+            // The client should handle this and potentially prompt for re-authentication.
             return [];
         }
     }
@@ -106,6 +83,7 @@ export const createCalendarEvent = ai.defineTool(
     description: 'Creates a new event in the couple\'s shared calendar and syncs it with Google Calendar. Use this to schedule dates or appointments.',
     inputSchema: z.object({
       userId: z.string().describe("The user's unique ID. This MUST be provided."),
+      accessToken: z.string().optional().describe("The user's Google OAuth2 access token. Required to create a Google Calendar event."),
       title: z.string().describe('The title of the calendar event.'),
       date: z.string().describe('The date of the event in YYYY-MM-DD format.'),
       time: z.string().optional().describe('The time of the event in HH:MM format.'),
@@ -125,10 +103,10 @@ export const createCalendarEvent = ai.defineTool(
           return { success: false };
       }
       
-      const authClient = getGoogleAuth();
       let googleEventId: string | null | undefined;
       
-      if (authClient) {
+      if (input.accessToken) {
+        const authClient = getGoogleAuthClient(input.accessToken);
         const calendar = google.calendar({ version: 'v3', auth: authClient });
         const eventStartTime = input.time ? parseISO(`${input.date}T${input.time}:00`) : parseISO(input.date);
         const eventEndTime = input.time ? new Date(eventStartTime.getTime() + 60 * 60 * 1000) : new Date(eventStartTime.getTime() + 24 * 60 * 60 * 1000); // 1 hour duration or all-day

@@ -26,6 +26,10 @@ if (!getApps().length) {
 
 const auth: Auth = getAuth(app);
 const googleProvider = new GoogleAuthProvider();
+// Request access to the user's calendars
+googleProvider.addScope('https://www.googleapis.com/auth/calendar');
+
+
 let messaging: Messaging | null = null;
 
 if (typeof window !== 'undefined') {

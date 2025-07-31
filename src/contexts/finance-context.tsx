@@ -40,7 +40,7 @@ const allAchievements: Achievement[] = [
 
 export type Account = { id: string; name: string; balance: number; type: 'checking' | 'savings'; }
 export type Card = { id: string; name: string; limit: number; dueDay: number; holder: string; brand: 'visa' | 'mastercard' | 'elo' | 'amex'; };
-export type Appointment = { id: string; title: string; date: string; time?: string; category: string; notes?: string; googleEventId?: string; };
+export type Appointment = { id: string; title: string; date: string; time?: string; category: string; notes?: string; googleEventId?: string; accessToken?: string; };
 export type PantryCategory = string;
 export type PantryItem = { id: string; name: string; quantity: number; pantryCategory: PantryCategory; }
 export type Task = { id: string; text: string; completed: boolean; };
@@ -589,20 +589,20 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
     if (!user) return;
 
     createCalendarEvent({ userId: user.uid, ...appointment }).then(result => {
-        if(result.success && result.googleEventId) {
-            const newAppointment = { ...appointment, googleEventId: result.googleEventId };
-            const newId = push(getDbRef('appointments')).key!;
-            set(getDbRef(`appointments/${newId}`), newAppointment);
-        } else {
-             // Fallback to only save in Firebase if Google API fails
-            const newId = push(getDbRef('appointments')).key!;
-            set(getDbRef(`appointments/${newId}`), appointment);
+        let newAppointmentData: Omit<Appointment, 'id'> = { ...appointment };
+        if (result.success && result.googleEventId) {
+            newAppointmentData.googleEventId = result.googleEventId;
         }
+        delete newAppointmentData.accessToken; // Remove token before saving to DB
+        
+        const newId = push(getDbRef('appointments')).key!;
+        set(getDbRef(`appointments/${newId}`), newAppointmentData);
     });
   };
 
   const updateAppointment = (id: string, updatedAppointment: Partial<Omit<Appointment, 'id'>>) => {
     if (!user) return;
+    delete updatedAppointment.accessToken; // Ensure token is not saved
     update(getDbRef(`appointments/${id}`), updatedAppointment);
   };
 

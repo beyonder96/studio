@@ -37,7 +37,7 @@ const getRelativeDate = (date: Date) => {
 
 
 export default function CalendarPage() {
-  const { user } = useAuth();
+  const { user, getAccessToken } = useAuth();
   const { 
     appointments, 
     addAppointment, 
@@ -106,19 +106,29 @@ export default function CalendarPage() {
     setIsDialogOpen(true);
   };
 
-  const handleSaveAppointment = (data: Omit<Appointment, 'id'> & { id?: string }) => {
+  const handleSaveAppointment = async (data: Omit<Appointment, 'id'> & { id?: string }) => {
+    const accessToken = await getAccessToken();
+    const dataWithToken = { ...data, accessToken: accessToken || undefined };
+    
     if (data.id) {
-      updateAppointment(data.id, data);
+      updateAppointment(data.id, dataWithToken);
     } else {
-      addAppointment(data);
+      addAppointment(dataWithToken);
     }
     setIsDialogOpen(false);
   };
 
   const handleSync = async () => {
     setIsSyncing(true);
+    const accessToken = await getAccessToken();
+    if (!accessToken) {
+        toast({ variant: "destructive", title: "Erro de Autenticação", description: "Faça login com o Google para sincronizar o calendário." });
+        setIsSyncing(false);
+        return;
+    }
+
     try {
-        const events = await getCalendarEvents();
+        const events = await getCalendarEvents({ accessToken });
         setGoogleEvents(events);
         toast({ title: "Sincronização Concluída", description: `${events.length} eventos encontrados no Google Calendar.` });
     } catch(e) {
