@@ -273,5 +273,3 @@ export function EditAccountCardDialog({ isOpen, onClose, onSave, item, allowedTy
     </Dialog>
   );
 }
-
-    

@@ -150,5 +150,3 @@ export function FinalizePurchaseDialog({ isOpen, onClose, onConfirm, list }: Fin
     </Dialog>
   );
 }
-
-    
