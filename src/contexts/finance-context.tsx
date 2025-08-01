@@ -1068,7 +1068,10 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
     const recordsRef = getDbRef(`pets/${petId}/healthRecords`);
     const newRecordId = push(recordsRef).key;
     if (newRecordId) {
-        set(child(recordsRef, newRecordId), record);
+        const finalRecord: any = { ...record };
+        if (!finalRecord.notes) delete finalRecord.notes;
+        if (!finalRecord.nextDueDate) delete finalRecord.nextDueDate;
+        set(child(recordsRef, newRecordId), finalRecord);
     }
   };
 
