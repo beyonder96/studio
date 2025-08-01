@@ -5,17 +5,22 @@ import { useContext } from 'react';
 import { Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { PropertyProvider, PropertyContext } from '@/contexts/property-context';
+import { PropertyProvider, useProperty } from '@/contexts/property-context';
 import { AddPropertyDialog } from '@/components/home/add-property-dialog';
 import { PropertyCard } from '@/components/home/property-card';
 import { useRouter } from 'next/navigation';
 
 function HomePageContent() {
-  const { properties, isAddDialogOpen, setIsAddDialogOpen } = useContext(PropertyContext);
+  const { properties, setIsAddDialogOpen, setEditingProperty } = useProperty();
   const router = useRouter();
 
   const handleCardClick = (propertyId: string) => {
     router.push(`/home/${propertyId}`);
+  };
+  
+  const handleOpenAddDialog = () => {
+    setEditingProperty(null);
+    setIsAddDialogOpen(true);
   };
 
   return (
@@ -28,7 +33,7 @@ function HomePageContent() {
                 <h1 className="text-3xl font-bold">Gerenciamento de Imóveis</h1>
                 <p className="text-muted-foreground">Selecione um imóvel para gerenciar ou adicione um novo.</p>
               </div>
-              <Button onClick={() => setIsAddDialogOpen(true)}>
+              <Button onClick={handleOpenAddDialog}>
                 <Plus className="mr-2 h-4 w-4" />
                 Adicionar Imóvel
               </Button>

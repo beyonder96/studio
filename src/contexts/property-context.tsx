@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { createContext, useState, ReactNode, useEffect, useCallback } from 'react';
+import React, { createContext, useState, ReactNode, useEffect, useCallback, useContext } from 'react';
 import { getDatabase, ref, onValue, set, push, remove, update, child } from 'firebase/database';
 import { useAuth } from './auth-context';
 import { app as firebaseApp } from '@/lib/firebase';
@@ -29,15 +29,25 @@ type PropertyContextType = {
     properties: Property[];
     addProperty: (property: Omit<Property, 'id'>) => void;
     updateProperty: (id: string, property: Partial<Omit<Property, 'id'>>) => void;
-    deleteProperty: (id: string) => void;
+    deleteProperty: (id: string, callback: () => void) => void;
     isAddDialogOpen: boolean;
     setIsAddDialogOpen: React.Dispatch<React.SetStateAction<boolean>>;
     editingProperty: Property | null;
     setEditingProperty: React.Dispatch<React.SetStateAction<Property | null>>;
+    getPropertyById: (id: string) => Property | undefined;
 };
 
 export const PropertyContext = createContext<PropertyContextType>({} as PropertyContextType);
 
+
+// --- Provider Hook ---
+export const useProperty = () => {
+    const context = useContext(PropertyContext);
+    if (!context) {
+        throw new Error('useProperty must be used within a PropertyProvider');
+    }
+    return context;
+}
 
 // --- Provider Component ---
 export const PropertyProvider = ({ children }: { children: ReactNode }) => {
@@ -87,13 +97,20 @@ export const PropertyProvider = ({ children }: { children: ReactNode }) => {
             .catch((err) => toast({ variant: 'destructive', title: 'Erro', description: err.message }));
     };
 
-    const deleteProperty = (id: string) => {
+    const deleteProperty = (id: string, callback: () => void) => {
         if (!user) return;
         const propertyRef = getDbRef(`properties/${id}`);
         remove(propertyRef)
-            .then(() => toast({ title: 'Imóvel Excluído!' }))
+            .then(() => {
+                toast({ title: 'Imóvel Excluído!' })
+                callback();
+            })
             .catch((err) => toast({ variant: 'destructive', title: 'Erro', description: err.message }));
     };
+    
+    const getPropertyById = useCallback((id: string) => {
+        return properties.find(p => p.id === id);
+    }, [properties]);
     
     const value = {
         properties,
@@ -104,6 +121,7 @@ export const PropertyProvider = ({ children }: { children: ReactNode }) => {
         setIsAddDialogOpen,
         editingProperty,
         setEditingProperty,
+        getPropertyById,
     };
 
     return (
