@@ -2,7 +2,7 @@
 'use client';
 
 import React, { createContext, useState, ReactNode, useEffect, useCallback } from 'react';
-import { getDatabase, ref, onValue, set, push, remove, update } from 'firebase/database';
+import { getDatabase, ref, onValue, set, push, remove, update, child } from 'firebase/database';
 import { useAuth } from './auth-context';
 import { app as firebaseApp } from '@/lib/firebase';
 import { useToast } from '@/hooks/use-toast';
