@@ -21,6 +21,7 @@ import {
   GalleryVerticalEnd,
   CreditCard,
   Home,
+  Landmark,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
@@ -35,6 +36,7 @@ import { LogoIcon } from './dashboard/logo';
 
 const navItems = [
   { href: '/finance', icon: Banknote, label: 'Finanças' },
+  { href: '/accounts', icon: Landmark, label: 'Contas' },
   { href: '/cards', icon: CreditCard, label: 'Cartões & Vales' },
   { href: '/goals', icon: Target, label: 'Metas' },
   { href: '/wishes', icon: Gift, label: 'Desejos' },

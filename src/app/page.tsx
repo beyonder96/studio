@@ -20,10 +20,6 @@ import { useRouter } from 'next/navigation';
 import { Loader2, Eye, EyeOff, Moon, Sun } from 'lucide-react';
 import { useAuth } from '@/contexts/auth-context';
 import { WeatherOverview } from '@/components/dashboard/weather-overview';
-import { CommandInput } from '@/components/dashboard/command-input';
-import { CardHeader, CardTitle } from '@/components/ui/card';
-import { Carousel, CarouselContent, CarouselItem } from '@/components/ui/carousel';
-import { BalanceCard } from '@/components/dashboard/balance-card';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 
@@ -60,7 +56,6 @@ export default function Home() {
   const router = useRouter();
   const { user, loading } = useAuth();
   const { 
-    accounts, 
     addAppointment,
     isSensitiveDataVisible,
     toggleSensitiveDataVisibility,
@@ -127,23 +122,6 @@ export default function Home() {
                   <UserNav />
               </div>
             </div>
-            <CommandInput />
-
-            <Carousel
-              opts={{
-                align: "start",
-                loop: true,
-              }}
-              className="w-full"
-            >
-              <CarouselContent>
-                {accounts.filter(acc => acc.type !== 'voucher').map((account) => (
-                  <CarouselItem key={account.id}>
-                    <BalanceCard account={account} />
-                  </CarouselItem>
-                ))}
-              </CarouselContent>
-            </Carousel>
             
             <TransactionsOverview />
           </div>
