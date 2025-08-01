@@ -59,7 +59,7 @@ type EditAccountCardDialogProps = {
 
 export function EditAccountCardDialog({ isOpen, onClose, onSave, item, allowedTypes = ['account', 'card'], coupleNames = [] }: EditAccountCardDialogProps) {
   const isEditing = !!item;
-  const [currentTab, setCurrentTab] = useState<'account' | 'card'>(allowedTypes[0]);
+  const [activeTab, setActiveTab] = useState<'account' | 'card'>(allowedTypes[0]);
   
   const {
     register,
@@ -70,14 +70,12 @@ export function EditAccountCardDialog({ isOpen, onClose, onSave, item, allowedTy
     setValue
   } = useForm<AccountCardFormData>({
     resolver: zodResolver(formSchema),
-    // Set default values based on the initial tab to avoid validation errors on mount
     defaultValues: { type: 'account', name: '', balance: 0, accountType: 'checking' }
   });
 
   useEffect(() => {
     if (isOpen) {
-        const tab = item ? ('balance' in item ? 'account' : 'card') : (currentTab || allowedTypes[0]);
-        setCurrentTab(tab);
+        const tab = item ? ('balance' in item ? 'account' : 'card') : activeTab;
         setValue('type', tab);
 
         if (item) { // Editing
@@ -94,11 +92,11 @@ export function EditAccountCardDialog({ isOpen, onClose, onSave, item, allowedTy
              }
         }
     }
-  }, [isOpen, item, reset, setValue, allowedTypes, coupleNames, currentTab]);
+  }, [isOpen, item, reset, setValue, activeTab, coupleNames]);
   
   const handleTabChange = (value: string) => {
     const newTab = value as 'account' | 'card';
-    setCurrentTab(newTab);
+    setActiveTab(newTab);
     setValue('type', newTab); 
   }
 
@@ -107,7 +105,7 @@ export function EditAccountCardDialog({ isOpen, onClose, onSave, item, allowedTy
   };
   
   const showTabs = allowedTypes.length > 1 && !isEditing;
-  const displayTab = isEditing ? (item && 'balance' in item ? 'account' : 'card') : currentTab;
+  const displayTab = isEditing ? (item && 'balance' in item ? 'account' : 'card') : activeTab;
 
 
   const AccountForm = (
@@ -248,7 +246,7 @@ export function EditAccountCardDialog({ isOpen, onClose, onSave, item, allowedTy
         </DialogHeader>
         <form onSubmit={handleSubmit(onSubmit)}>
             {showTabs ? (
-                <Tabs value={currentTab} onValueChange={handleTabChange} className="w-full">
+                <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
                     <TabsList className="grid w-full grid-cols-2">
                         {allowedTypes.includes('account') && <TabsTrigger value="account">Conta/Vale</TabsTrigger>}
                         {allowedTypes.includes('card') && <TabsTrigger value="card">Cartão de Crédito</TabsTrigger>}
