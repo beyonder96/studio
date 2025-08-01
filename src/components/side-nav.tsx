@@ -20,7 +20,7 @@ import {
   Sparkles,
   GalleryVerticalEnd,
   CreditCard,
-  Home,
+  Home as HomeIcon,
   Landmark,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -38,6 +38,7 @@ const navItems = [
   { href: '/finance', icon: Banknote, label: 'Finanças' },
   { href: '/accounts', icon: Landmark, label: 'Contas' },
   { href: '/cards', icon: CreditCard, label: 'Cartões & Vales' },
+  { href: '/home', icon: HomeIcon, label: 'Imóveis' },
   { href: '/goals', icon: Target, label: 'Metas' },
   { href: '/wishes', icon: Gift, label: 'Desejos' },
   { href: '/purchases', icon: ShoppingBasket, label: 'Compras' },
@@ -95,7 +96,7 @@ export function SideNav() {
                                 className="bg-zinc-900/30 backdrop-blur-xl border border-white/10 shadow-2xl text-white p-3 rounded-2xl transition-transform hover:scale-105"
                                 aria-label="Voltar para o Painel"
                             >
-                                <Home className="h-5 w-5" />
+                                <HomeIcon className="h-5 w-5" />
                             </button>
                         </Link>
                     </TooltipTrigger>
@@ -116,7 +117,7 @@ export function SideNav() {
 
 const NavPanel = ({ isOpen, setIsOpen }: { isOpen: boolean, setIsOpen: (open: boolean) => void }) => {
     const pathname = usePathname();
-    const isActive = (href: string) => pathname === href;
+    const isActive = (href: string) => pathname.startsWith(href) && (href !== '/' || pathname === '/');
 
     const handleLinkClick = () => {
         setIsOpen(false);
