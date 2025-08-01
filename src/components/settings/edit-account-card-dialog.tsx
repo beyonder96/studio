@@ -51,7 +51,7 @@ export type AccountCardFormData = z.infer<typeof formSchema>;
 type EditAccountCardDialogProps = {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (data: AccountCardFormData) => void;
+  onSave: (data: any) => void;
   item: Account | CardType | null;
   allowedTypes?: ('account' | 'card')[];
   coupleNames?: string[];
@@ -59,7 +59,8 @@ type EditAccountCardDialogProps = {
 
 export function EditAccountCardDialog({ isOpen, onClose, onSave, item, allowedTypes = ['account', 'card'], coupleNames = [] }: EditAccountCardDialogProps) {
   const isEditing = !!item;
-  const [activeTab, setActiveTab] = useState<'account' | 'card'>(allowedTypes[0]);
+  const initialTab = isEditing ? ('balance' in item ? 'account' : 'card') : (allowedTypes.includes('account') ? 'account' : 'card');
+  const [activeTab, setActiveTab] = useState<'account' | 'card'>(initialTab);
   
   const {
     register,
@@ -70,13 +71,14 @@ export function EditAccountCardDialog({ isOpen, onClose, onSave, item, allowedTy
     setValue
   } = useForm<AccountCardFormData>({
     resolver: zodResolver(formSchema),
-    defaultValues: { type: 'account', name: '', balance: 0, accountType: 'checking' }
+    defaultValues: { type: activeTab } as any
   });
 
   useEffect(() => {
     if (isOpen) {
-        const tab = item ? ('balance' in item ? 'account' : 'card') : activeTab;
-        setValue('type', tab);
+      const tab = item ? ('balance' in item ? 'account' : 'card') : activeTab;
+      setActiveTab(tab);
+      setValue('type', tab);
 
         if (item) { // Editing
             if ('balance' in item) {
@@ -86,7 +88,7 @@ export function EditAccountCardDialog({ isOpen, onClose, onSave, item, allowedTy
             }
         } else { // Adding
              if (tab === 'account') {
-                reset({ type: 'account', name: '', balance: 0, accountType: 'checking' });
+                reset({ type: 'account', name: '', balance: 0, accountType: 'voucher' });
              } else {
                 reset({ type: 'card', name: '', limit: 1000, dueDay: 10, holder: coupleNames[0] || '', brand: 'visa' });
              }
@@ -105,8 +107,6 @@ export function EditAccountCardDialog({ isOpen, onClose, onSave, item, allowedTy
   };
   
   const showTabs = allowedTypes.length > 1 && !isEditing;
-  const displayTab = isEditing ? (item && 'balance' in item ? 'account' : 'card') : activeTab;
-
 
   const AccountForm = (
     <div className="space-y-4 pt-4">
@@ -239,7 +239,7 @@ export function EditAccountCardDialog({ isOpen, onClose, onSave, item, allowedTy
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>{isEditing ? (displayTab === 'account' ? 'Editar Conta' : 'Editar Cartão') : 'Adicionar'}</DialogTitle>
+          <DialogTitle>{isEditing ? (('balance' in item) ? 'Editar Conta' : 'Editar Cartão') : 'Adicionar'}</DialogTitle>
            <DialogDescription>
             {isEditing ? 'Atualize as informações abaixo.' : 'Selecione o tipo e preencha as informações.'}
           </DialogDescription>
@@ -259,7 +259,7 @@ export function EditAccountCardDialog({ isOpen, onClose, onSave, item, allowedTy
                     </TabsContent>
                 </Tabs>
             ) : (
-                 displayTab === 'account' ? AccountForm : CardForm
+                 (isEditing ? ('balance' in item) : activeTab === 'account') ? AccountForm : CardForm
             )}
 
           <DialogFooter className="pt-6">

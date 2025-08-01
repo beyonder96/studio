@@ -27,20 +27,16 @@ import { FinanceContext } from '@/contexts/finance-context';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
-import { EditAccountCardDialog } from '@/components/settings/edit-account-card-dialog';
 import { EditCategoryDialog } from '@/components/settings/edit-category-dialog';
-import type { Account, Card as CardType } from '@/contexts/finance-context';
 import { useFCM } from '@/hooks/use-fcm';
 import { useAuth } from '@/contexts/auth-context';
 
 type Theme = 'light' | 'dark';
-type ItemToDelete = { type: 'account' | 'card'; id: string; name: string } | { type: 'pantryCategory' | 'incomeCategory' | 'expenseCategory'; name: string };
+type ItemToDelete = { type: 'pantryCategory' | 'incomeCategory' | 'expenseCategory'; name: string };
 type ItemToEdit = { type: 'pantryCategory' | 'incomeCategory' | 'expenseCategory'; name: string } | null;
 
 export default function SettingsPage() {
   const { 
-    accounts,
-    cards,
     pantryCategories,
     addPantryCategory,
     deletePantryCategory,
@@ -48,12 +44,6 @@ export default function SettingsPage() {
     resetAllData,
     incomeCategories,
     expenseCategories,
-    addAccount,
-    addCard,
-    updateAccount,
-    updateCard,
-    deleteAccount,
-    deleteCard,
     updateIncomeCategory,
     updateExpenseCategory,
   } = useContext(FinanceContext);
@@ -61,25 +51,17 @@ export default function SettingsPage() {
   const { user } = useAuth();
   const { permission, requestPermission } = useFCM();
   
-  const [isClient, setIsClient] = useState(false);
   const [theme, setTheme] = useState<Theme>('light');
   
   const [newCategoryName, setNewCategoryName] = useState('');
   
-  const [isAccountCardDialogOpen, setIsAccountCardDialogOpen] = useState(false);
-  const [editingItem, setEditingItem] = useState<Account | CardType | null>(null);
-
   const [itemToDelete, setItemToDelete] = useState<ItemToDelete | null>(null);
   const [itemToEdit, setItemToEdit] = useState<ItemToEdit>(null);
 
 
-  // Load theme from localStorage only on the client
   useEffect(() => {
-    setIsClient(true);
     const storedTheme = (localStorage.getItem('app-theme') as Theme) || 'light';
     setTheme(storedTheme);
-    document.documentElement.classList.remove('light', 'dark');
-    document.documentElement.classList.add(storedTheme);
   }, []);
 
   const handleThemeChange = (newTheme: Theme) => {
@@ -103,42 +85,11 @@ export default function SettingsPage() {
     if(!itemToDelete) return;
     if(itemToDelete.type === 'pantryCategory') {
         deletePantryCategory(itemToDelete.name);
-    } else if (itemToDelete.type === 'account') {
-        deleteAccount(itemToDelete.id);
-    } else if (itemToDelete.type === 'card') {
-        deleteCard(itemToDelete.id);
     } else if (itemToDelete.type === 'incomeCategory' || itemToDelete.type === 'expenseCategory') {
       toast({ variant: 'destructive', title: 'Ação não permitida', description: 'Não é possível excluir categorias padrão.' });
     }
     setItemToDelete(null);
   }
-
-  const openAddDialog = () => {
-    setEditingItem(null);
-    setIsAccountCardDialogOpen(true);
-  }
-
-  const openEditDialog = (item: Account | CardType) => {
-    setEditingItem(item);
-    setIsAccountCardDialogOpen(true);
-  }
-
-  const handleSaveAccountCard = (data: ({ type: 'account' | 'card' } & Partial<Account> & Partial<CardType>)) => {
-    if (editingItem) { // Editing existing item
-        if (data.type === 'account' && data.name && data.balance !== undefined) {
-            updateAccount(editingItem.id, { name: data.name, balance: data.balance });
-        } else if (data.type === 'card' && data.name && data.limit !== undefined && data.dueDay !== undefined) {
-            updateCard(editingItem.id, { name: data.name, limit: data.limit, dueDay: data.dueDay });
-        }
-    } else { // Adding new item
-        if (data.type === 'account' && data.name && data.balance !== undefined) {
-            addAccount({ name: data.name, balance: data.balance, type: 'checking' });
-        } else if (data.type === 'card' && data.name && data.limit !== undefined && data.dueDay !== undefined) {
-            addCard({ name: data.name, limit: data.limit, dueDay: data.dueDay });
-        }
-    }
-    setIsAccountCardDialogOpen(false);
-  };
   
   const handleSaveCategory = (oldName: string, newName: string) => {
     if (!itemToEdit) return;
@@ -159,7 +110,7 @@ export default function SettingsPage() {
 
   return (
     <>
-        <Card>
+        <Card className="bg-white/10 dark:bg-black/10 backdrop-blur-3xl border-white/20 dark:border-black/20 rounded-3xl shadow-2xl">
             <CardContent className="p-4 sm:p-6">
                 <div className="space-y-8">
                 {/* Appearance Settings */}
@@ -171,11 +122,11 @@ export default function SettingsPage() {
                     <CardContent className="space-y-6">
                     <div>
                         <Label className="block mb-2 font-medium">Tema</Label>
-                        <div className="flex gap-2">
-                        <Button variant={theme === 'light' ? 'secondary' : 'outline'} onClick={() => handleThemeChange('light')}>
+                        <div className="flex flex-col sm:flex-row gap-2">
+                        <Button variant={theme === 'light' ? 'secondary' : 'outline'} onClick={() => handleThemeChange('light')} className="w-full sm:w-auto">
                             <Sun className="mr-2 h-4 w-4" /> Claro
                         </Button>
-                        <Button variant={theme === 'dark' ? 'secondary' : 'outline'} onClick={() => handleThemeChange('dark')}>
+                        <Button variant={theme === 'dark' ? 'secondary' : 'outline'} onClick={() => handleThemeChange('dark')} className="w-full sm:w-auto">
                             <Moon className="mr-2 h-4 w-4" /> Escuro
                         </Button>
                         </div>
@@ -280,53 +231,6 @@ export default function SettingsPage() {
                     </CardFooter>
                 </Card>
 
-
-                {/* Accounts & Cards */}
-                <Card className="bg-transparent border-0 shadow-none">
-                    <CardHeader>
-                    <div className="flex items-center justify-between">
-                        <div>
-                        <CardTitle>Contas e Cartões</CardTitle>
-                        <CardDescription>Gerencie suas contas e cartões de crédito.</CardDescription>
-                        </div>
-                    </div>
-                    </CardHeader>
-                    <CardContent>
-                    <ul className="space-y-4">
-                        {accounts.map(account => (
-                        <li key={account.id} className="flex items-center justify-between p-4 rounded-lg border">
-                            <div>
-                            <p className="font-medium">{account.name}</p>
-                            <p className="text-sm text-muted-foreground">Saldo: {account.balance.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</p>
-                            </div>
-                            <div className="flex items-center gap-2">
-                            <Button variant="outline" size="icon" onClick={() => openEditDialog(account)}><Edit className="h-4 w-4" /></Button>
-                            <Button variant="outline" size="icon" className="text-destructive hover:text-destructive" onClick={() => setItemToDelete({ type: 'account', id: account.id, name: account.name })}><Trash2 className="h-4 w-4" /></Button>
-                            </div>
-                        </li>
-                        ))}
-                        {cards.map(card => (
-                        <li key={card.id} className="flex items-center justify-between p-4 rounded-lg border">
-                            <div>
-                            <p className="font-medium">{card.name}</p>
-                            <p className="text-sm text-muted-foreground">Limite: {card.limit.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} | Vencimento: dia {card.dueDay}</p>
-                            </div>
-                            <div className="flex items-center gap-2">
-                            <Button variant="outline" size="icon" onClick={() => openEditDialog(card)}><Edit className="h-4 w-4" /></Button>
-                            <Button variant="outline" size="icon" className="text-destructive hover:text-destructive" onClick={() => setItemToDelete({ type: 'card', id: card.id, name: card.name })}><Trash2 className="h-4 w-4" /></Button>
-                            </div>
-                        </li>
-                        ))}
-                    </ul>
-                    </CardContent>
-                    <CardFooter>
-                    <Button variant="outline" className="w-full" onClick={openAddDialog}>
-                        <PlusCircle className="mr-2 h-4 w-4" />
-                        Adicionar Conta ou Cartão
-                    </Button>
-                    </CardFooter>
-                </Card>
-
                 {/* Danger Zone */}
                 <Card className="border-destructive/50 bg-transparent">
                     <CardHeader>
@@ -364,12 +268,6 @@ export default function SettingsPage() {
                 </div>
             </CardContent>
         </Card>
-         <EditAccountCardDialog 
-            isOpen={isAccountCardDialogOpen}
-            onClose={() => setIsAccountCardDialogOpen(false)}
-            onSave={handleSaveAccountCard}
-            item={editingItem}
-        />
         <EditCategoryDialog
             isOpen={!!itemToEdit}
             onClose={() => setItemToEdit(null)}
@@ -379,18 +277,16 @@ export default function SettingsPage() {
          <AlertDialog open={!!itemToDelete} onOpenChange={(open) => !open && setItemToDelete(null)}>
             <AlertDialogContent>
                 <AlertDialogHeader>
-                    <AlertDialogTitle>Excluir {itemToDelete?.type.includes('Category') ? 'categoria' : (itemToDelete?.type === 'account' ? 'conta' : 'cartão')}?</AlertDialogTitle>
+                    <AlertDialogTitle>Excluir categoria?</AlertDialogTitle>
                     <AlertDialogDescription>
                        {itemToDelete?.type === 'pantryCategory' && `Tem certeza que deseja excluir a categoria "${itemToDelete.name}"? Itens nesta categoria serão movidos para "Outros".`}
                        {(itemToDelete?.type === 'incomeCategory' || itemToDelete?.type === 'expenseCategory') && `Categorias padrão não podem ser excluídas.`}
-                       {itemToDelete?.type === 'account' && `Tem certeza que deseja excluir a conta "${itemToDelete.name}"? Todas as transações associadas também serão excluídas.`}
-                       {itemToDelete?.type === 'card' && `Tem certeza que deseja excluir o cartão "${itemToDelete.name}"? Todas as transações associadas também serão excluídas.`}
                         <br/><br/>
                         Esta ação não pode ser desfeita.
                     </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
-                    <AlertDialogCancel onClick={() => setItemToDelete(null)}>Cancelar</AlertDialogCancel>
+                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
                     <AlertDialogAction onClick={handleDeleteConfirm} className="bg-destructive hover:bg-destructive/90" disabled={itemToDelete?.type === 'incomeCategory' || itemToDelete?.type === 'expenseCategory'}>
                         Sim, excluir
                     </AlertDialogAction>

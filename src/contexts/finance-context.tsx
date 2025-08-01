@@ -85,7 +85,7 @@ type FinanceContextType = {
   countRecurringTransactions: () => number;
   isSensitiveDataVisible: boolean;
   toggleSensitiveDataVisibility: () => void;
-  formatCurrency: (value: number) => string;
+  formatCurrency: (value: number, forceVisible?: boolean) => string;
   resetAllData: () => void;
   pantryItems: PantryItem[];
   addItemsToPantry: (items: { name: string, quantity: number }[]) => void;
@@ -303,8 +303,8 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
 
   const toggleSensitiveDataVisibility = () => setIsSensitiveDataVisible(prev => !prev);
 
-  const formatCurrency = (value: number) => {
-    if (!isSensitiveDataVisible) return 'R$ ••••••';
+  const formatCurrency = (value: number, forceVisible: boolean = false) => {
+    if (!isSensitiveDataVisible && !forceVisible) return 'R$ ••••••';
     return value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
   };
   
@@ -919,7 +919,7 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
     updates[`transactions/${creditTransId}`] = creditTransaction;
 
     update(getDbRef(''), updates);
-    toast({ title: 'Fatura Paga!', description: `O pagamento de ${formatCurrency(amount)} para o cartão ${card.name} foi registrado.`})
+    toast({ title: 'Fatura Paga!', description: `${formatCurrency(amount)} para o cartão ${card.name} foi registrado.`})
 
   }, [user, accounts, getDbRef, toast, formatCurrency]);
 

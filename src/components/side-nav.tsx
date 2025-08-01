@@ -36,6 +36,7 @@ import { LogoIcon } from './dashboard/logo';
 const navItems = [
   { href: '/finance', icon: Banknote, label: 'Finanças' },
   { href: '/cards', icon: CreditCard, label: 'Cartões' },
+  { href: '/accounts', icon: Banknote, label: 'Vales' },
   { href: '/goals', icon: Target, label: 'Metas' },
   { href: '/wishes', icon: Gift, label: 'Desejos' },
   { href: '/purchases', icon: ShoppingBasket, label: 'Compras' },

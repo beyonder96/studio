@@ -101,7 +101,7 @@ export function TransactionsOverview() {
                             transaction.type === 'income' ? 'text-green-500' : 'text-red-500'
                         )}
                     >
-                        {transaction.amount > 0 ? '+' : ''}{formatCurrency(transaction.amount)}
+                        {transaction.amount > 0 ? '+' : ''}{formatCurrency(transaction.amount, true)}
                     </p>
                     ) : (
                     <Skeleton className="h-6 w-24 rounded-full" />

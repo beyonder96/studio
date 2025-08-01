@@ -139,7 +139,7 @@ export default function FinancePage() {
                         </CardHeader>
                         <CardContent>
                             <div className="text-2xl font-bold text-green-500">
-                                {formatCurrency(monthlyIncome)}
+                                {formatCurrency(monthlyIncome, true)}
                             </div>
                         </CardContent>
                     </Card>
@@ -150,7 +150,7 @@ export default function FinancePage() {
                         </CardHeader>
                         <CardContent>
                             <div className="text-2xl font-bold text-red-500">
-                                {formatCurrency(monthlyExpenses)}
+                                {formatCurrency(monthlyExpenses, true)}
                             </div>
                         </CardContent>
                     </Card>
@@ -160,7 +160,7 @@ export default function FinancePage() {
                         </CardHeader>
                         <CardContent>
                             <div className="text-2xl font-bold">
-                                {formatCurrency(monthlyIncome + monthlyExpenses)}
+                                {formatCurrency(monthlyIncome + monthlyExpenses, true)}
                             </div>
                         </CardContent>
                     </Card>
@@ -206,7 +206,7 @@ export default function FinancePage() {
                                                 'font-mono font-semibold text-lg',
                                                 transaction.type === 'income' ? 'text-green-500' : 'text-red-500'
                                             )}>
-                                                {formatCurrency(transaction.amount)}
+                                                {formatCurrency(transaction.amount, true)}
                                             </p>
                                         </div>
                                         <div className="flex items-center justify-between text-sm text-muted-foreground">
@@ -263,7 +263,7 @@ export default function FinancePage() {
                                         transaction.type === 'income' ? 'text-green-500' : 'text-red-500'
                                     }`}
                                     >
-                                    {formatCurrency(transaction.amount)}
+                                    {formatCurrency(transaction.amount, true)}
                                     </TableCell>
                                     <TableCell>
                                     <div className="flex items-center justify-end gap-2">
@@ -305,7 +305,7 @@ export default function FinancePage() {
                         </AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>
-                        <AlertDialogCancel onClick={() => setTransactionToDelete(null)}>Cancelar</AlertDialogCancel>
+                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
                         <AlertDialogAction onClick={handleDeleteConfirm} className="bg-destructive hover:bg-destructive/90">
                             Sim, excluir
                         </AlertDialogAction>

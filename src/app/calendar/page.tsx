@@ -170,17 +170,17 @@ export default function CalendarPage() {
   return (
     <Card className="bg-white/10 dark:bg-black/10 backdrop-blur-3xl border-white/20 dark:border-black/20 rounded-3xl shadow-2xl h-full">
         <CardContent className="p-4 sm:p-6 h-full flex flex-col">
-            <div className="flex flex-wrap items-center justify-between gap-2 border-b pb-4 sm:pb-6">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b pb-4 sm:pb-6">
                 <div>
                     <h1 className="text-2xl font-bold">Agenda</h1>
                     <p className="text-muted-foreground">Seus próximos compromissos.</p>
                 </div>
                 <div className="flex items-center gap-2">
-                    <Button variant="outline" onClick={() => handleSync()} disabled={isSyncing}>
+                    <Button variant="outline" onClick={() => handleSync()} disabled={isSyncing} className="w-full sm:w-auto">
                         {isSyncing ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <RefreshCw className="mr-2 h-4 w-4" />}
                         Sincronizar com Google
                     </Button>
-                    <Button onClick={openAddDialog}>
+                    <Button onClick={openAddDialog} className="w-full sm:w-auto">
                         <PlusCircle className="mr-2 h-4 w-4" />
                         Adicionar Evento
                     </Button>

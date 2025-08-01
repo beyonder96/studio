@@ -98,7 +98,7 @@ export function TransactionsTable({ transactions, onEdit, onDeleteRequest, onTog
                                 transaction.type === 'income' ? 'text-green-500' : 'text-red-500',
                                 !transaction.paid && 'opacity-50'
                             )}>
-                                {formatCurrency(transaction.amount)}
+                                {formatCurrency(transaction.amount, true)}
                             </p>
                            
                            <DropdownMenu>
@@ -163,7 +163,7 @@ export function TransactionsTable({ transactions, onEdit, onDeleteRequest, onTog
                             transaction.type === 'income' ? 'text-green-500' : 'text-red-500'
                         }`}
                     >
-                        {formatCurrency(transaction.amount)}
+                        {formatCurrency(transaction.amount, true)}
                     </TableCell>
                     <TableCell>
                     <div className="flex items-center justify-end gap-2">

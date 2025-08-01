@@ -137,7 +137,7 @@ export default function Home() {
               className="w-full"
             >
               <CarouselContent>
-                {accounts.map((account) => (
+                {accounts.filter(acc => acc.type !== 'voucher').map((account) => (
                   <CarouselItem key={account.id}>
                     <BalanceCard account={account} />
                   </CarouselItem>

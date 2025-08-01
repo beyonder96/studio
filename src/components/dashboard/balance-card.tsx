@@ -17,7 +17,7 @@ export function BalanceCard({ account }: { account: Account }) {
               {account.name}
             </CardTitle>
             <span className="text-3xl font-bold tracking-tight">
-              {formatCurrency(account.balance)}
+              {formatCurrency(account.balance, false)}
             </span>
           </div>
           <div className="rounded-full bg-secondary p-2">
