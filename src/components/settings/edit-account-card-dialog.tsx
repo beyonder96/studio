@@ -32,7 +32,7 @@ const accountSchema = z.object({
   type: z.literal('account'),
   name: z.string().min(1, 'O nome é obrigatório'),
   balance: z.coerce.number().min(0, 'O saldo inicial não pode ser negativo'),
-  accountType: z.enum(['checking', 'savings', 'voucher']).default('voucher'),
+  accountType: z.enum(['voucher']).default('voucher'), // Only vouchers here
 });
 
 const cardSchema = z.object({
@@ -74,11 +74,14 @@ export function EditAccountCardDialog({ isOpen, onClose, onSave, item, coupleNam
     control,
     reset,
     formState: { errors },
-    setValue
+    setValue,
+    watch
   } = useForm<AccountCardFormData>({
     resolver: zodResolver(formSchema),
     defaultValues: { type: activeTab } as any
   });
+
+  const formType = watch('type');
 
   useEffect(() => {
     if (isOpen) {
@@ -88,7 +91,7 @@ export function EditAccountCardDialog({ isOpen, onClose, onSave, item, coupleNam
 
         if (item) { // Editing
             if ('balance' in item) {
-                reset({ type: 'account', name: item.name, balance: item.balance, accountType: item.type });
+                reset({ type: 'account', name: item.name, balance: item.balance, accountType: item.type as 'voucher' });
             } else {
                 reset({ type: 'card', name: item.name, limit: item.limit, dueDay: item.dueDay, holder: item.holder, brand: item.brand });
             }
@@ -114,10 +117,13 @@ export function EditAccountCardDialog({ isOpen, onClose, onSave, item, coupleNam
 
   const AccountForm = (
     <div className="space-y-4 pt-4">
-        <Controller name="type" control={control} render={({ field }) => <input type="hidden" {...field} value="account" />} />
         <div className="space-y-2">
-            <Label htmlFor="account-name">Nome da Conta/Vale</Label>
-            <Input id="account-name" {...register('name')} placeholder="Ex: Conta Corrente, Vale Refeição" />
+            <Label htmlFor="account-name">Nome do Vale</Label>
+            <Controller
+                name="name"
+                control={control}
+                render={({ field }) => <Input {...field} id="account-name" placeholder="Ex: Vale Refeição" value={field.value ?? ''} />}
+            />
             {errors.type === 'account' && errors.name && <p className="text-red-500 text-xs mt-1">{errors.name.message}</p>}
         </div>
         <div className="space-y-2">
@@ -135,35 +141,18 @@ export function EditAccountCardDialog({ isOpen, onClose, onSave, item, coupleNam
             />
             {errors.type === 'account' && errors.balance && <p className="text-red-500 text-xs mt-1">{errors.balance.message}</p>}
         </div>
-         <div className="space-y-2">
-            <Label htmlFor="accountType">Tipo</Label>
-            <Controller
-                name="accountType"
-                control={control}
-                render={({ field }) => (
-                    <Select onValueChange={field.onChange} value={field.value}>
-                        <SelectTrigger id="accountType">
-                            <SelectValue placeholder="Selecione o tipo" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="checking">Conta Corrente</SelectItem>
-                            <SelectItem value="savings">Poupança</SelectItem>
-                            <SelectItem value="voucher">Vale (Refeição/Alim.)</SelectItem>
-                        </SelectContent>
-                    </Select>
-                )}
-            />
-            {errors.type === 'account' && errors.accountType && <p className="text-red-500 text-xs mt-1">{errors.accountType.message}</p>}
-        </div>
     </div>
   );
 
   const CardForm = (
     <div className="space-y-4 pt-4">
-        <Controller name="type" control={control} render={({ field }) => <input type="hidden" {...field} value="card" />} />
         <div className="space-y-2">
             <Label htmlFor="card-name">Apelido do Cartão</Label>
-            <Input id="card-name" {...register('name')} placeholder="Ex: Cartão Principal" />
+            <Controller
+                name="name"
+                control={control}
+                render={({ field }) => <Input {...field} id="card-name" placeholder="Ex: Cartão Principal" value={field.value ?? ''} />}
+            />
             {errors.type === 'card' && errors.name && <p className="text-red-500 text-xs mt-1">{errors.name.message}</p>}
         </div>
 
@@ -174,7 +163,7 @@ export function EditAccountCardDialog({ isOpen, onClose, onSave, item, coupleNam
                     name="holder"
                     control={control}
                     render={({ field }) => (
-                    <Select onValueChange={field.onChange} value={field.value}>
+                    <Select onValueChange={field.onChange} value={field.value ?? ''}>
                         <SelectTrigger id="holder">
                             <SelectValue placeholder="Selecione o titular" />
                         </SelectTrigger>
@@ -194,7 +183,7 @@ export function EditAccountCardDialog({ isOpen, onClose, onSave, item, coupleNam
                     name="brand"
                     control={control}
                     render={({ field }) => (
-                    <Select onValueChange={field.onChange} value={field.value}>
+                    <Select onValueChange={field.onChange} value={field.value ?? 'visa'}>
                         <SelectTrigger id="brand">
                             <SelectValue placeholder="Selecione a bandeira" />
                         </SelectTrigger>
@@ -229,7 +218,13 @@ export function EditAccountCardDialog({ isOpen, onClose, onSave, item, coupleNam
             </div>
              <div className="space-y-2">
                 <Label htmlFor="dueDay">Dia do Vencimento</Label>
-                <Input id="dueDay" type="number" {...register('dueDay')} min="1" max="31" />
+                 <Controller
+                    name="dueDay"
+                    control={control}
+                    render={({ field }) => (
+                        <Input id="dueDay" type="number" {...field} min="1" max="31" value={field.value ?? ''} />
+                    )}
+                />
                 {errors.type === 'card' && errors.dueDay && <p className="text-red-500 text-xs mt-1">{errors.dueDay.message}</p>}
             </div>
         </div>
@@ -240,12 +235,13 @@ export function EditAccountCardDialog({ isOpen, onClose, onSave, item, coupleNam
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>{isEditing ? (('balance' in item) ? 'Editar Vale' : 'Editar Cartão') : 'Adicionar'}</DialogTitle>
+          <DialogTitle>{isEditing ? (('balance' in (item || {})) ? 'Editar Vale' : 'Editar Cartão') : 'Adicionar'}</DialogTitle>
            <DialogDescription>
             {isEditing ? 'Atualize as informações abaixo.' : 'Selecione o tipo e preencha as informações.'}
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit(onSubmit)}>
+            <Controller name="type" control={control} render={({ field }) => <input type="hidden" {...field} />} />
             {!isEditing ? (
                 <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
                     <TabsList className="grid w-full grid-cols-2">
@@ -260,7 +256,7 @@ export function EditAccountCardDialog({ isOpen, onClose, onSave, item, coupleNam
                     </TabsContent>
                 </Tabs>
             ) : (
-                 activeTab === 'account' ? AccountForm : CardForm
+                 ('balance' in (item || {})) ? AccountForm : CardForm
             )}
 
           <DialogFooter className="pt-6">
