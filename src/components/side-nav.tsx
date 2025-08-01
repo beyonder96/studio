@@ -63,17 +63,21 @@ export function SideNav() {
     return null;
   }
   
+  const NavButton = () => (
+     <button
+        onClick={() => setIsOpen(!isOpen)}
+        className="bg-black/10 backdrop-blur-lg border-2 border-white/20 shadow-2xl text-white/80 p-4 rounded-[20px] transition-transform hover:scale-105 flex items-center justify-center"
+        aria-label="Abrir navegação"
+    >
+        <LayoutDashboard className="h-6 w-6" />
+    </button>
+  );
+  
   if (pathname === '/') {
     // Mobile-only FAB for dashboard
      return (
         <div className="fixed bottom-6 right-6 z-40 md:hidden">
-            <button
-            onClick={() => setIsOpen(!isOpen)}
-            className="bg-black/10 backdrop-blur-lg border-2 border-white/20 shadow-2xl text-white/80 p-4 rounded-[20px] transition-transform hover:scale-105 flex items-center justify-center"
-            aria-label="Abrir navegação"
-            >
-                <LayoutDashboard className="h-6 w-6" />
-            </button>
+            <NavButton />
             <NavPanel isOpen={isOpen} setIsOpen={setIsOpen} />
         </div>
     );
@@ -102,13 +106,7 @@ export function SideNav() {
             </TooltipProvider>
         </div>
         <div className="fixed bottom-6 right-6 z-40">
-             <button
-                onClick={() => setIsOpen(!isOpen)}
-                className="bg-black/10 backdrop-blur-lg border-2 border-white/20 shadow-2xl text-white/80 p-4 rounded-[20px] transition-transform hover:scale-105 flex items-center justify-center"
-                aria-label="Abrir navegação"
-            >
-                <LayoutDashboard className="h-6 w-6" />
-            </button>
+             <NavButton />
             <NavPanel isOpen={isOpen} setIsOpen={setIsOpen} />
         </div>
     </>
