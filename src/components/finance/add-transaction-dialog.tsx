@@ -43,6 +43,7 @@ const transactionSchema = z.object({
   isRecurring: z.boolean().optional(),
   frequency: z.enum(['daily', 'weekly', 'monthly', 'annual']).optional(),
   installments: z.coerce.number().min(1).optional(),
+  linkedGoalId: z.string().optional(),
 }).superRefine((data, ctx) => {
     if (data.type === 'transfer') {
         if (!data.fromAccount) {
@@ -83,7 +84,7 @@ export function AddTransactionDialog({
   transaction,
 }: AddTransactionDialogProps) {
   const isEditing = !!transaction;
-  const { accounts, cards, incomeCategories, expenseCategories } = useContext(FinanceContext);
+  const { accounts, cards, incomeCategories, expenseCategories, goals } = useContext(FinanceContext);
 
   const combinedAccounts = useMemo(() => [
       ...accounts.map(a => ({...a, type: 'account', limit: undefined})), 
@@ -112,6 +113,7 @@ export function AddTransactionDialog({
       paid: true,
       isRecurring: false,
       installments: 1,
+      linkedGoalId: '',
     },
   });
 
@@ -136,6 +138,7 @@ export function AddTransactionDialog({
             paid: true,
             isRecurring: false,
             installments: 1,
+            linkedGoalId: '',
           });
       }
     }
@@ -168,6 +171,8 @@ export function AddTransactionDialog({
     }
     return null;
   }, [isCreditCard, selectedAccount, amount]);
+
+  const pendingGoals = useMemo(() => goals.filter(g => !g.completed), [goals]);
 
 
   const onSubmit = (data: TransactionFormData) => {
@@ -318,6 +323,29 @@ export function AddTransactionDialog({
                            )}
                    </div>
                  )}
+                 
+                {transactionType === 'expense' && pendingGoals.length > 0 && (
+                    <div className="space-y-2">
+                        <Label htmlFor="linkedGoalId">Vincular a uma Meta (Opcional)</Label>
+                        <Controller
+                            name="linkedGoalId"
+                            control={control}
+                            render={({ field }) => (
+                                <Select onValueChange={field.onChange} value={field.value}>
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Selecione uma meta para contribuir" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="">Nenhuma</SelectItem>
+                                        {pendingGoals.map(goal => (
+                                            <SelectItem key={goal.id} value={goal.id}>{goal.name}</SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            )}
+                        />
+                    </div>
+                )}
 
                 <div className="flex items-center justify-between">
                     <Label htmlFor="paid" className="cursor-pointer">

@@ -1,13 +1,13 @@
 
 'use client';
 
-import { useState, useContext, useMemo, useEffect } from 'react';
+import { useState, useContext, useMemo, useEffect, useCallback } from 'react';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
-import { Plus, Trash2, Edit, CheckCircle2, Target, MoreVertical, Star, Trophy } from 'lucide-react';
-import { FinanceContext, Goal } from '@/contexts/finance-context';
+import { Plus, Trash2, Edit, CheckCircle2, Target, MoreVertical, Star, Trophy, ListChecks, ChevronDown, ChevronUp } from 'lucide-react';
+import { FinanceContext, Goal, Milestone } from '@/contexts/finance-context';
 import { AddGoalDialog } from '@/components/goals/add-goal-dialog';
 import {
   DropdownMenu,
@@ -27,12 +27,148 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Badge } from '@/components/ui/badge';
 import Confetti from 'react-confetti';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Label } from '@/components/ui/label';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { cn } from '@/lib/utils';
+import { AddGoalProgressDialog } from '@/components/goals/add-goal-progress-dialog';
+
+const GoalCard = ({ goal, onEdit, onToggleCompleted, onDelete, onToggleMilestone, onAddProgress }: { 
+    goal: Goal,
+    onEdit: (g: Goal) => void,
+    onToggleCompleted: (g: Goal) => void,
+    onDelete: (g: Goal) => void,
+    onToggleMilestone: (goalId: string, milestoneId: string) => void;
+    onAddProgress: (g: Goal) => void;
+}) => {
+    const { formatCurrency } = useContext(FinanceContext);
+    const [isChecklistOpen, setIsChecklistOpen] = useState(false);
+
+    const getProgressPercentage = (g: Goal) => {
+        if (g.completed) return 100;
+        if (!g.targetAmount || g.targetAmount === 0) return 0;
+        return (g.currentAmount / g.targetAmount) * 100;
+    };
+    
+    const getMilestoneProgress = (g: Goal) => {
+        if (!g.milestones || g.milestones.length === 0) return { percent: 0, text: 'Nenhuma etapa' };
+        const completed = g.milestones.filter(m => m.completed).length;
+        const total = g.milestones.length;
+        return {
+            percent: (completed / total) * 100,
+            text: `${completed} de ${total} etapas`
+        };
+    }
+
+    const progress = getProgressPercentage(goal);
+    const milestoneProgress = getMilestoneProgress(goal);
+
+    return (
+        <Card className="flex flex-col card-hover-effect bg-transparent">
+            <CardHeader className="relative p-0">
+                <Image
+                    src={goal.imageUrl || "https://placehold.co/600x400.png"}
+                    alt={goal.name}
+                    width={600}
+                    height={400}
+                    className="w-full h-48 object-cover rounded-t-lg"
+                    data-ai-hint="travel goal"
+                />
+                <div className="absolute top-2 right-2">
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <Button variant="secondary" size="icon" className="h-8 w-8 rounded-full bg-black/30 hover:bg-black/50 text-white">
+                                <MoreVertical className="h-4 w-4" />
+                            </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => onEdit(goal)}>
+                                <Edit className="mr-2 h-4 w-4" />
+                                Editar
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => onToggleCompleted(goal)}>
+                                <CheckCircle2 className="mr-2 h-4 w-4" />
+                                Marcar como concluída
+                            </DropdownMenuItem>
+                            <DropdownMenuItem className="text-destructive" onClick={() => onDelete(goal)}>
+                                <Trash2 className="mr-2 h-4 w-4" />
+                                Excluir
+                            </DropdownMenuItem>
+                        </DropdownMenuContent>
+                    </DropdownMenu>
+                </div>
+            </CardHeader>
+            <CardContent className="p-4 flex-grow flex flex-col">
+                <CardTitle className="text-lg mb-2">{goal.name}</CardTitle>
+                <div className="flex-grow space-y-4">
+                    <div>
+                        <div className="flex justify-between items-center mb-1">
+                            <span className="text-xs font-medium text-muted-foreground">Progresso Financeiro</span>
+                             <Badge variant="secondary" className="font-normal">
+                                {Math.round(progress)}%
+                            </Badge>
+                        </div>
+                        <Progress value={progress} />
+                        <div className="flex justify-between text-sm text-muted-foreground mt-1">
+                            <span>{formatCurrency(goal.currentAmount)}</span>
+                            <span className="font-semibold">{formatCurrency(goal.targetAmount)}</span>
+                        </div>
+                    </div>
+                     {goal.milestones && goal.milestones.length > 0 && (
+                        <div>
+                            <div className="flex justify-between items-center mb-1">
+                                <span className="text-xs font-medium text-muted-foreground">Checklist</span>
+                                <Badge variant="outline" className="font-normal">
+                                    {milestoneProgress.text}
+                                </Badge>
+                            </div>
+                            <Progress value={milestoneProgress.percent} className="h-2" />
+                        </div>
+                    )}
+                </div>
+            </CardContent>
+            <CardFooter className="flex flex-col items-stretch gap-2">
+                 <Button variant="outline" onClick={() => onAddProgress(goal)}>
+                    <Plus className="mr-2 h-4 w-4"/>
+                    Adicionar Progresso
+                </Button>
+                {goal.milestones && goal.milestones.length > 0 && (
+                    <Collapsible open={isChecklistOpen} onOpenChange={setIsChecklistOpen}>
+                        <CollapsibleTrigger asChild>
+                             <Button variant="ghost" className="w-full">
+                                <ListChecks className="mr-2 h-4 w-4" />
+                                Ver Checklist
+                                {isChecklistOpen ? <ChevronUp className="ml-2 h-4 w-4"/> : <ChevronDown className="ml-2 h-4 w-4"/>}
+                            </Button>
+                        </CollapsibleTrigger>
+                        <CollapsibleContent className="mt-4 space-y-2">
+                           {goal.milestones.map((milestone) => (
+                               <div key={milestone.id} className="flex items-center justify-between p-2 rounded-md bg-muted/50">
+                                   <div className="flex items-center gap-3">
+                                       <Checkbox id={`ms-${milestone.id}`} checked={milestone.completed} onCheckedChange={() => onToggleMilestone(goal.id, milestone.id)}/>
+                                       <Label htmlFor={`ms-${milestone.id}`} className={cn(milestone.completed && 'line-through text-muted-foreground')}>{milestone.name}</Label>
+                                   </div>
+                                   {milestone.cost > 0 && <Badge variant="outline">{formatCurrency(milestone.cost)}</Badge>}
+                               </div>
+                           ))}
+                        </CollapsibleContent>
+                    </Collapsible>
+                )}
+            </CardFooter>
+        </Card>
+    )
+}
+
 
 export default function GoalsPage() {
-  const { goals, addGoal, updateGoal, deleteGoal, formatCurrency, toggleGoalCompleted } = useContext(FinanceContext);
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const { goals, addGoal, updateGoal, deleteGoal, formatCurrency, toggleGoalCompleted, toggleMilestoneCompleted, addGoalProgress } = useContext(FinanceContext);
+  const [isAddGoalDialogOpen, setIsAddGoalDialogOpen] = useState(false);
+  const [isAddProgressDialogOpen, setIsAddProgressDialogOpen] = useState(false);
+
   const [editingGoal, setEditingGoal] = useState<Goal | null>(null);
   const [goalToDelete, setGoalToDelete] = useState<Goal | null>(null);
+  const [goalForProgress, setGoalForProgress] = useState<Goal | null>(null);
+  
   const [showConfetti, setShowConfetti] = useState(false);
   const [windowSize, setWindowSize] = useState({ width: 0, height: 0 });
 
@@ -49,21 +185,21 @@ export default function GoalsPage() {
 
   const openAddDialog = () => {
     setEditingGoal(null);
-    setIsDialogOpen(true);
+    setIsAddGoalDialogOpen(true);
   };
 
   const openEditDialog = (goal: Goal) => {
     setEditingGoal(goal);
-    setIsDialogOpen(true);
+    setIsAddGoalDialogOpen(true);
   };
 
-  const handleSaveGoal = (data: Omit<Goal, 'id' | 'completed'>) => {
+  const handleSaveGoal = (data: Omit<Goal, 'id' | 'completed'>, milestones: Omit<Milestone, 'id' | 'completed'>[]) => {
     if (editingGoal) {
-      updateGoal(editingGoal.id, data);
+      updateGoal(editingGoal.id, data, milestones);
     } else {
-      addGoal(data);
+      addGoal(data, milestones);
     }
-    setIsDialogOpen(false);
+    setIsAddGoalDialogOpen(false);
     setEditingGoal(null);
   };
 
@@ -82,14 +218,21 @@ export default function GoalsPage() {
     toggleGoalCompleted(goal.id);
   }
   
-  const getProgressPercentage = (goal: Goal) => {
-    if (goal.completed) return 100;
-    if (!goal.targetAmount || goal.targetAmount === 0) return 0;
-    return (goal.currentAmount / goal.targetAmount) * 100;
+  const handleAddProgress = (goal: Goal) => {
+      setGoalForProgress(goal);
+      setIsAddProgressDialogOpen(true);
   }
+
+  const handleSaveProgress = (amount: number, accountId: string) => {
+    if (goalForProgress) {
+        addGoalProgress(goalForProgress.id, amount, accountId);
+    }
+    setGoalForProgress(null);
+    setIsAddProgressDialogOpen(false);
+  };
   
-  const pendingGoals = useMemo(() => goals.filter(g => !g.completed), [goals]);
-  const completedGoals = useMemo(() => goals.filter(g => g.completed), [goals]);
+  const pendingGoals = useMemo(() => goals.filter(g => !g.completed).sort((a,b) => b.targetAmount - a.targetAmount), [goals]);
+  const completedGoals = useMemo(() => goals.filter(g => g.completed).sort((a,b) => b.targetAmount - a.targetAmount), [goals]);
 
   return (
     <>
@@ -116,56 +259,15 @@ export default function GoalsPage() {
               {pendingGoals.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {pendingGoals.map(goal => (
-                    <Card key={goal.id} className="flex flex-col card-hover-effect bg-transparent">
-                      <CardHeader className="relative p-0">
-                        <Image
-                          src={goal.imageUrl || "https://placehold.co/600x400.png"}
-                          alt={goal.name}
-                          width={600}
-                          height={400}
-                          className="w-full h-48 object-cover rounded-t-lg"
-                          data-ai-hint="travel goal"
-                        />
-                        <div className="absolute top-2 right-2">
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="secondary" size="icon" className="h-8 w-8 rounded-full bg-black/30 hover:bg-black/50 text-white">
-                                <MoreVertical className="h-4 w-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuItem onClick={() => openEditDialog(goal)}>
-                                <Edit className="mr-2 h-4 w-4" />
-                                Editar
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => handleToggleCompleted(goal)}>
-                                <CheckCircle2 className="mr-2 h-4 w-4" />
-                                Marcar como concluída
-                              </DropdownMenuItem>
-                              <DropdownMenuItem className="text-destructive" onClick={() => setGoalToDelete(goal)}>
-                                <Trash2 className="mr-2 h-4 w-4" />
-                                Excluir
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </div>
-                      </CardHeader>
-                      <CardContent className="p-4 flex-grow flex flex-col">
-                        <CardTitle className="text-lg mb-2">{goal.name}</CardTitle>
-                        <div className="flex-grow space-y-2">
-                            <Progress value={getProgressPercentage(goal)} />
-                            <div className="flex justify-between text-sm text-muted-foreground">
-                              <span>{formatCurrency(goal.currentAmount)}</span>
-                              <span className="font-semibold">{formatCurrency(goal.targetAmount)}</span>
-                            </div>
-                        </div>
-                      </CardContent>
-                      <CardFooter>
-                         <Badge variant="secondary" className="font-normal w-full justify-center">
-                            {Math.round(getProgressPercentage(goal))}% completo
-                          </Badge>
-                      </CardFooter>
-                    </Card>
+                    <GoalCard 
+                        key={goal.id} 
+                        goal={goal}
+                        onEdit={openEditDialog}
+                        onToggleCompleted={handleToggleCompleted}
+                        onDelete={setGoalToDelete}
+                        onToggleMilestone={toggleMilestoneCompleted}
+                        onAddProgress={handleAddProgress}
+                    />
                   ))}
                 </div>
               ) : (
@@ -219,11 +321,20 @@ export default function GoalsPage() {
             </div>
 
             <AddGoalDialog
-              isOpen={isDialogOpen}
-              onClose={() => { setIsDialogOpen(false); setEditingGoal(null); }}
+              isOpen={isAddGoalDialogOpen}
+              onClose={() => { setIsAddGoalDialogOpen(false); setEditingGoal(null); }}
               onSave={handleSaveGoal}
               goal={editingGoal}
             />
+
+            {goalForProgress && (
+                <AddGoalProgressDialog 
+                    isOpen={isAddProgressDialogOpen}
+                    onClose={() => setIsAddProgressDialogOpen(false)}
+                    onSave={handleSaveProgress}
+                    goal={goalForProgress}
+                />
+            )}
             
             <AlertDialog open={!!goalToDelete} onOpenChange={(open) => !open ? setGoalToDelete(null) : null}>
               <AlertDialogContent>
