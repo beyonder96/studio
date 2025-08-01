@@ -85,17 +85,17 @@ export function EditAccountCardDialog({ isOpen, onClose, onSave, item, coupleNam
 
   useEffect(() => {
     if (isOpen) {
-      const tab = item ? ('balance' in item ? 'account' : 'card') : activeTab;
-      setActiveTab(tab);
-      setValue('type', tab);
+        const tab = isEditing ? ('balance' in (item || {})) ? 'account' : 'card' : activeTab;
+        setActiveTab(tab);
+        setValue('type', tab);
 
-        if (item) { // Editing
-            if ('balance' in item) {
+        if (isEditing && item) {
+             if ('balance' in item) {
                 reset({ type: 'account', name: item.name, balance: item.balance, accountType: item.type as 'voucher' });
             } else {
                 reset({ type: 'card', name: item.name, limit: item.limit, dueDay: item.dueDay, holder: item.holder, brand: item.brand });
             }
-        } else { // Adding
+        } else {
              if (tab === 'account') {
                 reset({ type: 'account', name: '', balance: 0, accountType: 'voucher' });
              } else {
@@ -103,7 +103,7 @@ export function EditAccountCardDialog({ isOpen, onClose, onSave, item, coupleNam
              }
         }
     }
-  }, [isOpen, item, reset, setValue, activeTab, coupleNames]);
+  }, [isOpen, item, isEditing, reset, setValue, activeTab, coupleNames]);
   
   const handleTabChange = (value: string) => {
     const newTab = value as 'account' | 'card';
@@ -122,6 +122,7 @@ export function EditAccountCardDialog({ isOpen, onClose, onSave, item, coupleNam
             <Controller
                 name="name"
                 control={control}
+                rules={{ required: formType === 'account' }}
                 render={({ field }) => <Input {...field} id="account-name" placeholder="Ex: Vale Refeição" value={field.value ?? ''} />}
             />
             {errors.type === 'account' && errors.name && <p className="text-red-500 text-xs mt-1">{errors.name.message}</p>}
@@ -131,6 +132,7 @@ export function EditAccountCardDialog({ isOpen, onClose, onSave, item, coupleNam
             <Controller
                 name="balance"
                 control={control}
+                rules={{ required: formType === 'account' }}
                 render={({ field }) => (
                 <CurrencyInput
                     id="balance"
@@ -151,6 +153,7 @@ export function EditAccountCardDialog({ isOpen, onClose, onSave, item, coupleNam
             <Controller
                 name="name"
                 control={control}
+                rules={{ required: formType === 'card' }}
                 render={({ field }) => <Input {...field} id="card-name" placeholder="Ex: Cartão Principal" value={field.value ?? ''} />}
             />
             {errors.type === 'card' && errors.name && <p className="text-red-500 text-xs mt-1">{errors.name.message}</p>}
@@ -162,6 +165,7 @@ export function EditAccountCardDialog({ isOpen, onClose, onSave, item, coupleNam
                 <Controller
                     name="holder"
                     control={control}
+                    rules={{ required: formType === 'card' }}
                     render={({ field }) => (
                     <Select onValueChange={field.onChange} value={field.value ?? ''}>
                         <SelectTrigger id="holder">
@@ -182,6 +186,7 @@ export function EditAccountCardDialog({ isOpen, onClose, onSave, item, coupleNam
                  <Controller
                     name="brand"
                     control={control}
+                    rules={{ required: formType === 'card' }}
                     render={({ field }) => (
                     <Select onValueChange={field.onChange} value={field.value ?? 'visa'}>
                         <SelectTrigger id="brand">
@@ -206,6 +211,7 @@ export function EditAccountCardDialog({ isOpen, onClose, onSave, item, coupleNam
                  <Controller
                     name="limit"
                     control={control}
+                    rules={{ required: formType === 'card' }}
                     render={({ field }) => (
                     <CurrencyInput
                         id="limit"
@@ -221,6 +227,7 @@ export function EditAccountCardDialog({ isOpen, onClose, onSave, item, coupleNam
                  <Controller
                     name="dueDay"
                     control={control}
+                    rules={{ required: formType === 'card' }}
                     render={({ field }) => (
                         <Input id="dueDay" type="number" {...field} min="1" max="31" value={field.value ?? ''} />
                     )}
