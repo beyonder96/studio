@@ -9,8 +9,9 @@ import { Button } from '@/components/ui/button';
 import { ArrowLeft, Edit, Trash2, Home, Building, HardHat, FileText, Wrench } from 'lucide-react';
 import Image from 'next/image';
 import { AddPropertyDialog } from '@/components/home/add-property-dialog';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { PropertyShoppingList } from '@/components/home/property-shopping-list';
+import { ConstructionProgress } from '@/components/home/construction-progress';
 
 const typeDetails = {
     house: { icon: <Home className="h-5 w-5 text-muted-foreground"/>, label: 'Casa (Residência)' },
@@ -133,14 +134,7 @@ function PropertyDetailPageContent() {
                             </CardContent>
                         </Card>
                         {property.type === 'construction' && (
-                            <Card className="bg-transparent md:col-span-2 lg:col-span-3">
-                                <CardHeader>
-                                    <CardTitle className="flex items-center gap-2"><HardHat /> Acompanhamento da Obra</CardTitle>
-                                </CardHeader>
-                                <CardContent>
-                                    <p className="text-muted-foreground">Em breve: linha do tempo da obra, galeria de fotos e controle financeiro.</p>
-                                </CardContent>
-                            </Card>
+                            <ConstructionProgress property={property} />
                         )}
                     </CardContent>
                 </Card>
