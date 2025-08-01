@@ -84,11 +84,11 @@ export function AddTransactionDialog({
   transaction,
 }: AddTransactionDialogProps) {
   const isEditing = !!transaction;
-  const { accounts, cards, incomeCategories, expenseCategories, goals } = useContext(FinanceContext);
+  const { accounts, cards, incomeCategories, expenseCategories, goals, formatCurrency } = useContext(FinanceContext);
 
   const combinedAccounts = useMemo(() => [
-      ...accounts.map(a => ({...a, type: 'account', limit: undefined})), 
-      ...cards.map(c => ({...c, type: 'card', balance: undefined}))
+      ...accounts.map(a => ({...a, id: a.id, name: a.name, type: 'account', limit: undefined})), 
+      ...cards.map(c => ({...c, id: c.id, name: c.name, type: 'card', balance: undefined}))
     ], [accounts, cards]);
 
   const {
@@ -202,10 +202,6 @@ export function AddTransactionDialog({
     reset();
     onClose();
   }
-  
-  const formatCurrency = (value: number) => {
-    return value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-  }
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => { if (!open) handleClose() }}>
@@ -304,9 +300,9 @@ export function AddTransactionDialog({
                     {errors.account && <p className="text-red-500 text-xs mt-1">{errors.account.message}</p>}
                      {isCreditCard && selectedAccount.limit !== undefined && (
                         <div className="text-xs text-muted-foreground mt-1 text-right">
-                            Limite: {formatCurrency(selectedAccount.limit)}
+                            Limite: {formatCurrency(selectedAccount.limit, true)}
                             {remainingLimit !== null && (
-                                <span className="text-blue-500"> | Restante: {formatCurrency(remainingLimit)}</span>
+                                <span className="text-blue-500"> | Restante: {formatCurrency(remainingLimit, true)}</span>
                             )}
                         </div>
                     )}
@@ -318,7 +314,7 @@ export function AddTransactionDialog({
                            <Input id="installments" type="number" {...register('installments')} min="1" />
                            {installmentValue !== null && (
                                 <p className="text-xs text-muted-foreground mt-1 text-right">
-                                    {installments}x de {formatCurrency(installmentValue)}
+                                    {installments}x de {formatCurrency(installmentValue, true)}
                                 </p>
                            )}
                    </div>
@@ -331,12 +327,15 @@ export function AddTransactionDialog({
                             name="linkedGoalId"
                             control={control}
                             render={({ field }) => (
-                                <Select onValueChange={field.onChange} value={field.value}>
+                                <Select
+                                    onValueChange={(value) => field.onChange(value === 'none' ? undefined : value)}
+                                    value={field.value || 'none'}
+                                >
                                     <SelectTrigger>
                                         <SelectValue placeholder="Selecione uma meta para contribuir" />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        <SelectItem value="">Nenhuma</SelectItem>
+                                        <SelectItem value="none">Nenhuma</SelectItem>
                                         {pendingGoals.map(goal => (
                                             <SelectItem key={goal.id} value={goal.id}>{goal.name}</SelectItem>
                                         ))}
@@ -346,6 +345,7 @@ export function AddTransactionDialog({
                         />
                     </div>
                 )}
+
 
                 <div className="flex items-center justify-between">
                     <Label htmlFor="paid" className="cursor-pointer">

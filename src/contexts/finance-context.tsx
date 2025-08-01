@@ -23,7 +23,7 @@ const initialExpenseCategories = ['Alimentação', 'Moradia', 'Transporte', 'Laz
 const initialPantryCategories: PantryCategory[] = [ 'Laticínios', 'Carnes', 'Peixes', 'Frutas e Vegetais', 'Grãos e Cereais', 'Enlatados e Conservas', 'Bebidas', 'Higiene e Limpeza', 'Outros' ];
 const initialPantryItems: PantryItem[] = [];
 const initialTasks: Task[] = [ { id: 'task1', text: 'Pagar conta de luz', completed: false } ];
-const initialGoals: Goal[] = [ { id: 'goal1', name: 'Viagem para a praia', targetAmount: 3500, currentAmount: 1200, imageUrl: 'https://placehold.co/600x400.png', completed: false } ];
+const initialGoals: Goal[] = [ { id: 'goal1', name: 'Viagem para a praia', targetAmount: 3500, currentAmount: 1200, imageUrl: 'https://placehold.co/600x400.png', completed: false, milestones: [] } ];
 const initialWishes: Wish[] = [ { id: 'wish1', name: 'Liquidificador Novo', price: 250, purchased: false, imageUrl: 'https://placehold.co/600x400.png', link: '' } ];
 const initialAppointments: Appointment[] = [];
 const initialMemories: Memory[] = [];
@@ -58,7 +58,8 @@ export type Appointment = { id: string; title: string; date: string; time?: stri
 export type PantryCategory = string;
 export type PantryItem = { id: string; name: string; quantity: number; pantryCategory: PantryCategory; }
 export type Task = { id: string; text: string; completed: boolean; };
-export type Goal = { id: string; name: string; targetAmount: number; currentAmount: number; imageUrl?: string; completed: boolean; };
+export type Milestone = { id: string; name: string; cost: number; completed: boolean };
+export type Goal = { id: string; name: string; targetAmount: number; currentAmount: number; imageUrl?: string; completed: boolean; milestones?: Milestone[]; };
 export type Wish = { id: string; name: string; price: number; link?: string; imageUrl?: string; purchased: boolean; };
 export type ShoppingListItem = { id: string; name: string; quantity: number; checked: boolean; price?: number; };
 export type ShoppingList = { id: string; name: string; items: ShoppingListItem[]; shared: boolean; };
@@ -114,11 +115,12 @@ type FinanceContextType = {
   toggleTask: (id: string) => void;
   deleteTask: (id: string) => void;
   goals: Goal[];
-  addGoal: (goal: Omit<Goal, 'id' | 'completed'>) => void;
-  updateGoal: (id: string, goal: Partial<Omit<Goal, 'id'>>) => void;
+  addGoal: (goal: Omit<Goal, 'id' | 'completed'>, milestones: Omit<Milestone, 'id' | 'completed'>[]) => void;
+  updateGoal: (id: string, goal: Partial<Omit<Goal, 'id'>>, milestones: Omit<Milestone, 'id' | 'completed'>[]) => void;
   deleteGoal: (id: string) => void;
   addGoalProgress: (id: string, amount: number, accountId: string) => void;
   toggleGoalCompleted: (id: string) => void;
+  toggleMilestoneCompleted: (goalId: string, milestoneId: string) => void;
   wishes: Wish[];
   addWish: (wish: Omit<Wish, 'id' | 'purchased'>) => void;
   updateWish: (id: string, wish: Partial<Omit<Wish, 'id'>>) => void;
@@ -243,6 +245,18 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
         const unsubscribe = onValue(userRef, (snapshot) => {
             const data = snapshot.val();
             if (data) {
+                const transformDataWithSubItems = (d: any, subItemKey: string) => {
+                  if (!d) return [];
+                  return Object.keys(d).map(key => {
+                    const item = { id: key, ...d[key] };
+                    if (item[subItemKey]) {
+                      item[subItemKey] = Object.keys(item[subItemKey]).map(subKey => ({ id: subKey, ...item[subItemKey][subKey]}));
+                    } else {
+                      item[subItemKey] = [];
+                    }
+                    return item;
+                  });
+                }
                 const transformData = (d: any) => d ? Object.keys(d).map(key => ({ id: key, ...d[key] })) : [];
                 setTransactions(transformData(data.transactions));
                 setAccounts(transformData(data.accounts));
@@ -252,15 +266,12 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
                 setPantryItems(transformData(data.pantryItems));
                 setPantryCategories(data.pantryCategories || initialPantryCategories);
                 setTasks(transformData(data.tasks));
-                setGoals(transformData(data.goals));
+                setGoals(transformDataWithSubItems(data.goals, 'milestones'));
                 setWishes(transformData(data.wishes));
                 setAppointments(transformData(data.appointments));
                 setMemories(transformData(data.memories));
                 setAchievements(data.achievements || []);
-                const dbShoppingLists: ShoppingList[] = transformData(data.shoppingLists).map((list: any) => ({
-                    ...list,
-                    items: list.items ? Object.keys(list.items).map(key => ({ id: key, ...list.items[key] })) : []
-                }));
+                const dbShoppingLists: ShoppingList[] = transformDataWithSubItems(data.shoppingLists, 'items');
                 setShoppingLists(dbShoppingLists);
                 if (!selectedListId && dbShoppingLists.length > 0) {
                     setSelectedListId(dbShoppingLists[0].id || null);
@@ -342,6 +353,15 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
             if (targetAccount) {
                 updates[`accounts/${targetAccount.id}/balance`] = targetAccount.balance + (transaction.amount || 0);
             }
+        }
+    }
+    
+    // Add transaction and update goal if linked
+    if (transaction.type === 'expense' && transaction.linkedGoalId) {
+        const goal = goals.find(g => g.id === transaction.linkedGoalId);
+        if(goal) {
+            const newCurrentAmount = goal.currentAmount + Math.abs(transaction.amount || 0);
+            updates[`goals/${goal.id}/currentAmount`] = newCurrentAmount;
         }
     }
 
@@ -606,16 +626,50 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
   };
   
   // Goal Management
-  const addGoal = (goal: Omit<Goal, 'id' | 'completed'>) => {
+  const addGoal = (goal: Omit<Goal, 'id' | 'completed'>, milestones: Omit<Milestone, 'id' | 'completed'>[]) => {
     if (!user) return;
     const newId = push(getDbRef('goals')).key!;
-    const newGoal = { ...goal, completed: false };
-    set(getDbRef(`goals/${newId}`), newGoal);
+    const newGoal: Omit<Goal, 'id'> = { ...goal, completed: false, milestones: [] };
+    const goalUpdates: { [key: string]: any } = {};
+    goalUpdates[`goals/${newId}`] = newGoal;
+    
+    milestones.forEach(ms => {
+        const msId = push(child(getDbRef('goals'), `${newId}/milestones`)).key!;
+        goalUpdates[`goals/${newId}/milestones/${msId}`] = ms;
+    });
+
+    update(getDbRef(''), goalUpdates);
   };
 
-  const updateGoal = (id: string, updatedGoal: Partial<Omit<Goal, 'id'>>) => {
+  const updateGoal = (id: string, updatedGoal: Partial<Omit<Goal, 'id'>>, milestones: Omit<Milestone, 'id' | 'completed'>[]) => {
       if (!user) return;
-      update(getDbRef(`goals/${id}`), updatedGoal);
+      const updates: { [key: string]: any } = {};
+      
+      const goalToUpdate = { ...goals.find(g => g.id === id)!, ...updatedGoal };
+      
+      // Update the main goal object (without milestones)
+      const goalDataForUpdate: any = { ...goalToUpdate };
+      delete goalDataForUpdate.milestones;
+      updates[`goals/${id}`] = goalDataForUpdate;
+
+      // Handle milestones
+      const existingMilestoneIds = goalToUpdate.milestones?.map(ms => ms.id) || [];
+      const updatedMilestoneIds = milestones.map(ms => ms.id).filter(Boolean);
+
+      // Delete removed milestones
+      existingMilestoneIds.forEach(existingId => {
+          if (!updatedMilestoneIds.includes(existingId)) {
+              updates[`goals/${id}/milestones/${existingId}`] = null;
+          }
+      });
+      
+      // Add or update milestones
+      milestones.forEach(ms => {
+          const msId = ms.id || push(child(getDbRef('goals'), `${id}/milestones`)).key!;
+          updates[`goals/${id}/milestones/${msId}`] = { name: ms.name, cost: ms.cost, completed: ms.completed || false };
+      });
+      
+      update(getDbRef(''), updates);
   };
 
   const deleteGoal = (id: string) => {
@@ -657,7 +711,7 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
           
           update(getDbRef(''), updates);
           
-          toast({ title: 'Progresso Adicionado!', description: `${formatCurrency(amount)} adicionado à meta "${goal.name}".`});
+          toast({ title: 'Progresso Adicionado!', description: `${formatCurrency(amount, true)} adicionado à meta "${goal.name}".`});
       }
   };
 
@@ -668,6 +722,15 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
         const isCompleted = !goal.completed;
         update(getDbRef(`goals/${id}`), { completed: isCompleted });
         toast({ title: `Meta ${isCompleted ? 'concluída' : 'reativada'}!`, description: `A meta "${goal.name}" foi atualizada.` });
+    }
+  };
+  
+  const toggleMilestoneCompleted = (goalId: string, milestoneId: string) => {
+    if (!user) return;
+    const goal = goals.find(g => g.id === goalId);
+    const milestone = goal?.milestones?.find(ms => ms.id === milestoneId);
+    if (goal && milestone) {
+        update(getDbRef(`goals/${goalId}/milestones/${milestoneId}`), { completed: !milestone.completed });
     }
   };
 
@@ -933,7 +996,7 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
     updates[`transactions/${creditTransId}`] = creditTransaction;
 
     update(getDbRef(''), updates);
-    toast({ title: 'Fatura Paga!', description: `${formatCurrency(amount)} para o cartão ${card.name} foi registrado.`})
+    toast({ title: 'Fatura Paga!', description: `${formatCurrency(amount, true)} para o cartão ${card.name} foi registrado.`})
 
   }, [user, accounts, getDbRef, toast, formatCurrency]);
 
@@ -955,7 +1018,7 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
     pantryItems, addItemsToPantry, addItemToPantry, updatePantryItemQuantity,
     pantryCategories, addPantryCategory, deletePantryCategory, updatePantryCategory,
     tasks, addTask, toggleTask, deleteTask,
-    goals, addGoal, updateGoal, deleteGoal, addGoalProgress, toggleGoalCompleted,
+    goals, addGoal, updateGoal, deleteGoal, addGoalProgress, toggleGoalCompleted, toggleMilestoneCompleted,
     wishes, addWish, updateWish, deleteWish, toggleWishPurchased,
     appointments, appointmentCategories, addAppointment, updateAppointment, deleteAppointment,
     toast,
