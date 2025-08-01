@@ -86,6 +86,7 @@ export type Pet = {
     imageUrl?: string;
     microchip?: string;
     healthRecords?: HealthRecord[];
+    neutered?: boolean;
 };
 
 
@@ -1069,8 +1070,9 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
     const newRecordId = push(recordsRef).key;
     if (newRecordId) {
         const finalRecord: any = { ...record };
-        if (!finalRecord.notes) delete finalRecord.notes;
-        if (!finalRecord.nextDueDate) delete finalRecord.nextDueDate;
+        // Remove undefined fields before saving
+        if (finalRecord.notes === undefined) delete finalRecord.notes;
+        if (finalRecord.nextDueDate === undefined) delete finalRecord.nextDueDate;
         set(child(recordsRef, newRecordId), finalRecord);
     }
   };

@@ -31,6 +31,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Camera, Loader2 } from 'lucide-react';
 import Image from 'next/image';
 import imageCompression from 'browser-image-compression';
+import { Switch } from '../ui/switch';
 
 
 const petSchema = z.object({
@@ -40,6 +41,7 @@ const petSchema = z.object({
   birthDate: z.string().min(1, 'A data de nascimento é obrigatória'),
   microchip: z.string().optional(),
   imageUrl: z.string().url('URL inválida').optional().or(z.literal('')),
+  neutered: z.boolean().optional(),
 });
 
 type PetFormData = z.infer<typeof petSchema>;
@@ -85,6 +87,7 @@ export function AddPetDialog({ isOpen, onClose, onSave, pet }: AddPetDialogProps
           birthDate: format(new Date(), 'yyyy-MM-dd'),
           microchip: '',
           imageUrl: '',
+          neutered: false,
         });
         setImagePreview(null);
       }
@@ -207,6 +210,23 @@ export function AddPetDialog({ isOpen, onClose, onSave, pet }: AddPetDialogProps
                     <Label htmlFor="microchip">Nº do Microchip (opcional)</Label>
                     <Input id="microchip" {...register('microchip')} />
                 </div>
+            </div>
+
+            <div className="flex items-center justify-between rounded-lg border p-3">
+                <Label htmlFor="neutered" className="cursor-pointer">
+                    Castrado?
+                </Label>
+                <Controller
+                    name="neutered"
+                    control={control}
+                    render={({ field }) => (
+                    <Switch
+                            id="neutered"
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                        />
+                    )}
+                />
             </div>
             
           </div>

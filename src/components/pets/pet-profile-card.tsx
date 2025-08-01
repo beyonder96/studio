@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from '@/components/ui/button';
 import { Pet } from '@/contexts/finance-context';
 import { differenceInYears, differenceInMonths, parseISO, format } from 'date-fns';
-import { Cake, Cat, Dog, MoreVertical, PawPrint, Pencil, Trash2 } from 'lucide-react';
+import { Cake, Cat, Dog, MoreVertical, PawPrint, Pencil, ShieldCheck, Trash2 } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -69,7 +69,7 @@ export function PetProfileCard({ pet, onEdit }: { pet: Pet, onEdit: () => void }
       </CardHeader>
       <CardContent className="p-4 flex-grow">
         <CardTitle className="text-xl mb-2">{pet.name}</CardTitle>
-        <div className="flex items-center gap-4 text-sm text-muted-foreground">
+        <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
             <Badge variant="outline" className="flex items-center gap-1.5 py-1">
                 {getPetIcon(pet.species)}
                 <span>{pet.breed || 'SRD'}</span>
@@ -78,6 +78,12 @@ export function PetProfileCard({ pet, onEdit }: { pet: Pet, onEdit: () => void }
                 <Cake className="h-4 w-4"/>
                 <span>{getPetAge(pet.birthDate)}</span>
             </Badge>
+            {pet.neutered && (
+                <Badge variant="outline" className="flex items-center gap-1.5 py-1 text-blue-500 border-blue-500/20">
+                    <ShieldCheck className="h-4 w-4"/>
+                    <span>Castrado</span>
+                </Badge>
+            )}
         </div>
       </CardContent>
     </Card>
