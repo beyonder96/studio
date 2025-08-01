@@ -23,7 +23,7 @@ export default function RootLayout({
   const isAuthPage = pathname === '/login' || pathname === '/signup';
 
   useEffect(() => {
-    // Apply theme and color on initial load
+    // Apply theme on initial load
     const storedTheme = localStorage.getItem('app-theme') || 'light';
     document.documentElement.classList.remove('light', 'dark');
     document.documentElement.classList.add(storedTheme);
@@ -51,8 +51,8 @@ export default function RootLayout({
         <AuthProvider>
             <FinanceProvider>
               <SpecialDayAnimation />
-              <div className="flex flex-col min-h-screen">
-                  <main className="flex-1 w-full p-4 sm:p-6 md:p-8">
+              <div className="flex min-h-screen flex-col">
+                  <main className="w-full flex-1 p-4 sm:p-6 md:p-8">
                     <AnimatePresence mode="wait">
                       <motion.div
                         key={pathname}

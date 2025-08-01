@@ -37,8 +37,8 @@ const DateDisplay = () => {
 
   if (!clientReady) {
     return (
-      <Card className="bg-white/10 dark:bg-black/10 backdrop-blur-lg text-center p-6">
-        <Loader2 className="h-6 w-6 animate-spin mx-auto" />
+      <Card className="bg-white/10 dark:bg-black/10 backdrop-blur-lg p-6 text-center">
+        <Loader2 className="mx-auto h-6 w-6 animate-spin" />
       </Card>
     )
   }
@@ -46,9 +46,9 @@ const DateDisplay = () => {
   const today = new Date();
   
   return (
-      <Card className="bg-white/10 dark:bg-black/10 backdrop-blur-lg text-center p-6">
+      <Card className="bg-white/10 dark:bg-black/10 backdrop-blur-lg p-6 text-center">
           <p className="text-sm text-muted-foreground">Hoje é</p>
-          <p className="text-2xl font-bold text-foreground capitalize">
+          <p className="capitalize text-2xl font-bold text-foreground">
               {format(today, "eeee, dd 'de' MMMM", { locale: ptBR })}
           </p>
       </Card>
@@ -72,8 +72,10 @@ export default function Home() {
   const [theme, setTheme] = useState<Theme>('light');
 
   useEffect(() => {
+    // This effect runs once on component mount to set the theme from localStorage
     const storedTheme = (localStorage.getItem('app-theme') as Theme) || 'light';
     setTheme(storedTheme);
+    // The theme is applied globally in layout.tsx
   }, []);
   
   const handleThemeChange = () => {
@@ -100,7 +102,7 @@ export default function Home() {
   
   if (loading || !user) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
+      <div className="flex min-h-screen items-center justify-center">
           <Loader2 className="h-12 w-12 animate-spin text-primary" />
       </div>
     );
@@ -108,11 +110,11 @@ export default function Home() {
 
   return (
     <>
-      <div className="w-full max-w-7xl mx-auto">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="mx-auto w-full max-w-7xl">
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
           
           {/* Left Column */}
-          <div className="lg:col-span-1 flex flex-col gap-6">
+          <div className="flex flex-col gap-6 lg:col-span-1">
             <div className="flex items-center justify-between">
               <DashboardHeader />
               <div className="flex items-center gap-2">
@@ -147,7 +149,7 @@ export default function Home() {
           </div>
 
           {/* Middle Column */}
-          <div className="lg:col-span-1 flex flex-col gap-6">
+          <div className="flex flex-col gap-6 lg:col-span-1">
              <JourneyCard />
              <GoalsOverview />
              <ShoppingListOverview />
@@ -156,7 +158,7 @@ export default function Home() {
           </div>
 
           {/* Right Column */}
-           <div className="lg:col-span-1 flex flex-col gap-6">
+           <div className="flex flex-col gap-6 lg:col-span-1">
               <TasksOverview />
               <MonthOverview />
               <CopilotCard />

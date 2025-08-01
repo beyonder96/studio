@@ -2,7 +2,7 @@
 
 'use client';
 
-import React, { createContext, useState, ReactNode, useEffect, useCallback } from 'react';
+import React, { createContext, useState, ReactNode, useEffect, useCallback, useMemo } from 'react';
 import { getDatabase, ref, onValue, set, push, remove, update, child } from 'firebase/database';
 import type { Transaction } from '@/components/finance/transactions-table';
 import { addMonths, format, isSameMonth, startOfMonth, endOfMonth, addDays } from 'date-fns';
@@ -162,9 +162,20 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
   const [isSensitiveDataVisible, setIsSensitiveDataVisible] = useState(true);
   const [shoppingLists, setShoppingLists] = useState<ShoppingList[]>([]);
   const [selectedListId, setSelectedListId] = useState<string | null>(null);
-  const [googleEvents, setGoogleEvents] = useState<any[]>([]);
+  
+  const [googleEvents, setGoogleEventsState] = useState<any[]>([]);
 
-  const selectedList = shoppingLists.find(l => l.id === selectedListId) || null;
+  const selectedList = useMemo(() => {
+    return shoppingLists.find(list => list.id === selectedListId) || null;
+  }, [shoppingLists, selectedListId]);
+
+  // Wrapper for setGoogleEvents to also save to localStorage
+  const setGoogleEvents = useCallback((events: any[]) => {
+      setGoogleEventsState(events);
+      if (typeof window !== 'undefined') {
+          localStorage.setItem('google_events', JSON.stringify(events));
+      }
+  }, []);
   
   const getDbRef = useCallback((path: string) => {
     if (!user) throw new Error("User not authenticated to get DB ref.");
@@ -185,7 +196,7 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
     if(memoriesCount >= 10) unlocked.push(allAchievements.find(a => a.id === 'memory10')!);
 
     const currentAchievementIds = achievements.map(a => a.id);
-    const newAchievements = unlocked.filter(a => a.id && !currentAchievementIds.includes(a.id));
+    const newAchievements = unlocked.filter(a => a && !currentAchievementIds.includes(a.id));
 
     if(newAchievements.length > 0){
         const allNewAchievements = [...achievements, ...newAchievements];
@@ -204,6 +215,14 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
   
   useEffect(() => {
     if (user) {
+        // Load events from localStorage first
+        if (typeof window !== 'undefined') {
+            const savedEvents = localStorage.getItem('google_events');
+            if (savedEvents) {
+                setGoogleEventsState(JSON.parse(savedEvents));
+            }
+        }
+
         const db = getDatabase(firebaseApp);
         const userRef = ref(db, `users/${user.uid}`);
         
@@ -271,8 +290,9 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
         setShoppingLists([]);
         setSelectedListId(null);
         setGoogleEvents([]);
+        if(typeof window !== 'undefined') localStorage.removeItem('google_events');
     }
-}, [user, selectedListId]);
+}, [user, selectedListId, setGoogleEvents]);
 
   useEffect(() => {
     if (shoppingLists.length > 0 && !shoppingLists.find(l => l.id === selectedListId)) {

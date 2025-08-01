@@ -59,7 +59,7 @@ export default function CalendarPage() {
         result = await signInWithGoogle();
     } catch (e) {
         console.error("Error signing in with Google:", e);
-        if (e instanceof Error && (e as any).code === 'auth/popup-closed-by-user' || (e as any).code === 'auth/cancelled-popup-request') {
+        if (e instanceof Error && ((e as any).code === 'auth/popup-closed-by-user' || (e as any).code === 'auth/cancelled-popup-request')) {
           // Don't show an error toast if user simply closes the popup
         } else {
           if(showToast) toast({ variant: "destructive", title: "Erro de Login", description: "Não foi possível autenticar com o Google." });
@@ -170,7 +170,7 @@ export default function CalendarPage() {
   return (
     <Card className="bg-white/10 dark:bg-black/10 backdrop-blur-3xl border-white/20 dark:border-black/20 rounded-3xl shadow-2xl h-full">
         <CardContent className="p-4 sm:p-6 h-full flex flex-col">
-            <div className="flex items-center justify-between pb-4 sm:pb-6 border-b flex-wrap gap-2">
+            <div className="flex flex-wrap items-center justify-between gap-2 border-b pb-4 sm:pb-6">
                 <div>
                     <h1 className="text-2xl font-bold">Agenda</h1>
                     <p className="text-muted-foreground">Seus próximos compromissos.</p>
@@ -192,7 +192,7 @@ export default function CalendarPage() {
                     <div className="space-y-6">
                         {sortedGroupKeys.map(dateKey => (
                             <div key={dateKey}>
-                                <h2 className="font-semibold text-lg mb-3 capitalize text-primary">
+                                <h2 className="text-lg font-semibold capitalize text-primary mb-3">
                                     {getRelativeDate(parseISO(dateKey))}
                                 </h2>
                                 <div className="space-y-3 border-l-2 border-primary/20 pl-6">
@@ -202,7 +202,7 @@ export default function CalendarPage() {
                                         <div key={event.id} className="relative flex items-center gap-4 border p-3 rounded-lg hover:bg-muted/50 transition-colors">
                                              <div className="absolute -left-[35px] top-1/2 -translate-y-1/2 h-3 w-3 rounded-full bg-primary ring-4 ring-background"></div>
                                             <div className={cn(
-                                                "flex h-10 w-10 items-center justify-center rounded-lg text-lg shrink-0",
+                                                "flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-lg",
                                                 !event.isGoogleEvent && 'bg-purple-100 dark:bg-purple-900/50',
                                                 event.isGoogleEvent && 'bg-green-100 dark:bg-green-900/50'
                                             )}>
@@ -237,7 +237,7 @@ export default function CalendarPage() {
                         ))}
                     </div>
                 ) : (
-                    <div className="text-center text-muted-foreground py-16 flex flex-col items-center justify-center border-2 border-dashed rounded-lg h-full">
+                    <div className="flex h-full flex-col items-center justify-center rounded-lg border-2 border-dashed py-16 text-center text-muted-foreground">
                         <CalendarIcon className="h-12 w-12 mb-4" />
                         <h3 className="text-lg font-medium">Nenhum evento futuro.</h3>
                         <p className="text-sm">Adicione um novo evento ou sincronize com o Google.</p>
