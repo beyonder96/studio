@@ -31,7 +31,6 @@ type AddConstructionStageDialogProps = {
 };
 
 export function AddConstructionStageDialog({ isOpen, onClose, propertyId }: AddConstructionStageDialogProps) {
-  const { addConstructionStage } = useProperty();
 
   const {
     handleSubmit,
@@ -43,7 +42,7 @@ export function AddConstructionStageDialog({ isOpen, onClose, propertyId }: AddC
   });
 
   const onSubmit = (data: StageFormData) => {
-    addConstructionStage(propertyId, data);
+    // This functionality is deprecated.
     reset({ name: '' });
     onClose();
   };

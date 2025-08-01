@@ -20,12 +20,6 @@ export type PropertyShoppingItem = {
     price: number;
 }
 
-export type ConstructionStage = {
-    id: string;
-    name: string;
-    completed: boolean;
-};
-
 export type ConstructionPayment = {
     id: string;
     description: string;
@@ -35,7 +29,7 @@ export type ConstructionPayment = {
 };
 
 export type ConstructionProgress = {
-    stages?: ConstructionStage[];
+    progressPercentage?: number;
     payments?: ConstructionPayment[];
 };
 
@@ -69,10 +63,9 @@ type PropertyContextType = {
     addShoppingItem: (propertyId: string, item: Omit<PropertyShoppingItem, 'id'>) => void;
     updateShoppingItem: (propertyId: string, itemId: string, item: Omit<PropertyShoppingItem, 'id'>) => void;
     deleteShoppingItem: (propertyId: string, itemId: string) => void;
-    addConstructionStage: (propertyId: string, stage: Omit<ConstructionStage, 'id' | 'completed'>) => void;
-    toggleConstructionStage: (propertyId: string, stageId: string) => void;
     addConstructionPayment: (propertyId: string, payment: Omit<ConstructionPayment, 'id' | 'paid'>) => void;
     toggleConstructionPayment: (propertyId: string, paymentId: string) => void;
+    updateConstructionProgress: (propertyId: string, percentage: number) => void;
 };
 
 export const PropertyContext = createContext<PropertyContextType>({} as PropertyContextType);
@@ -120,10 +113,9 @@ export const PropertyProvider = ({ children }: { children: ReactNode }) => {
                     prop.shoppingItems = nestedToArray(prop.shoppingItems);
                     
                     if (prop.constructionProgress) {
-                        prop.constructionProgress.stages = nestedToArray(prop.constructionProgress.stages);
                         prop.constructionProgress.payments = nestedToArray(prop.constructionProgress.payments);
                     } else {
-                        prop.constructionProgress = { stages: [], payments: [] };
+                        prop.constructionProgress = { payments: [] };
                     }
                     
                     return prop;
@@ -143,7 +135,7 @@ export const PropertyProvider = ({ children }: { children: ReactNode }) => {
         if (newId) {
             let propertyData: any = {...property};
             if(property.type === 'construction') {
-                propertyData.constructionProgress = { stages: [], payments: [] };
+                propertyData.constructionProgress = { progressPercentage: 0, payments: [] };
             }
             set(child(propertiesRef, newId), propertyData)
                 .then(() => toast({ title: 'Imóvel Adicionado!', description: `"${property.name}" foi cadastrado com sucesso.` }))
@@ -201,25 +193,6 @@ export const PropertyProvider = ({ children }: { children: ReactNode }) => {
             .catch((err) => toast({ variant: 'destructive', title: 'Erro', description: err.message }));
     };
 
-    const addConstructionStage = (propertyId: string, stage: Omit<ConstructionStage, 'id' | 'completed'>) => {
-        if (!user) return;
-        const stagesRef = getDbRef(`properties/${propertyId}/constructionProgress/stages`);
-        const newStageId = push(stagesRef).key;
-        if (newStageId) {
-            set(child(stagesRef, newStageId), { ...stage, completed: false });
-        }
-    };
-
-    const toggleConstructionStage = (propertyId: string, stageId: string) => {
-        if (!user) return;
-        const property = properties.find(p => p.id === propertyId);
-        const stage = property?.constructionProgress?.stages?.find(s => s.id === stageId);
-        if (stage) {
-            const stageRef = getDbRef(`properties/${propertyId}/constructionProgress/stages/${stageId}`);
-            update(stageRef, { completed: !stage.completed });
-        }
-    };
-
     const addConstructionPayment = (propertyId: string, payment: Omit<ConstructionPayment, 'id' | 'paid'>) => {
         if (!user) return;
         const paymentsRef = getDbRef(`properties/${propertyId}/constructionProgress/payments`);
@@ -239,6 +212,14 @@ export const PropertyProvider = ({ children }: { children: ReactNode }) => {
         }
     };
 
+    const updateConstructionProgress = (propertyId: string, percentage: number) => {
+        if (!user) return;
+        const progressRef = getDbRef(`properties/${propertyId}/constructionProgress`);
+        update(progressRef, { progressPercentage: percentage })
+            .then(() => toast({ title: 'Progresso Atualizado!'}))
+            .catch((err) => toast({ variant: 'destructive', title: 'Erro', description: err.message }));
+    }
+
     const value = {
         properties,
         addProperty,
@@ -252,10 +233,9 @@ export const PropertyProvider = ({ children }: { children: ReactNode }) => {
         addShoppingItem,
         updateShoppingItem,
         deleteShoppingItem,
-        addConstructionStage,
-        toggleConstructionStage,
         addConstructionPayment,
         toggleConstructionPayment,
+        updateConstructionProgress,
     };
 
     return (

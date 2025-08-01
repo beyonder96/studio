@@ -9,29 +9,25 @@ import { Progress } from '@/components/ui/progress';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Property, useProperty } from '@/contexts/property-context';
-import { PlusCircle, HardHat, DollarSign, CheckCircle } from 'lucide-react';
-import { AddConstructionStageDialog } from './add-construction-stage-dialog';
+import { PlusCircle, HardHat, DollarSign, Edit } from 'lucide-react';
 import { AddConstructionPaymentDialog } from './add-construction-payment-dialog';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { FinanceContext } from '@/contexts/finance-context';
 import { useContext } from 'react';
+import { EditProgressDialog } from './edit-progress-dialog';
 
 
 export function ConstructionProgress({ property }: { property: Property }) {
     const { formatCurrency } = useContext(FinanceContext);
-    const { toggleConstructionStage, toggleConstructionPayment } = useProperty();
-    const [isStageDialogOpen, setIsStageDialogOpen] = useState(false);
+    const { toggleConstructionPayment } = useProperty();
     const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false);
+    const [isProgressDialogOpen, setIsProgressDialogOpen] = useState(false);
 
     const progress = useMemo(() => {
-        const stages = property.constructionProgress?.stages || [];
-        if (stages.length === 0) return 0;
-        const completed = stages.filter(s => s.completed).length;
-        return (completed / stages.length) * 100;
-    }, [property.constructionProgress?.stages]);
+        return property.constructionProgress?.progressPercentage || 0;
+    }, [property.constructionProgress?.progressPercentage]);
 
     const totalPaid = useMemo(() => {
         const payments = property.constructionProgress?.payments || [];
@@ -43,80 +39,54 @@ export function ConstructionProgress({ property }: { property: Property }) {
         return payments.reduce((sum, p) => sum + p.amount, 0);
     }, [property.constructionProgress?.payments]);
 
-    const stages = property.constructionProgress?.stages || [];
     const payments = property.constructionProgress?.payments || [];
 
     return (
         <>
             <Card className="bg-transparent md:col-span-2 lg:col-span-3">
                 <CardHeader>
-                    <CardTitle className="flex items-center gap-2"><HardHat /> Acompanhamento da Obra</CardTitle>
+                    <div className="flex items-center justify-between">
+                        <CardTitle className="flex items-center gap-2"><HardHat /> Acompanhamento da Obra</CardTitle>
+                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setIsProgressDialogOpen(true)}>
+                            <Edit className="h-4 w-4"/>
+                        </Button>
+                    </div>
                     <CardDescription>
                         Progresso: {Math.round(progress)}% concluído
                     </CardDescription>
                     <Progress value={progress} className="mt-2" />
                 </CardHeader>
                 <CardContent>
-                   <Tabs defaultValue="stages">
-                        <TabsList className="grid w-full grid-cols-2">
-                            <TabsTrigger value="stages">Fases da Obra</TabsTrigger>
-                            <TabsTrigger value="payments">Pagamentos</TabsTrigger>
-                        </TabsList>
-                        <TabsContent value="stages" className="mt-4">
-                            <div className="space-y-3 max-h-60 overflow-y-auto pr-2">
-                                {stages.length > 0 ? (
-                                    stages.map(stage => (
-                                        <div key={stage.id} className="flex items-center space-x-3 p-3 bg-background rounded-lg border">
-                                            <Checkbox 
-                                                id={`stage-${stage.id}`}
-                                                checked={stage.completed}
-                                                onCheckedChange={() => toggleConstructionStage(property.id, stage.id)}
-                                            />
-                                            <Label htmlFor={`stage-${stage.id}`} className={cn('flex-1', stage.completed && 'line-through text-muted-foreground')}>
-                                                {stage.name}
-                                            </Label>
-                                        </div>
-                                    ))
-                                ) : (
-                                    <p className="text-center text-muted-foreground pt-8">Nenhuma fase cadastrada.</p>
-                                )}
-                            </div>
-                            <Button variant="outline" size="sm" className="mt-4 w-full" onClick={() => setIsStageDialogOpen(true)}>
-                                <PlusCircle className="mr-2 h-4 w-4" /> Adicionar Fase
-                            </Button>
-                        </TabsContent>
-                        <TabsContent value="payments" className="mt-4">
-                            <div className="space-y-3 max-h-60 overflow-y-auto pr-2">
-                               {payments.length > 0 ? (
-                                    payments.sort((a,b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime()).map(payment => (
-                                        <div key={payment.id} className="flex items-center space-x-3 p-3 bg-background rounded-lg border">
-                                             <Checkbox 
-                                                id={`payment-${payment.id}`}
-                                                checked={payment.paid}
-                                                onCheckedChange={() => toggleConstructionPayment(property.id, payment.id)}
-                                            />
-                                            <div className="flex-1">
-                                                <Label htmlFor={`payment-${payment.id}`} className={cn('flex-1', payment.paid && 'line-through text-muted-foreground')}>
-                                                    {payment.description}
-                                                </Label>
-                                                <p className="text-xs text-muted-foreground">
-                                                    Vencimento: {format(parseISO(payment.dueDate), "dd/MM/yyyy", { locale: ptBR })}
-                                                </p>
-                                            </div>
-                                            <Badge variant={payment.paid ? 'default' : 'secondary'} className={cn(payment.paid && 'bg-green-600/80')}>
-                                                {formatCurrency(payment.amount)}
-                                            </Badge>
-                                        </div>
-                                    ))
-                                ) : (
-                                    <p className="text-center text-muted-foreground pt-8">Nenhum pagamento cadastrado.</p>
-                                )}
-                            </div>
-                             <Button variant="outline" size="sm" className="mt-4 w-full" onClick={() => setIsPaymentDialogOpen(true)}>
-                                <PlusCircle className="mr-2 h-4 w-4" /> Adicionar Pagamento
-                            </Button>
-                        </TabsContent>
-                   </Tabs>
+                   <h3 className="font-semibold mb-4 text-lg">Pagamentos</h3>
+                   <div className="space-y-3 max-h-60 overflow-y-auto pr-2">
+                       {payments.length > 0 ? (
+                            payments.sort((a,b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime()).map(payment => (
+                                <div key={payment.id} className="flex items-center space-x-3 p-3 bg-background rounded-lg border">
+                                     <Checkbox 
+                                        id={`payment-${payment.id}`}
+                                        checked={payment.paid}
+                                        onCheckedChange={() => toggleConstructionPayment(property.id, payment.id)}
+                                    />
+                                    <div className="flex-1">
+                                        <Label htmlFor={`payment-${payment.id}`} className={cn('flex-1', payment.paid && 'line-through text-muted-foreground')}>
+                                            {payment.description}
+                                        </Label>
+                                        <p className="text-xs text-muted-foreground">
+                                            Vencimento: {format(parseISO(payment.dueDate), "dd/MM/yyyy", { locale: ptBR })}
+                                        </p>
+                                    </div>
+                                    <Badge variant={payment.paid ? 'default' : 'secondary'} className={cn(payment.paid && 'bg-green-600/80')}>
+                                        {formatCurrency(payment.amount)}
+                                    </Badge>
+                                </div>
+                            ))
+                        ) : (
+                            <p className="text-center text-muted-foreground pt-8">Nenhum pagamento cadastrado.</p>
+                        )}
+                    </div>
+                     <Button variant="outline" size="sm" className="mt-4 w-full" onClick={() => setIsPaymentDialogOpen(true)}>
+                        <PlusCircle className="mr-2 h-4 w-4" /> Adicionar Pagamento
+                    </Button>
                 </CardContent>
                 <CardFooter className="flex justify-between items-center bg-muted/50 p-4 rounded-b-lg">
                     <div className="flex items-center gap-2">
@@ -132,15 +102,16 @@ export function ConstructionProgress({ property }: { property: Property }) {
                     </div>
                 </CardFooter>
             </Card>
-            <AddConstructionStageDialog
-                isOpen={isStageDialogOpen}
-                onClose={() => setIsStageDialogOpen(false)}
-                propertyId={property.id}
-            />
             <AddConstructionPaymentDialog
                 isOpen={isPaymentDialogOpen}
                 onClose={() => setIsPaymentDialogOpen(false)}
                 propertyId={property.id}
+            />
+            <EditProgressDialog
+                isOpen={isProgressDialogOpen}
+                onClose={() => setIsProgressDialogOpen(false)}
+                propertyId={property.id}
+                currentProgress={progress}
             />
         </>
     );
