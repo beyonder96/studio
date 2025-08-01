@@ -8,17 +8,27 @@ import { Plus, Cat } from 'lucide-react';
 import { AddPetDialog } from '@/components/pets/add-pet-dialog';
 import { PetProfileCard } from '@/components/pets/pet-profile-card';
 import { FinanceContext } from '@/contexts/finance-context';
-import type { Pet } from '@/contexts/finance-context';
+import type { Pet, HealthRecord } from '@/contexts/finance-context';
+import { AnimatePresence, motion } from 'framer-motion';
+import { PetHealthCard } from '@/components/pets/pet-health-card';
+import { AddHealthRecordDialog } from '@/components/pets/add-health-record-dialog';
 
 
 export default function PetsPage() {
-    const { pets, addPet, updatePet, deletePet } = useContext(FinanceContext);
-    const [isDialogOpen, setIsDialogOpen] = useState(false);
+    const { pets, addPet, updatePet, deletePet, addHealthRecord } = useContext(FinanceContext);
+    const [isPetDialogOpen, setIsPetDialogOpen] = useState(false);
+    const [isHealthDialogOpen, setIsHealthDialogOpen] = useState(false);
     const [editingPet, setEditingPet] = useState<Pet | null>(null);
+    const [selectedPetForHealth, setSelectedPetForHealth] = useState<Pet | null>(null);
 
-    const handleOpenDialog = (pet: Pet | null = null) => {
+    const handleOpenPetDialog = (pet: Pet | null = null) => {
         setEditingPet(pet);
-        setIsDialogOpen(true);
+        setIsPetDialogOpen(true);
+    };
+    
+    const handleOpenHealthDialog = (pet: Pet) => {
+        setSelectedPetForHealth(pet);
+        setIsHealthDialogOpen(true);
     };
 
     const handleSavePet = (data: Omit<Pet, 'id'>) => {
@@ -27,12 +37,19 @@ export default function PetsPage() {
         } else {
             addPet(data);
         }
-        setIsDialogOpen(false);
+        setIsPetDialogOpen(false);
     };
 
     const handleDeletePet = (id: string) => {
         // Implement confirmation dialog before deleting
         deletePet(id);
+    };
+    
+    const handleSaveHealthRecord = (record: Omit<HealthRecord, 'id'>) => {
+        if (selectedPetForHealth) {
+            addHealthRecord(selectedPetForHealth.id, record);
+        }
+        setIsHealthDialogOpen(false);
     }
 
     return (
@@ -44,7 +61,7 @@ export default function PetsPage() {
                             <CardTitle className="text-3xl font-bold">Nossos Pets</CardTitle>
                             <CardDescription>Acompanhe a saúde e os cuidados dos seus companheiros.</CardDescription>
                         </div>
-                        <Button onClick={() => handleOpenDialog()}>
+                        <Button onClick={() => handleOpenPetDialog()}>
                             <Plus className="mr-2 h-4 w-4" />
                             Adicionar Pet
                         </Button>
@@ -53,13 +70,26 @@ export default function PetsPage() {
                 <CardContent>
                     {pets.length > 0 ? (
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            {pets.map(pet => (
-                                <PetProfileCard 
-                                    key={pet.id} 
-                                    pet={pet}
-                                    onEdit={() => handleOpenDialog(pet)} 
-                                />
-                            ))}
+                            <AnimatePresence>
+                                {pets.map(pet => (
+                                    <motion.div
+                                        key={pet.id}
+                                        layout
+                                        initial={{ opacity: 0, y: 20 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        exit={{ opacity: 0, y: -20 }}
+                                    >
+                                        <PetProfileCard 
+                                            pet={pet}
+                                            onEdit={() => handleOpenPetDialog(pet)} 
+                                        />
+                                        <PetHealthCard
+                                            pet={pet}
+                                            onAddRecord={() => handleOpenHealthDialog(pet)}
+                                        />
+                                    </motion.div>
+                                ))}
+                            </AnimatePresence>
                         </div>
                     ) : (
                         <div className="text-center text-muted-foreground py-16 border-2 border-dashed rounded-lg">
@@ -71,11 +101,19 @@ export default function PetsPage() {
                 </CardContent>
             </Card>
             <AddPetDialog 
-                isOpen={isDialogOpen}
-                onClose={() => setIsDialogOpen(false)}
+                isOpen={isPetDialogOpen}
+                onClose={() => setIsPetDialogOpen(false)}
                 onSave={handleSavePet}
                 pet={editingPet}
             />
+            {selectedPetForHealth && (
+                 <AddHealthRecordDialog
+                    isOpen={isHealthDialogOpen}
+                    onClose={() => setIsHealthDialogOpen(false)}
+                    onSave={handleSaveHealthRecord}
+                    pet={selectedPetForHealth}
+                />
+            )}
         </>
     )
 }

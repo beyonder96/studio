@@ -67,6 +67,16 @@ export type ShoppingList = { id: string; name: string; items: ShoppingListItem[]
 export type Memory = { id: string; title: string; description: string; date: string; imageUrl?: string; };
 export type Achievement = { id: string; name: string; description: string; icon: string; };
 
+export type HealthRecordType = 'vaccine' | 'dewormer' | 'flea_tick' | 'consultation' | 'other';
+export type HealthRecord = {
+    id: string;
+    type: HealthRecordType;
+    date: string;
+    description: string;
+    notes?: string;
+    nextDueDate?: string;
+};
+
 export type Pet = {
     id: string;
     name: string;
@@ -75,7 +85,8 @@ export type Pet = {
     birthDate: string;
     imageUrl?: string;
     microchip?: string;
-}
+    healthRecords?: HealthRecord[];
+};
 
 
 const mapShoppingItemToPantryCategory = (itemName: string): PantryCategory => {
@@ -169,6 +180,7 @@ type FinanceContextType = {
   addPet: (pet: Omit<Pet, 'id'>) => void;
   updatePet: (id: string, pet: Partial<Omit<Pet, 'id'>>) => void;
   deletePet: (id: string) => void;
+  addHealthRecord: (petId: string, record: Omit<HealthRecord, 'id'>) => void;
 };
 
 export const FinanceContext = createContext<FinanceContextType>({} as FinanceContextType);
@@ -288,7 +300,7 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
                 setAppointments(transformData(data.appointments));
                 setMemories(transformData(data.memories));
                 setAchievements(data.achievements || []);
-                setPets(transformData(data.pets));
+                setPets(transformDataWithSubItems(data.pets, 'healthRecords'));
                 const dbShoppingLists: ShoppingList[] = transformDataWithSubItems(data.shoppingLists, 'items');
                 setShoppingLists(dbShoppingLists);
                 if (!selectedListId && dbShoppingLists.length > 0) {
@@ -1051,6 +1063,15 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
       if(!user) return;
       remove(getDbRef(`pets/${id}`));
   };
+   const addHealthRecord = (petId: string, record: Omit<HealthRecord, 'id'>) => {
+    if (!user) return;
+    const recordsRef = getDbRef(`pets/${petId}/healthRecords`);
+    const newRecordId = push(recordsRef).key;
+    if (newRecordId) {
+        set(child(recordsRef, newRecordId), record);
+    }
+  };
+
 
   const value = {
     transactions, addTransaction, updateTransaction, deleteTransaction, toggleTransactionPaid, deleteRecurringTransaction,
@@ -1075,7 +1096,7 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
     memories, addMemory,
     achievements,
     googleEvents, setGoogleEvents,
-    pets, addPet, updatePet, deletePet,
+    pets, addPet, updatePet, deletePet, addHealthRecord,
   };
 
   return (
