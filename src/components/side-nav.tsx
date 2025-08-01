@@ -69,7 +69,7 @@ export function SideNav() {
         <div className="fixed bottom-6 right-6 z-40 md:hidden">
             <button
             onClick={() => setIsOpen(!isOpen)}
-            className="bg-background/80 text-muted-foreground backdrop-blur-sm border border-border p-4 rounded-2xl shadow-lg transition-transform hover:scale-105 flex items-center justify-center"
+            className="bg-black/10 backdrop-blur-lg border-2 border-white/20 shadow-2xl text-white/80 p-4 rounded-[20px] transition-transform hover:scale-105 flex items-center justify-center"
             aria-label="Abrir navegação"
             >
                 <LayoutDashboard className="h-6 w-6" />
@@ -104,7 +104,7 @@ export function SideNav() {
         <div className="fixed bottom-6 right-6 z-40">
              <button
                 onClick={() => setIsOpen(!isOpen)}
-                className="bg-background/80 text-muted-foreground backdrop-blur-sm border border-border p-4 rounded-2xl shadow-lg transition-transform hover:scale-105 flex items-center justify-center"
+                className="bg-black/10 backdrop-blur-lg border-2 border-white/20 shadow-2xl text-white/80 p-4 rounded-[20px] transition-transform hover:scale-105 flex items-center justify-center"
                 aria-label="Abrir navegação"
             >
                 <LayoutDashboard className="h-6 w-6" />
