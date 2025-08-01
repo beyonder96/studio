@@ -6,7 +6,7 @@ import { useContext } from "react";
 import { FinanceContext, Account } from "@/contexts/finance-context";
 
 export function BalanceCard({ account }: { account: Account }) {
-  const { formatCurrency } = useContext(FinanceContext);
+  const { formatCurrency, isSensitiveDataVisible } = useContext(FinanceContext);
 
   return (
     <Card className="flex flex-col bg-transparent">
@@ -17,7 +17,7 @@ export function BalanceCard({ account }: { account: Account }) {
               {account.name}
             </CardTitle>
             <span className="text-3xl font-bold tracking-tight">
-              {formatCurrency(account.balance, false)}
+              {formatCurrency(account.balance, isSensitiveDataVisible)}
             </span>
           </div>
           <div className="rounded-full bg-secondary p-2">
