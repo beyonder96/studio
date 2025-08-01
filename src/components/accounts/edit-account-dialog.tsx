@@ -18,7 +18,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { CurrencyInput } from '@/components/finance/currency-input';
 import { useEffect } from 'react';
-import type { Account } from '@/contexts/finance-context';
+import type { Account, BankName } from '@/contexts/finance-context';
 import {
   Select,
   SelectContent,
@@ -32,6 +32,7 @@ const accountSchema = z.object({
   balance: z.coerce.number().min(0, 'O saldo inicial não pode ser negativo'),
   holder: z.string().min(1, 'O titular é obrigatório'),
   type: z.enum(['checking', 'savings']),
+  bankName: z.enum(['itau', 'bradesco', 'santander', 'bb', 'caixa', 'nubank', 'inter', 'other']).optional(),
 });
 
 export type AccountFormData = z.infer<typeof accountSchema>;
@@ -54,7 +55,7 @@ export function EditAccountDialog({ isOpen, onClose, onSave, item, coupleNames =
     formState: { errors },
   } = useForm<AccountFormData>({
     resolver: zodResolver(accountSchema),
-    defaultValues: { type: 'checking', name: '', balance: 0, holder: '' }
+    defaultValues: { type: 'checking', name: '', balance: 0, holder: '', bankName: 'other' }
   });
 
   useEffect(() => {
@@ -65,6 +66,7 @@ export function EditAccountDialog({ isOpen, onClose, onSave, item, coupleNames =
                 balance: item.balance,
                 holder: item.holder,
                 type: item.type === 'voucher' ? 'checking' : item.type, // default to checking if it's a voucher
+                bankName: item.bankName,
             });
         } else {
             reset({
@@ -72,6 +74,7 @@ export function EditAccountDialog({ isOpen, onClose, onSave, item, coupleNames =
                 name: '',
                 balance: 0,
                 holder: coupleNames[0] || '',
+                bankName: 'other',
             });
         }
     }
@@ -158,6 +161,31 @@ export function EditAccountDialog({ isOpen, onClose, onSave, item, coupleNames =
                         />
                          {errors.type && <p className="text-red-500 text-xs mt-1">{errors.type.message}</p>}
                     </div>
+                </div>
+
+                <div className="space-y-2">
+                    <Label htmlFor="bankName">Banco</Label>
+                     <Controller
+                        name="bankName"
+                        control={control}
+                        render={({ field }) => (
+                        <Select onValueChange={field.onChange as (value: BankName) => void} value={field.value}>
+                            <SelectTrigger id="bankName">
+                                <SelectValue placeholder="Selecione o banco" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="nubank">Nubank</SelectItem>
+                                <SelectItem value="inter">Banco Inter</SelectItem>
+                                <SelectItem value="itau">Itaú</SelectItem>
+                                <SelectItem value="bradesco">Bradesco</SelectItem>
+                                <SelectItem value="santander">Santander</SelectItem>
+                                <SelectItem value="bb">Banco do Brasil</SelectItem>
+                                <SelectItem value="caixa">Caixa</SelectItem>
+                                <SelectItem value="other">Outro</SelectItem>
+                            </SelectContent>
+                        </Select>
+                        )}
+                    />
                 </div>
             </div>
 

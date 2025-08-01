@@ -16,7 +16,7 @@ const initialTransactions: Transaction[] = [
     { id: '1', description: 'Salário', amount: 5000, date: format(new Date(), 'yyyy-MM-dd'), type: 'income', category: 'Salário', paid: true, isRecurring: true, frequency: 'monthly' },
     { id: '2', description: 'Aluguel', amount: -1500, date: format(new Date(), 'yyyy-MM-10'), type: 'expense', category: 'Moradia', paid: false, isRecurring: true, frequency: 'monthly' },
 ];
-const initialAccounts = [ { id: 'acc1', name: 'Conta Corrente', balance: 3500, type: 'checking' as const } ];
+const initialAccounts: Account[] = [ { id: 'acc1', name: 'Conta Corrente', balance: 3500, type: 'checking', holder: 'Pessoa 1', bankName: 'nubank' } ];
 const initialCards = [ { id: 'card1', name: 'Cartão de Crédito', limit: 5000, dueDay: 10, holder: 'Pessoa 1', brand: 'visa' as const } ];
 const initialIncomeCategories = ['Salário', 'Freelance', 'Investimentos', 'Outros'];
 const initialExpenseCategories = ['Alimentação', 'Moradia', 'Transporte', 'Lazer', 'Saúde', 'Educação', 'Compras', 'Transferência', 'Investimento', 'Outros', 'Pagamento de Fatura'];
@@ -39,13 +39,17 @@ const allAchievements: Achievement[] = [
 
 
 export type VoucherBrand = 'ticket' | 'vr' | 'alelo' | 'other';
+export type BankName = 'itau' | 'bradesco' | 'santander' | 'bb' | 'caixa' | 'nubank' | 'inter' | 'other';
+
 export type Account = { 
     id: string; 
     name: string; 
     balance: number; 
     type: 'checking' | 'savings' | 'voucher';
+    holder: string;
+    // Bank specific fields
+    bankName?: BankName;
     // Voucher specific fields
-    holder?: string;
     brand?: VoucherBrand;
     benefitDay?: number;
 }

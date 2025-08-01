@@ -7,7 +7,7 @@ import { Carousel, CarouselContent, CarouselItem, type CarouselApi } from '@/com
 import { FinanceContext, Account } from '@/contexts/finance-context';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
-import { PlusCircle, Info, Edit, Trash2, Banknote, Landmark } from 'lucide-react';
+import { PlusCircle, Edit, Trash2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/auth-context';
 import { EditAccountDialog } from '@/components/accounts/edit-account-dialog';
@@ -23,9 +23,10 @@ import {
 } from "@/components/ui/alert-dialog";
 import { getDatabase, ref, onValue } from 'firebase/database';
 import { app as firebaseApp } from '@/lib/firebase';
+import { BankLogo } from '@/components/accounts/bank-logo';
 
 const AccountDisplayCard = ({ account }: { account: Account }) => {
-  const { formatCurrency } = useContext(FinanceContext);
+  const { formatCurrency, isSensitiveDataVisible } = useContext(FinanceContext);
   return (
     <div className="relative w-full aspect-[1.586] rounded-xl bg-black/20 dark:bg-white/20 backdrop-blur-lg shadow-2xl p-6 text-white overflow-hidden">
       <div className="absolute top-0 left-0 w-48 h-48 bg-blue-500/30 rounded-full -translate-x-1/2 -translate-y-1/4"></div>
@@ -36,8 +37,8 @@ const AccountDisplayCard = ({ account }: { account: Account }) => {
           <h3 className="text-sm uppercase">{account.holder}</h3>
         </div>
         <div className="flex justify-between items-end">
-          <p className="text-3xl font-semibold">{formatCurrency(account.balance)}</p>
-          <Landmark className="h-8 w-8" />
+          <p className="text-3xl font-semibold">{formatCurrency(account.balance, isSensitiveDataVisible)}</p>
+          <BankLogo bankName={account.bankName} className="h-8 w-8" />
         </div>
       </div>
     </div>
@@ -124,7 +125,7 @@ export default function AccountsPage() {
       return (
         <Card className="bg-white/10 dark:bg-black/10 backdrop-blur-3xl border-white/20 dark:border-black/20 rounded-3xl shadow-2xl h-full">
             <CardContent className="p-4 sm:p-6 h-full flex flex-col items-center justify-center text-center">
-                <Banknote className="h-12 w-12 mb-4 text-primary"/>
+                 <BankLogo bankName="other" className="h-12 w-12 mb-4 text-primary" />
                 <h2 className="text-2xl font-bold">Nenhuma Conta Bancária</h2>
                 <p className="text-muted-foreground mt-2">Adicione sua primeira conta para começar.</p>
                 <Button className="mt-6" onClick={() => setIsAccountDialogOpen(true)}>
