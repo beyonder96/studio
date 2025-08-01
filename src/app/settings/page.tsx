@@ -150,7 +150,7 @@ export default function SettingsPage() {
                             className="whitespace-normal h-auto w-full sm:w-auto text-left justify-start sm:justify-center"
                         >
                             <Bell className="mr-2 h-4 w-4 shrink-0" />
-                            <span>{permission === 'denied' ? 'Permissão negada nas configurações do navegador' : 'Ativar Notificações'}</span>
+                            <span>{permission === 'denied' ? 'Habilitar nas configurações' : 'Ativar Notificações'}</span>
                         </Button>
                         )}
                     </CardContent>
