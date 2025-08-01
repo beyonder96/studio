@@ -22,6 +22,7 @@ import {
   CreditCard,
   Home as HomeIcon,
   Landmark,
+  Cat,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
@@ -39,6 +40,7 @@ const navItems = [
   { href: '/accounts', icon: Landmark, label: 'Contas' },
   { href: '/cards', icon: CreditCard, label: 'Cartões & Vales' },
   { href: '/home', icon: HomeIcon, label: 'Imóveis' },
+  { href: '/pets', icon: Cat, label: 'Pets' },
   { href: '/goals', icon: Target, label: 'Metas' },
   { href: '/wishes', icon: Gift, label: 'Desejos' },
   { href: '/purchases', icon: ShoppingBasket, label: 'Compras' },
