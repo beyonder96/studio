@@ -59,8 +59,7 @@ type EditAccountCardDialogProps = {
 
 export function EditAccountCardDialog({ isOpen, onClose, onSave, item, allowedTypes = ['account', 'card'], coupleNames = [] }: EditAccountCardDialogProps) {
   const isEditing = !!item;
-  const initialTab = item ? ('balance' in item ? 'account' : 'card') : allowedTypes[0];
-  const [activeTab, setActiveTab] = useState<'account' | 'card'>(initialTab);
+  const [currentTab, setCurrentTab] = useState<'account' | 'card'>(allowedTypes[0]);
   
   const {
     register,
@@ -72,16 +71,14 @@ export function EditAccountCardDialog({ isOpen, onClose, onSave, item, allowedTy
   } = useForm<AccountCardFormData>({
     resolver: zodResolver(formSchema),
     // Set default values based on the initial tab to avoid validation errors on mount
-    defaultValues: initialTab === 'account' 
-      ? { type: 'account', name: '', balance: 0, accountType: 'checking' } 
-      : { type: 'card', name: '', limit: 1000, dueDay: 10, holder: '', brand: 'visa' },
+    defaultValues: { type: 'account', name: '', balance: 0, accountType: 'checking' }
   });
 
   useEffect(() => {
     if (isOpen) {
-        const tab = item ? ('balance' in item ? 'account' : 'card') : allowedTypes[0];
-        setActiveTab(tab);
-        setValue('type', tab); // Ensure form type is in sync with tab
+        const tab = item ? ('balance' in item ? 'account' : 'card') : (currentTab || allowedTypes[0]);
+        setCurrentTab(tab);
+        setValue('type', tab);
 
         if (item) { // Editing
             if ('balance' in item) {
@@ -97,12 +94,12 @@ export function EditAccountCardDialog({ isOpen, onClose, onSave, item, allowedTy
              }
         }
     }
-  }, [isOpen, item, reset, setValue, allowedTypes, coupleNames]);
+  }, [isOpen, item, reset, setValue, allowedTypes, coupleNames, currentTab]);
   
   const handleTabChange = (value: string) => {
     const newTab = value as 'account' | 'card';
-    setActiveTab(newTab);
-    setValue('type', newTab); // Update the form's type field
+    setCurrentTab(newTab);
+    setValue('type', newTab); 
   }
 
   const onSubmit = (data: AccountCardFormData) => {
@@ -110,6 +107,8 @@ export function EditAccountCardDialog({ isOpen, onClose, onSave, item, allowedTy
   };
   
   const showTabs = allowedTypes.length > 1 && !isEditing;
+  const displayTab = isEditing ? (item && 'balance' in item ? 'account' : 'card') : currentTab;
+
 
   const AccountForm = (
     <div className="space-y-4 pt-4">
@@ -242,14 +241,14 @@ export function EditAccountCardDialog({ isOpen, onClose, onSave, item, allowedTy
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>{isEditing ? (initialTab === 'account' ? 'Editar Conta' : 'Editar Cartão') : 'Adicionar'}</DialogTitle>
+          <DialogTitle>{isEditing ? (displayTab === 'account' ? 'Editar Conta' : 'Editar Cartão') : 'Adicionar'}</DialogTitle>
            <DialogDescription>
             {isEditing ? 'Atualize as informações abaixo.' : 'Selecione o tipo e preencha as informações.'}
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit(onSubmit)}>
             {showTabs ? (
-                <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
+                <Tabs value={currentTab} onValueChange={handleTabChange} className="w-full">
                     <TabsList className="grid w-full grid-cols-2">
                         {allowedTypes.includes('account') && <TabsTrigger value="account">Conta/Vale</TabsTrigger>}
                         {allowedTypes.includes('card') && <TabsTrigger value="card">Cartão de Crédito</TabsTrigger>}
@@ -262,7 +261,7 @@ export function EditAccountCardDialog({ isOpen, onClose, onSave, item, allowedTy
                     </TabsContent>
                 </Tabs>
             ) : (
-                 activeTab === 'account' ? AccountForm : CardForm
+                 displayTab === 'account' ? AccountForm : CardForm
             )}
 
           <DialogFooter className="pt-6">
