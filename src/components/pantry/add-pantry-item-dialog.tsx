@@ -84,7 +84,7 @@ export function AddPantryItemDialog({ isOpen, onClose, onSave, categories }: Add
               {errors.name && <p className="text-red-500 text-xs mt-1">{errors.name.message}</p>}
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="quantity">Quantidade</Label>
                 <Input id="quantity" type="number" {...register('quantity')} min="1" />

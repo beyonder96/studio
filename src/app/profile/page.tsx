@@ -285,7 +285,7 @@ export default function ProfilePage() {
           <form onSubmit={handleFormSubmit}>
             <div className="flex flex-col bg-transparent">
             {/* Profile Header */}
-            <div className="relative w-full h-[45vh] text-white">
+            <div className="relative w-full h-[35vh] sm:h-[45vh] text-white">
                 <Image
                 src={profileData.profileImage || defaultProfileImage}
                 alt="Foto do casal"

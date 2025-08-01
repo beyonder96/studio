@@ -209,17 +209,15 @@ export function AddTransactionDialog({
           <DialogTitle>{isEditing ? 'Editar Transação' : 'Adicionar Transação'}</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit(onSubmit)}>
-          <div className="grid gap-4 py-4">
-             <div className="grid grid-cols-1 md:grid-cols-4 items-center gap-4">
-                <Label htmlFor="type" className="md:text-right">
-                    Tipo
-                </Label>
+          <div className="space-y-4 py-4">
+             <div className="space-y-2">
+                <Label htmlFor="type">Tipo</Label>
                 <Controller
                     name="type"
                     control={control}
                     render={({ field }) => (
                         <Select onValueChange={field.onChange} value={field.value} disabled={isEditing}>
-                            <SelectTrigger className="md:col-span-3">
+                            <SelectTrigger>
                                 <SelectValue placeholder="Selecione o tipo" />
                             </SelectTrigger>
                             <SelectContent>
@@ -232,51 +230,42 @@ export function AddTransactionDialog({
                 />
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-4 items-center gap-4">
-              <Label htmlFor="amount" className="md:text-right">
-                Valor
-              </Label>
+            <div className="space-y-2">
+              <Label htmlFor="amount">Valor</Label>
                <Controller
                 name="amount"
                 control={control}
                 render={({ field }) => (
                   <CurrencyInput
-                    className="md:col-span-3"
                     value={field.value}
                     onValueChange={(value) => setValue('amount', value || 0)}
                   />
                 )}
               />
-               {errors.amount && <p className="md:col-span-4 text-red-500 text-xs md:text-right">{errors.amount.message}</p>}
+               {errors.amount && <p className="text-red-500 text-xs mt-1">{errors.amount.message}</p>}
             </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-4 items-center gap-4">
-              <Label htmlFor="date" className="md:text-right">
-                Data
-              </Label>
-              <Input id="date" type="date" {...register('date')} className="md:col-span-3" />
-               {errors.date && <p className="md:col-span-4 text-red-500 text-xs md:text-right">{errors.date.message}</p>}
+            <div className="space-y-2">
+              <Label htmlFor="date">Data</Label>
+              <Input id="date" type="date" {...register('date')} />
+               {errors.date && <p className="text-red-500 text-xs mt-1">{errors.date.message}</p>}
             </div>
             
             {(transactionType === 'income' || transactionType === 'expense') && (
               <>
-                <div className="grid grid-cols-1 md:grid-cols-4 items-center gap-4">
-                    <Label htmlFor="description" className="md:text-right">
-                        Descrição
-                    </Label>
-                    <Input id="description" {...register('description')} className="md:col-span-3" />
-                    {errors.description && <p className="md:col-span-4 text-red-500 text-xs md:text-right">{errors.description.message}</p>}
+                <div className="space-y-2">
+                    <Label htmlFor="description">Descrição</Label>
+                    <Input id="description" {...register('description')} />
+                    {errors.description && <p className="text-red-500 text-xs mt-1">{errors.description.message}</p>}
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-4 items-center gap-4">
-                    <Label htmlFor="category" className="md:text-right">
-                        Categoria
-                    </Label>
+                <div className="space-y-2">
+                    <Label htmlFor="category">Categoria</Label>
                     <Controller
                         name="category"
                         control={control}
                         render={({ field }) => (
                             <Select onValueChange={field.onChange} value={field.value}>
-                                <SelectTrigger className="md:col-span-3">
+                                <SelectTrigger>
                                     <SelectValue placeholder="Selecione uma categoria" />
                                 </SelectTrigger>
                                 <SelectContent>
@@ -287,109 +276,92 @@ export function AddTransactionDialog({
                             </Select>
                         )}
                     />
-                    {errors.category && <p className="md:col-span-4 text-red-500 text-xs md:text-right">{errors.category.message}</p>}
+                    {errors.category && <p className="text-red-500 text-xs mt-1">{errors.category.message}</p>}
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-4 items-center gap-4 relative">
-                    <Label htmlFor="account" className="md:text-right">
-                        Conta/Cartão
-                    </Label>
-                    <div className="md:col-span-3">
-                         <Controller
-                            name="account"
-                            control={control}
-                            render={({ field }) => (
-                                <Select onValueChange={field.onChange} value={field.value}>
-                                    <SelectTrigger>
-                                        <SelectValue placeholder="Selecione uma conta ou cartão" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {combinedAccounts.map(acc => (
-                                            <SelectItem key={acc.id} value={acc.name}>{acc.name}</SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                            )}
-                        />
-                        {errors.account && <p className="text-red-500 text-xs text-right mt-1">{errors.account.message}</p>}
-
-                         {isCreditCard && selectedAccount.limit !== undefined && (
-                            <div className="text-xs text-muted-foreground mt-1 text-right">
-                                Limite: {formatCurrency(selectedAccount.limit)}
-                                {remainingLimit !== null && (
-                                    <span className="text-blue-500"> | Restante: {formatCurrency(remainingLimit)}</span>
-                                )}
-                            </div>
+                <div className="space-y-2">
+                    <Label htmlFor="account">Conta/Cartão</Label>
+                     <Controller
+                        name="account"
+                        control={control}
+                        render={({ field }) => (
+                            <Select onValueChange={field.onChange} value={field.value}>
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Selecione uma conta ou cartão" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {combinedAccounts.map(acc => (
+                                        <SelectItem key={acc.id} value={acc.name}>{acc.name}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
                         )}
-                    </div>
-                   
+                    />
+                    {errors.account && <p className="text-red-500 text-xs mt-1">{errors.account.message}</p>}
+                     {isCreditCard && selectedAccount.limit !== undefined && (
+                        <div className="text-xs text-muted-foreground mt-1 text-right">
+                            Limite: {formatCurrency(selectedAccount.limit)}
+                            {remainingLimit !== null && (
+                                <span className="text-blue-500"> | Restante: {formatCurrency(remainingLimit)}</span>
+                            )}
+                        </div>
+                    )}
                 </div>
                 
                  {isCreditCard && transactionType === 'expense' && !isEditing && (
-                   <div className="grid grid-cols-1 md:grid-cols-4 items-center gap-4">
-                        <Label htmlFor="installments" className="md:text-right">
-                           Parcelas
-                        </Label>
-                        <div className="md:col-span-3">
+                   <div className="space-y-2">
+                        <Label htmlFor="installments">Parcelas</Label>
                            <Input id="installments" type="number" {...register('installments')} min="1" />
                            {installmentValue !== null && (
                                 <p className="text-xs text-muted-foreground mt-1 text-right">
                                     {installments}x de {formatCurrency(installmentValue)}
                                 </p>
                            )}
-                        </div>
                    </div>
                  )}
 
-                 <div className="grid grid-cols-1 md:grid-cols-4 items-center gap-4">
-                    <Label htmlFor="paid" className="md:text-right">
+                <div className="flex items-center justify-between">
+                    <Label htmlFor="paid" className="cursor-pointer">
                         {transactionType === 'income' ? 'Recebido' : 'Pago'}
                     </Label>
-                     <div className="md:col-span-3 flex items-center">
-                        <Controller
-                            name="paid"
-                            control={control}
-                            render={({ field }) => (
-                            <Switch
-                                    id="paid"
-                                    checked={field.value}
-                                    onCheckedChange={field.onChange}
-                                />
-                            )}
-                        />
-                    </div>
+                    <Controller
+                        name="paid"
+                        control={control}
+                        render={({ field }) => (
+                        <Switch
+                                id="paid"
+                                checked={field.value}
+                                onCheckedChange={field.onChange}
+                            />
+                        )}
+                    />
                 </div>
 
-
-                <div className="grid grid-cols-1 md:grid-cols-4 items-center gap-4">
-                    <Label htmlFor="isRecurring" className="md:text-right">
+                <div className="flex items-center justify-between">
+                    <Label htmlFor="isRecurring" className="cursor-pointer">
                         Recorrente
                     </Label>
-                     <div className="md:col-span-3 flex items-center">
-                        <Controller
-                            name="isRecurring"
-                            control={control}
-                            render={({ field }) => (
-                            <Switch
-                                    id="isRecurring"
-                                    checked={field.value}
-                                    onCheckedChange={field.onChange}
-                                    disabled={isEditing || (installments || 1) > 1}
-                                />
-                            )}
-                        />
-                    </div>
+                    <Controller
+                        name="isRecurring"
+                        control={control}
+                        render={({ field }) => (
+                        <Switch
+                                id="isRecurring"
+                                checked={field.value}
+                                onCheckedChange={field.onChange}
+                                disabled={isEditing || (installments || 1) > 1}
+                            />
+                        )}
+                    />
                 </div>
                 {isRecurring && !isEditing && (
-                    <div className="grid grid-cols-1 md:grid-cols-4 items-center gap-4">
-                        <Label htmlFor="frequency" className="md:text-right">
-                            Frequência
-                        </Label>
+                    <div className="space-y-2">
+                        <Label htmlFor="frequency">Frequência</Label>
                          <Controller
                             name="frequency"
                             control={control}
                             render={({ field }) => (
                                 <Select onValueChange={field.onChange} value={field.value}>
-                                    <SelectTrigger className="md:col-span-3">
+                                    <SelectTrigger>
                                         <SelectValue placeholder="Selecione a frequência" />
                                     </SelectTrigger>
                                     <SelectContent>
@@ -408,16 +380,14 @@ export function AddTransactionDialog({
 
             {transactionType === 'transfer' && (
               <>
-                <div className="grid grid-cols-1 md:grid-cols-4 items-center gap-4">
-                    <Label htmlFor="fromAccount" className="md:text-right">
-                        Da Conta
-                    </Label>
+                <div className="space-y-2">
+                    <Label htmlFor="fromAccount">Da Conta</Label>
                     <Controller
                         name="fromAccount"
                         control={control}
                         render={({ field }) => (
                             <Select onValueChange={field.onChange} value={field.value}>
-                                <SelectTrigger className="md:col-span-3">
+                                <SelectTrigger>
                                     <SelectValue placeholder="Selecione a conta de origem" />
                                 </SelectTrigger>
                                 <SelectContent>
@@ -428,18 +398,16 @@ export function AddTransactionDialog({
                             </Select>
                         )}
                     />
-                    {errors.fromAccount && <p className="md:col-span-4 text-red-500 text-xs md:text-right">{errors.fromAccount.message}</p>}
+                    {errors.fromAccount && <p className="text-red-500 text-xs mt-1">{errors.fromAccount.message}</p>}
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-4 items-center gap-4">
-                    <Label htmlFor="toAccount" className="md:text-right">
-                        Para Conta
-                    </Label>
+                <div className="space-y-2">
+                    <Label htmlFor="toAccount">Para Conta</Label>
                     <Controller
                         name="toAccount"
                         control={control}
                         render={({ field }) => (
                             <Select onValueChange={field.onChange} value={field.value}>
-                                <SelectTrigger className="md:col-span-3">
+                                <SelectTrigger>
                                     <SelectValue placeholder="Selecione a conta de destino" />
                                 </SelectTrigger>
                                 <SelectContent>
@@ -450,7 +418,7 @@ export function AddTransactionDialog({
                             </Select>
                         )}
                     />
-                    {errors.toAccount && <p className="md:col-span-4 text-red-500 text-xs md:text-right">{errors.toAccount.message}</p>}
+                    {errors.toAccount && <p className="text-red-500 text-xs mt-1">{errors.toAccount.message}</p>}
                 </div>
               </>
             )}

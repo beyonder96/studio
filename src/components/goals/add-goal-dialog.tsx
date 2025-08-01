@@ -86,7 +86,7 @@ export function AddGoalDialog({ isOpen, onClose, onSave, goal }: AddGoalDialogPr
               {errors.name && <p className="text-red-500 text-xs">{errors.name.message}</p>}
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
                 <Label htmlFor="currentAmount">Valor Atual</Label>
                 <Controller

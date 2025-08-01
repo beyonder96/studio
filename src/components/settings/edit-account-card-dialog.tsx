@@ -119,7 +119,7 @@ export function EditAccountCardDialog({ isOpen, onClose, onSave, item, allowedTy
             <Input id="account-name" {...register('name')} placeholder="Ex: Conta Corrente, Vale Refeição" />
             {errors.type === 'account' && errors.name && <p className="text-red-500 text-xs mt-1">{errors.name.message}</p>}
         </div>
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
                 <Label htmlFor="balance">{isEditing ? "Saldo Atual" : "Saldo Inicial"}</Label>
                 <Controller
@@ -168,7 +168,7 @@ export function EditAccountCardDialog({ isOpen, onClose, onSave, item, allowedTy
             {errors.type === 'card' && errors.name && <p className="text-red-500 text-xs mt-1">{errors.name.message}</p>}
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
                 <Label htmlFor="holder">Titular</Label>
                 <Controller
@@ -212,7 +212,7 @@ export function EditAccountCardDialog({ isOpen, onClose, onSave, item, allowedTy
             </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
                 <Label htmlFor="limit">Limite</Label>
                  <Controller
