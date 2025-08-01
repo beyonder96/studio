@@ -418,7 +418,15 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
         }
     }
     
-    updates[`transactions/${id}`] = { ...originalTransaction, ...updatedTransaction };
+    const finalUpdate = { ...originalTransaction, ...updatedTransaction };
+    // Ensure undefined values are not sent to Firebase
+    Object.keys(finalUpdate).forEach(key => {
+        if (finalUpdate[key as keyof typeof finalUpdate] === undefined) {
+            delete finalUpdate[key as keyof typeof finalUpdate];
+        }
+    });
+
+    updates[`transactions/${id}`] = finalUpdate;
     update(getDbRef(''), updates);
   };
   

@@ -126,6 +126,7 @@ export function AddTransactionDialog({
             date: transaction.date || defaultDate,
             amount: Math.abs(transaction.amount), // Form expects positive number
             installments: transaction.totalInstallments || 1,
+            linkedGoalId: transaction.linkedGoalId || '',
           });
       } else {
          reset({
@@ -192,6 +193,10 @@ export function AddTransactionDialog({
         }
     } else {
         finalData.description = `Transferência de ${data.fromAccount} para ${data.toAccount}`;
+    }
+
+    if (finalData.linkedGoalId === '' || finalData.linkedGoalId === 'none') {
+        delete finalData.linkedGoalId;
     }
 
     onSaveTransaction(finalData, finalInstallments);
@@ -328,7 +333,7 @@ export function AddTransactionDialog({
                             control={control}
                             render={({ field }) => (
                                 <Select
-                                    onValueChange={(value) => field.onChange(value === 'none' ? undefined : value)}
+                                    onValueChange={field.onChange}
                                     value={field.value || 'none'}
                                 >
                                     <SelectTrigger>
