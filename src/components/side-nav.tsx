@@ -66,7 +66,7 @@ export function SideNav() {
   const NavButton = () => (
      <button
         onClick={() => setIsOpen(!isOpen)}
-        className="bg-black/10 backdrop-blur-lg border-2 border-white/20 shadow-2xl text-white/80 p-4 rounded-[20px] transition-transform hover:scale-105 flex items-center justify-center"
+        className="bg-black/5 backdrop-blur-lg border border-white/10 shadow-lg text-white/80 p-4 rounded-[20px] transition-transform hover:scale-105 flex items-center justify-center"
         aria-label="Abrir navegação"
     >
         <LayoutDashboard className="h-6 w-6" />
@@ -92,10 +92,10 @@ export function SideNav() {
                     <TooltipTrigger asChild>
                         <Link href="/">
                             <button
-                                className="bg-background/80 backdrop-blur-sm border border-border p-3 rounded-2xl shadow-lg transition-transform hover:scale-105"
+                                className="bg-black/5 backdrop-blur-lg border border-white/10 shadow-lg text-white/80 p-3 rounded-2xl transition-transform hover:scale-105"
                                 aria-label="Voltar para o Painel"
                             >
-                                <Home className="h-5 w-5 text-muted-foreground" />
+                                <Home className="h-5 w-5" />
                             </button>
                         </Link>
                     </TooltipTrigger>
