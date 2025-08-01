@@ -84,7 +84,8 @@ export default function CardsPage() {
     updateAccount,
     deleteAccount,
     handlePayCardBill,
-    formatCurrency
+    formatCurrency,
+    toggleTransactionPaid
  } = useContext(FinanceContext);
   const router = useRouter();
   const { user } = useAuth();
@@ -96,6 +97,7 @@ export default function CardsPage() {
   const [cardToPay, setCardToPay] = useState<CardType | null>(null);
   const [editingItem, setEditingItem] = useState<Account | CardType | null>(null);
   const [itemToDelete, setItemToDelete] = useState<DisplayableItem | null>(null);
+  const [transactionToDelete, setTransactionToDelete] = useState<Transaction | null>(null);
   const [coupleNames, setCoupleNames] = useState<string[]>([]);
   
   const vouchers = useMemo(() => accounts.filter(acc => acc.type === 'voucher'), [accounts]);
@@ -140,12 +142,11 @@ export default function CardsPage() {
 
   const selectedItem = useMemo(() => displayableItems[currentItemIndex], [displayableItems, currentItemIndex]);
   const isSelectedCard = selectedItem && 'limit' in selectedItem;
-  const isSelectedVoucher = selectedItem && 'balance' in selectedItem;
 
-  const cardTransactions = useMemo(() => {
-    if (!selectedItem || !isSelectedCard) return [];
+  const itemTransactions = useMemo(() => {
+    if (!selectedItem) return [];
     return transactions.filter(t => t.account === selectedItem.name);
-  }, [selectedItem, transactions, isSelectedCard]);
+  }, [selectedItem, transactions]);
   
   const handleEditTransaction = (transaction: Transaction) => {
     router.push(`/finance?edit=${transaction.id}`);
@@ -165,11 +166,8 @@ export default function CardsPage() {
   
   const cardInfo = (selectedItem && isSelectedCard) ? getCardInfo(selectedItem.dueDay) : null;
 
-  const openAddDialog = (type: 'card' | 'account') => {
-    const newItem = type === 'card' 
-        ? { type: 'card', name: '', limit: 1000, dueDay: 10, holder: coupleNames[0] || '', brand: 'visa' as const }
-        : { type: 'account', name: '', balance: 0, accountType: 'voucher' as const };
-    setEditingItem(newItem as any);
+  const openAddDialog = () => {
+    setEditingItem(null);
     setIsAccountCardDialogOpen(true);
   }
 
@@ -184,16 +182,20 @@ export default function CardsPage() {
   }
 
   const handleDeleteConfirm = () => {
-    if (!itemToDelete) return;
-    if ('balance' in itemToDelete) { // It's an Account (Voucher)
-        deleteAccount(itemToDelete.id);
-    } else { // It's a Card
-        deleteCard(itemToDelete.id);
+    if (transactionToDelete) {
+        deleteTransaction(transactionToDelete.id);
+        setTransactionToDelete(null);
+    } else if (itemToDelete) {
+        if ('balance' in itemToDelete) { 
+            deleteAccount(itemToDelete.id);
+        } else {
+            deleteCard(itemToDelete.id);
+        }
+        setItemToDelete(null);
     }
-    setItemToDelete(null);
   };
   
-  const handleSaveAccountCard = (data: any) => { // Using `any` due to discriminated union complexity
+  const handleSaveAccountCard = (data: any) => { 
     if (data.type === 'card') {
       const cardData = { name: data.name, limit: data.limit, dueDay: data.dueDay, holder: data.holder, brand: data.brand };
       if (editingItem && 'limit' in editingItem) {
@@ -275,14 +277,13 @@ export default function CardsPage() {
                         <div className="flex justify-between items-start">
                             <div>
                                 <CardTitle>{selectedItem.name}</CardTitle>
-                                {isSelectedCard && (
+                                {isSelectedCard ? (
                                     <CardDescription>
                                         Limite de {formatCurrency(selectedItem.limit)}
                                     </CardDescription>
-                                )}
-                                 {isSelectedVoucher && (
+                                ) : (
                                     <CardDescription>
-                                       {selectedItem.brand ? <VoucherBrandLogo brand={selectedItem.brand} className="h-6"/> : 'Vale'}
+                                       {(selectedItem as Account).brand ? <VoucherBrandLogo brand={(selectedItem as Account).brand} className="h-6"/> : 'Vale'}
                                     </CardDescription>
                                 )}
                             </div>
@@ -298,7 +299,6 @@ export default function CardsPage() {
                     </CardHeader>
                     <CardContent className="space-y-6">
                         {isSelectedCard && (
-                          <>
                             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-center">
                                 <Card className="bg-transparent p-4">
                                     <CalendarClock className="h-8 w-8 mx-auto text-primary mb-2"/>
@@ -315,27 +315,17 @@ export default function CardsPage() {
                                     Pagar Fatura
                                 </Button>
                             </div>
-
-                            <div>
-                                <h3 className="text-lg font-semibold mb-4">Transações do Cartão</h3>
-                                <TransactionsTable 
-                                    transactions={cardTransactions}
-                                    onEdit={handleEditTransaction}
-                                    onDeleteRequest={(t) => setItemToDelete(t)}
-                                    onTogglePaid={() => {}}
-                                />
-                            </div>
-                           </>
                         )}
-                        {isSelectedVoucher && (
-                             <div className="text-center p-4">
-                               <p className="text-muted-foreground">Saldo disponível</p>
-                               <p className="text-4xl font-bold">{formatCurrency(selectedItem.balance)}</p>
-                               {selectedItem.benefitDay && (
-                                 <p className="text-sm text-muted-foreground mt-2">Benefício cai todo dia {selectedItem.benefitDay}</p>
-                               )}
-                             </div>
-                        )}
+                        
+                        <div>
+                            <h3 className="text-lg font-semibold mb-4">Transações</h3>
+                            <TransactionsTable 
+                                transactions={itemTransactions}
+                                onEdit={handleEditTransaction}
+                                onDeleteRequest={(t) => setTransactionToDelete(t)}
+                                onTogglePaid={toggleTransactionPaid}
+                            />
+                        </div>
                     </CardContent>
                 </Card>
             </motion.div>
@@ -359,19 +349,19 @@ export default function CardsPage() {
             card={cardToPay}
         />
        )}
-      <AlertDialog open={!!itemToDelete} onOpenChange={(open) => !open && setItemToDelete(null)}>
+      <AlertDialog open={!!itemToDelete || !!transactionToDelete} onOpenChange={(open) => !open && (setItemToDelete(null), setTransactionToDelete(null))}>
         <AlertDialogContent>
             <AlertDialogHeader>
                 <AlertDialogTitle>Excluir item?</AlertDialogTitle>
                 <AlertDialogDescription>
-                    Tem certeza que deseja excluir "{itemToDelete?.name}"? 
+                    Tem certeza que deseja excluir "{(itemToDelete || transactionToDelete)?.name || (transactionToDelete as Transaction)?.description}"? 
                     {itemToDelete && 'limit' in itemToDelete && " Todas as transações associadas também serão excluídas."}
                     <br/><br/>
                     Esta ação não pode ser desfeita.
                 </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
-                <AlertDialogCancel onClick={() => setItemToDelete(null)}>Cancelar</AlertDialogCancel>
+                <AlertDialogCancel onClick={() => (setItemToDelete(null), setTransactionToDelete(null))}>Cancelar</AlertDialogCancel>
                 <AlertDialogAction onClick={handleDeleteConfirm} className="bg-destructive hover:bg-destructive/90">
                     Sim, excluir
                 </AlertDialogAction>
@@ -381,4 +371,3 @@ export default function CardsPage() {
     </div>
   );
 }
-
