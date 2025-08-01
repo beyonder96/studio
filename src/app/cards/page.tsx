@@ -4,14 +4,14 @@
 import { useState, useContext, useMemo, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Carousel, CarouselContent, CarouselItem, type CarouselApi } from '@/components/ui/carousel';
-import { FinanceContext, Transaction, Card as CardType } from '@/contexts/finance-context';
+import { FinanceContext, Transaction, Card as CardType, Account } from '@/contexts/finance-context';
 import { cn } from '@/lib/utils';
 import { AnimatePresence, motion } from 'framer-motion';
 import { addDays, format, setDate } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { TransactionsTable } from '@/components/finance/transactions-table';
 import { Button } from '@/components/ui/button';
-import { PlusCircle, Info, CalendarClock, ShoppingBag, Edit, Trash2, CreditCard } from 'lucide-react';
+import { PlusCircle, Info, CalendarClock, ShoppingBag, Edit, Trash2, CreditCard, Banknote } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/auth-context';
 import { EditAccountCardDialog } from '@/components/settings/edit-account-card-dialog';
@@ -25,12 +25,11 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import type { Account } from '@/contexts/finance-context';
 import { getDatabase, ref, onValue } from 'firebase/database';
 import { app as firebaseApp } from '@/lib/firebase';
 import { CardBrandLogo } from '@/components/cards/card-brand-logo';
 import { PayBillDialog } from '@/components/cards/pay-bill-dialog';
-
+import { Separator } from '@/components/ui/separator';
 
 const GlassCard = ({ card }: { card: CardType }) => {
   return (
@@ -52,13 +51,17 @@ const GlassCard = ({ card }: { card: CardType }) => {
 export default function CardsPage() {
   const { 
     cards, 
+    accounts,
     transactions, 
     deleteTransaction, 
-    updateTransaction,
     addCard,
     updateCard,
     deleteCard,
+    addAccount,
+    updateAccount,
+    deleteAccount,
     handlePayCardBill,
+    formatCurrency
  } = useContext(FinanceContext);
   const router = useRouter();
   const { user } = useAuth();
@@ -69,8 +72,10 @@ export default function CardsPage() {
   const [isPayBillDialogOpen, setIsPayBillDialogOpen] = useState(false);
   const [cardToPay, setCardToPay] = useState<CardType | null>(null);
   const [editingItem, setEditingItem] = useState<Account | CardType | null>(null);
-  const [cardToDelete, setCardToDelete] = useState<CardType | null>(null);
+  const [itemToDelete, setItemToDelete] = useState<CardType | Account | null>(null);
   const [coupleNames, setCoupleNames] = useState<string[]>([]);
+  
+  const vouchers = useMemo(() => accounts.filter(acc => acc.type === 'voucher'), [accounts]);
 
   useEffect(() => {
     if (user) {
@@ -130,12 +135,15 @@ export default function CardsPage() {
   
   const cardInfo = selectedCard ? getCardInfo(selectedCard.dueDay) : null;
 
-  const openAddDialog = () => {
-    setEditingItem(null);
+  const openAddDialog = (type: 'card' | 'account') => {
+    const newItem = type === 'card' 
+        ? { type: 'card', name: '', limit: 1000, dueDay: 10, holder: coupleNames[0] || '', brand: 'visa' as const }
+        : { type: 'account', name: '', balance: 0, accountType: 'voucher' as const };
+    setEditingItem(newItem);
     setIsAccountCardDialogOpen(true);
   }
 
-  const openEditDialog = (item: CardType) => {
+  const openEditDialog = (item: CardType | Account) => {
     setEditingItem(item);
     setIsAccountCardDialogOpen(true);
   }
@@ -146,44 +154,53 @@ export default function CardsPage() {
   }
 
   const handleDeleteConfirm = () => {
-    if (!cardToDelete) return;
-    deleteCard(cardToDelete.id);
-    setCardToDelete(null);
+    if (!itemToDelete) return;
+    if ('balance' in itemToDelete) { // It's an Account (Voucher)
+        deleteAccount(itemToDelete.id);
+    } else { // It's a Card
+        deleteCard(itemToDelete.id);
+    }
+    setItemToDelete(null);
   };
   
-  const handleSaveAccountCard = (data: ({ type: 'account' | 'card' } & Partial<Account> & Partial<CardType>)) => {
+  const handleSaveAccountCard = (data: AccountCardFormData) => {
     if (editingItem) { // Editing existing item
         if (data.type === 'card' && data.name && data.limit !== undefined && data.dueDay !== undefined && data.holder && data.brand) {
             updateCard(editingItem.id, { name: data.name, limit: data.limit, dueDay: data.dueDay, holder: data.holder, brand: data.brand });
+        } else if (data.type === 'account' && data.name && data.balance !== undefined && data.accountType) {
+            updateAccount(editingItem.id, { name: data.name, balance: data.balance, type: data.accountType });
         }
     } else { // Adding new item
         if (data.type === 'card' && data.name && data.limit !== undefined && data.dueDay !== undefined && data.holder && data.brand) {
             addCard({ name: data.name, limit: data.limit, dueDay: data.dueDay, holder: data.holder, brand: data.brand });
+        } else if (data.type === 'account' && data.name && data.balance !== undefined && data.accountType) {
+            addAccount({ name: data.name, balance: data.balance, type: data.accountType });
         }
     }
     setIsAccountCardDialogOpen(false);
   };
   
-  if (cards.length === 0) {
+  if (cards.length === 0 && vouchers.length === 0) {
       return (
         <Card className="bg-white/10 dark:bg-black/10 backdrop-blur-3xl border-white/20 dark:border-black/20 rounded-3xl shadow-2xl h-full">
             <CardContent className="p-4 sm:p-6 h-full flex flex-col items-center justify-center text-center">
                 <Info className="h-12 w-12 mb-4 text-primary"/>
-                <h2 className="text-2xl font-bold">Nenhum Cartão de Crédito</h2>
-                <p className="text-muted-foreground mt-2">Adicione seu primeiro cartão de crédito para começar.</p>
-                <Button className="mt-6" onClick={openAddDialog}>
+                <h2 className="text-2xl font-bold">Nenhum Cartão ou Vale</h2>
+                <p className="text-muted-foreground mt-2">Adicione seu primeiro cartão ou vale para começar.</p>
+                <Button className="mt-6" onClick={() => openAddDialog('card')}>
                     <PlusCircle className="mr-2 h-4 w-4"/>
-                    Adicionar Cartão
+                    Adicionar
                 </Button>
             </CardContent>
-            <EditAccountCardDialog 
-                isOpen={isAccountCardDialogOpen}
-                onClose={() => setIsAccountCardDialogOpen(false)}
-                onSave={handleSaveAccountCard}
-                item={editingItem}
-                allowedTypes={['card']}
-                coupleNames={coupleNames}
-            />
+            {isAccountCardDialogOpen &&
+                <EditAccountCardDialog 
+                    isOpen={isAccountCardDialogOpen}
+                    onClose={() => setIsAccountCardDialogOpen(false)}
+                    onSave={handleSaveAccountCard}
+                    item={editingItem}
+                    coupleNames={coupleNames}
+                />
+            }
         </Card>
       )
   }
@@ -191,89 +208,123 @@ export default function CardsPage() {
   return (
     <div className="space-y-6">
         <div className="flex justify-end">
-            <Button onClick={openAddDialog}>
+            <Button onClick={() => openAddDialog('card')}>
                 <PlusCircle className="mr-2 h-4 w-4"/>
-                Adicionar Cartão
+                Adicionar Cartão ou Vale
             </Button>
         </div>
 
-      <Carousel setApi={setApi} className="w-full max-w-md mx-auto">
-        <CarouselContent>
-          {cards.map((card) => (
-            <CarouselItem key={card.id}>
-              <GlassCard card={card} />
-            </CarouselItem>
-          ))}
-        </CarouselContent>
-      </Carousel>
+      {cards.length > 0 && (
+          <Carousel setApi={setApi} className="w-full max-w-md mx-auto">
+            <CarouselContent>
+              {cards.map((card) => (
+                <CarouselItem key={card.id}>
+                  <GlassCard card={card} />
+                </CarouselItem>
+              ))}
+            </CarouselContent>
+          </Carousel>
+      )}
       
       <AnimatePresence mode="wait">
-        <motion.div
-            key={selectedCard ? selectedCard.id : 'empty'}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            transition={{ duration: 0.3 }}
-        >
         {selectedCard && (
-            <Card className="bg-white/10 dark:bg-black/10 backdrop-blur-3xl border-white/20 dark:border-black/20 rounded-3xl shadow-2xl">
-                <CardHeader>
-                    <div className="flex justify-between items-start">
-                        <div>
-                            <CardTitle>{selectedCard.name}</CardTitle>
-                            <CardDescription>
-                                Limite de {selectedCard.limit.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
-                            </CardDescription>
+            <motion.div
+                key={selectedCard ? selectedCard.id : 'empty'}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                transition={{ duration: 0.3 }}
+            >
+                <Card className="bg-white/10 dark:bg-black/10 backdrop-blur-3xl border-white/20 dark:border-black/20 rounded-3xl shadow-2xl">
+                    <CardHeader>
+                        <div className="flex justify-between items-start">
+                            <div>
+                                <CardTitle>{selectedCard.name}</CardTitle>
+                                <CardDescription>
+                                    Limite de {formatCurrency(selectedCard.limit)}
+                                </CardDescription>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <Button variant="outline" size="icon" onClick={() => openEditDialog(selectedCard)}>
+                                    <Edit className="h-4 w-4" />
+                                </Button>
+                                 <Button variant="outline" size="icon" className="text-destructive hover:text-destructive" onClick={() => setItemToDelete(selectedCard)}>
+                                    <Trash2 className="h-4 w-4" />
+                                </Button>
+                            </div>
                         </div>
-                        <div className="flex items-center gap-2">
-                            <Button variant="outline" size="icon" onClick={() => openEditDialog(selectedCard)}>
-                                <Edit className="h-4 w-4" />
-                            </Button>
-                             <Button variant="outline" size="icon" className="text-destructive hover:text-destructive" onClick={() => setCardToDelete(selectedCard)}>
-                                <Trash2 className="h-4 w-4" />
+                    </CardHeader>
+                    <CardContent className="space-y-6">
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-center">
+                            <Card className="bg-transparent p-4">
+                                <CalendarClock className="h-8 w-8 mx-auto text-primary mb-2"/>
+                                <p className="font-semibold">Vencimento da Fatura</p>
+                                <p className="text-muted-foreground">{cardInfo?.dueDate}</p>
+                            </Card>
+                             <Card className="bg-transparent p-4">
+                                <ShoppingBag className="h-8 w-8 mx-auto text-primary mb-2"/>
+                                <p className="font-semibold">Melhor Dia de Compra</p>
+                                <p className="text-muted-foreground">{cardInfo?.bestPurchaseDate}</p>
+                            </Card>
+                            <Button className="h-full" onClick={() => openPayBillDialog(selectedCard)}>
+                                <CreditCard className="mr-2 h-4 w-4" />
+                                Pagar Fatura
                             </Button>
                         </div>
-                    </div>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-center">
-                        <Card className="bg-transparent p-4">
-                            <CalendarClock className="h-8 w-8 mx-auto text-primary mb-2"/>
-                            <p className="font-semibold">Vencimento da Fatura</p>
-                            <p className="text-muted-foreground">{cardInfo?.dueDate}</p>
-                        </Card>
-                         <Card className="bg-transparent p-4">
-                            <ShoppingBag className="h-8 w-8 mx-auto text-primary mb-2"/>
-                            <p className="font-semibold">Melhor Dia de Compra</p>
-                            <p className="text-muted-foreground">{cardInfo?.bestPurchaseDate}</p>
-                        </Card>
-                        <Button className="h-full" onClick={() => openPayBillDialog(selectedCard)}>
-                            <CreditCard className="mr-2 h-4 w-4" />
-                            Pagar Fatura
-                        </Button>
-                    </div>
 
-                    <div>
-                        <h3 className="text-lg font-semibold mb-4">Transações do Cartão</h3>
-                        <TransactionsTable 
-                            transactions={cardTransactions}
-                            onEdit={handleEditTransaction}
-                            onDeleteRequest={deleteTransaction}
-                        />
-                    </div>
-                </CardContent>
-            </Card>
+                        <div>
+                            <h3 className="text-lg font-semibold mb-4">Transações do Cartão</h3>
+                            <TransactionsTable 
+                                transactions={cardTransactions}
+                                onEdit={handleEditTransaction}
+                                onDeleteRequest={(t) => setItemToDelete(t)}
+                            />
+                        </div>
+                    </CardContent>
+                </Card>
+            </motion.div>
         )}
-        </motion.div>
       </AnimatePresence>
-      <EditAccountCardDialog 
-          isOpen={isAccountCardDialogOpen}
-          onClose={() => setIsAccountCardDialogOpen(false)}
-          onSave={handleSaveAccountCard}
-          item={editingItem}
-          allowedTypes={['card']}
-          coupleNames={coupleNames}
-      />
+
+      {(cards.length > 0 && vouchers.length > 0) && <Separator className="my-8" />}
+
+      {vouchers.length > 0 && (
+          <Card className="bg-white/10 dark:bg-black/10 backdrop-blur-3xl border-white/20 dark:border-black/20 rounded-3xl shadow-2xl">
+              <CardHeader>
+                  <CardTitle>Vales</CardTitle>
+                  <CardDescription>Gerencie seus vales-refeição, alimentação, etc.</CardDescription>
+              </CardHeader>
+              <CardContent>
+                   <ul className="space-y-4">
+                        {vouchers.map(voucher => (
+                        <li key={voucher.id} className="flex items-center justify-between p-4 rounded-lg border bg-background/30">
+                            <div className="flex items-center gap-4">
+                                <Banknote className="h-6 w-6 text-primary" />
+                                <div>
+                                    <p className="font-medium">{voucher.name}</p>
+                                    <p className="text-sm text-muted-foreground">Saldo: {formatCurrency(voucher.balance)}</p>
+                                </div>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <Button variant="outline" size="icon" onClick={() => openEditDialog(voucher)}><Edit className="h-4 w-4" /></Button>
+                                <Button variant="outline" size="icon" className="text-destructive hover:text-destructive" onClick={() => setItemToDelete(voucher)}><Trash2 className="h-4 w-4" /></Button>
+                            </div>
+                        </li>
+                        ))}
+                    </ul>
+              </CardContent>
+          </Card>
+      )}
+
+      {isAccountCardDialogOpen &&
+        <EditAccountCardDialog 
+            isOpen={isAccountCardDialogOpen}
+            onClose={() => setIsAccountCardDialogOpen(false)}
+            onSave={handleSaveAccountCard}
+            item={editingItem}
+            coupleNames={coupleNames}
+        />
+      }
        {cardToPay && (
         <PayBillDialog
             isOpen={isPayBillDialogOpen}
@@ -282,18 +333,18 @@ export default function CardsPage() {
             card={cardToPay}
         />
        )}
-      <AlertDialog open={!!cardToDelete} onOpenChange={(open) => !open && setCardToDelete(null)}>
+      <AlertDialog open={!!itemToDelete} onOpenChange={(open) => !open && setItemToDelete(null)}>
         <AlertDialogContent>
             <AlertDialogHeader>
-                <AlertDialogTitle>Excluir cartão?</AlertDialogTitle>
+                <AlertDialogTitle>Excluir item?</AlertDialogTitle>
                 <AlertDialogDescription>
-                    Tem certeza que deseja excluir o cartão "{cardToDelete?.name}"? Todas as transações associadas também serão excluídas.
+                    Tem certeza que deseja excluir "{itemToDelete?.name}"? Todas as transações associadas também serão excluídas.
                     <br/><br/>
                     Esta ação não pode ser desfeita.
                 </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
-                <AlertDialogCancel onClick={() => setCardToDelete(null)}>Cancelar</AlertDialogCancel>
+                <AlertDialogCancel onClick={() => setItemToDelete(null)}>Cancelar</AlertDialogCancel>
                 <AlertDialogAction onClick={handleDeleteConfirm} className="bg-destructive hover:bg-destructive/90">
                     Sim, excluir
                 </AlertDialogAction>

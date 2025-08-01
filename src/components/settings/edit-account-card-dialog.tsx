@@ -18,7 +18,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { CurrencyInput } from '@/components/finance/currency-input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import type { Account, Card as CardType } from '@/contexts/finance-context';
 import {
   Select,
@@ -32,7 +32,7 @@ const accountSchema = z.object({
   type: z.literal('account'),
   name: z.string().min(1, 'O nome é obrigatório'),
   balance: z.coerce.number().min(0, 'O saldo inicial não pode ser negativo'),
-  accountType: z.enum(['checking', 'savings', 'voucher']).default('checking'),
+  accountType: z.enum(['checking', 'savings', 'voucher']).default('voucher'),
 });
 
 const cardSchema = z.object({
@@ -51,15 +51,21 @@ export type AccountCardFormData = z.infer<typeof formSchema>;
 type EditAccountCardDialogProps = {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (data: any) => void;
+  onSave: (data: AccountCardFormData) => void;
   item: Account | CardType | null;
-  allowedTypes?: ('account' | 'card')[];
   coupleNames?: string[];
 };
 
-export function EditAccountCardDialog({ isOpen, onClose, onSave, item, allowedTypes = ['account', 'card'], coupleNames = [] }: EditAccountCardDialogProps) {
-  const isEditing = !!item;
-  const initialTab = isEditing ? ('balance' in item ? 'account' : 'card') : (allowedTypes.includes('account') ? 'account' : 'card');
+export function EditAccountCardDialog({ isOpen, onClose, onSave, item, coupleNames = [] }: EditAccountCardDialogProps) {
+  const isEditing = useMemo(() => item && item.id, [item]);
+  
+  const initialTab = useMemo(() => {
+    if (item) {
+        return 'balance' in item ? 'account' : 'card';
+    }
+    return 'card';
+  }, [item]);
+  
   const [activeTab, setActiveTab] = useState<'account' | 'card'>(initialTab);
   
   const {
@@ -105,53 +111,49 @@ export function EditAccountCardDialog({ isOpen, onClose, onSave, item, allowedTy
   const onSubmit = (data: AccountCardFormData) => {
     onSave(data);
   };
-  
-  const showTabs = allowedTypes.length > 1 && !isEditing;
 
   const AccountForm = (
     <div className="space-y-4 pt-4">
         <Controller name="type" control={control} render={({ field }) => <input type="hidden" {...field} value="account" />} />
         <div className="space-y-2">
-            <Label htmlFor="account-name">Nome da Conta</Label>
+            <Label htmlFor="account-name">Nome da Conta/Vale</Label>
             <Input id="account-name" {...register('name')} placeholder="Ex: Conta Corrente, Vale Refeição" />
             {errors.type === 'account' && errors.name && <p className="text-red-500 text-xs mt-1">{errors.name.message}</p>}
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="space-y-2">
-                <Label htmlFor="balance">{isEditing ? "Saldo Atual" : "Saldo Inicial"}</Label>
-                <Controller
-                    name="balance"
-                    control={control}
-                    render={({ field }) => (
-                    <CurrencyInput
-                        id="balance"
-                        value={field.value ?? 0}
-                        onValueChange={(value) => field.onChange(value)}
-                    />
-                    )}
+        <div className="space-y-2">
+            <Label htmlFor="balance">{isEditing ? "Saldo Atual" : "Saldo Inicial"}</Label>
+            <Controller
+                name="balance"
+                control={control}
+                render={({ field }) => (
+                <CurrencyInput
+                    id="balance"
+                    value={field.value ?? 0}
+                    onValueChange={(value) => field.onChange(value)}
                 />
-                {errors.type === 'account' && errors.balance && <p className="text-red-500 text-xs mt-1">{errors.balance.message}</p>}
-            </div>
-            <div className="space-y-2">
-                <Label htmlFor="accountType">Tipo</Label>
-                <Controller
-                    name="accountType"
-                    control={control}
-                    render={({ field }) => (
-                        <Select onValueChange={field.onChange} value={field.value}>
-                            <SelectTrigger id="accountType">
-                                <SelectValue placeholder="Selecione o tipo" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="checking">Conta Corrente</SelectItem>
-                                <SelectItem value="savings">Poupança</SelectItem>
-                                <SelectItem value="voucher">Vale (Refeição/Alim.)</SelectItem>
-                            </SelectContent>
-                        </Select>
-                    )}
-                />
-                 {errors.type === 'account' && errors.accountType && <p className="text-red-500 text-xs mt-1">{errors.accountType.message}</p>}
-            </div>
+                )}
+            />
+            {errors.type === 'account' && errors.balance && <p className="text-red-500 text-xs mt-1">{errors.balance.message}</p>}
+        </div>
+         <div className="space-y-2">
+            <Label htmlFor="accountType">Tipo</Label>
+            <Controller
+                name="accountType"
+                control={control}
+                render={({ field }) => (
+                    <Select onValueChange={field.onChange} value={field.value}>
+                        <SelectTrigger id="accountType">
+                            <SelectValue placeholder="Selecione o tipo" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="checking">Conta Corrente</SelectItem>
+                            <SelectItem value="savings">Poupança</SelectItem>
+                            <SelectItem value="voucher">Vale (Refeição/Alim.)</SelectItem>
+                        </SelectContent>
+                    </Select>
+                )}
+            />
+            {errors.type === 'account' && errors.accountType && <p className="text-red-500 text-xs mt-1">{errors.accountType.message}</p>}
         </div>
     </div>
   );
@@ -234,32 +236,31 @@ export function EditAccountCardDialog({ isOpen, onClose, onSave, item, allowedTy
     </div>
   );
 
-
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>{isEditing ? (('balance' in item) ? 'Editar Conta' : 'Editar Cartão') : 'Adicionar'}</DialogTitle>
+          <DialogTitle>{isEditing ? (('balance' in item) ? 'Editar Vale' : 'Editar Cartão') : 'Adicionar'}</DialogTitle>
            <DialogDescription>
             {isEditing ? 'Atualize as informações abaixo.' : 'Selecione o tipo e preencha as informações.'}
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit(onSubmit)}>
-            {showTabs ? (
+            {!isEditing ? (
                 <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
                     <TabsList className="grid w-full grid-cols-2">
-                        {allowedTypes.includes('account') && <TabsTrigger value="account">Conta/Vale</TabsTrigger>}
-                        {allowedTypes.includes('card') && <TabsTrigger value="card">Cartão de Crédito</TabsTrigger>}
+                        <TabsTrigger value="card">Cartão de Crédito</TabsTrigger>
+                        <TabsTrigger value="account">Vale</TabsTrigger>
                     </TabsList>
-                    <TabsContent value="account">
-                        {AccountForm}
-                    </TabsContent>
                     <TabsContent value="card">
                         {CardForm}
                     </TabsContent>
+                    <TabsContent value="account">
+                        {AccountForm}
+                    </TabsContent>
                 </Tabs>
             ) : (
-                 (isEditing ? ('balance' in item) : activeTab === 'account') ? AccountForm : CardForm
+                 activeTab === 'account' ? AccountForm : CardForm
             )}
 
           <DialogFooter className="pt-6">
