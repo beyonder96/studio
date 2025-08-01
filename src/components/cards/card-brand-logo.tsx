@@ -3,12 +3,19 @@
 
 import { cn } from "@/lib/utils";
 import Image from 'next/image';
+import { Banknote } from "lucide-react";
 
 type CardBrand = 'visa' | 'mastercard' | 'elo' | 'amex';
+type VoucherBrand = 'ticket' | 'vr' | 'alelo' | 'other';
 
 interface CardBrandLogoProps {
   brand: CardBrand;
   className?: string;
+}
+
+interface VoucherBrandLogoProps {
+    brand?: VoucherBrand;
+    className?: string;
 }
 
 const VisaLogo = ({ className }: { className?: string }) => (
@@ -63,5 +70,19 @@ export const CardBrandLogo: React.FC<CardBrandLogoProps> = ({ brand, className }
             return <AmexLogo className={className} />;
         default:
             return null;
+    }
+}
+
+export const VoucherBrandLogo: React.FC<VoucherBrandLogoProps> = ({ brand, className }) => {
+    switch (brand) {
+        case 'ticket':
+            return <span className={cn("font-bold text-lg text-red-600", className)}>Ticket</span>;
+        case 'vr':
+            return <span className={cn("font-bold text-lg text-green-600", className)}>VR</span>;
+        case 'alelo':
+            return <span className={cn("font-bold text-lg text-teal-600", className)}>Alelo</span>;
+        case 'other':
+        default:
+            return <Banknote className={cn("h-6 w-6 text-primary", className)} />;
     }
 }

@@ -32,7 +32,9 @@ const accountSchema = z.object({
   type: z.literal('account'),
   name: z.string().min(1, 'O nome é obrigatório'),
   balance: z.coerce.number().min(0, 'O saldo inicial não pode ser negativo'),
-  accountType: z.enum(['voucher']).default('voucher'), // Only vouchers here
+  holder: z.string().min(1, 'O titular é obrigatório'),
+  brand: z.enum(['ticket', 'vr', 'alelo', 'other']),
+  benefitDay: z.coerce.number().min(1, 'Dia inválido').max(31, 'Dia inválido').optional(),
 });
 
 const cardSchema = z.object({
@@ -69,7 +71,6 @@ export function EditAccountCardDialog({ isOpen, onClose, onSave, item, coupleNam
   const [activeTab, setActiveTab] = useState<'account' | 'card'>(initialTab);
   
   const {
-    register,
     handleSubmit,
     control,
     reset,
@@ -85,19 +86,19 @@ export function EditAccountCardDialog({ isOpen, onClose, onSave, item, coupleNam
 
   useEffect(() => {
     if (isOpen) {
-        const tab = isEditing ? ('balance' in (item || {})) ? 'account' : 'card' : activeTab;
+        const tab = isEditing ? (('balance' in (item || {})) ? 'account' : 'card') : activeTab;
         setActiveTab(tab);
         setValue('type', tab);
 
         if (isEditing && item) {
              if ('balance' in item) {
-                reset({ type: 'account', name: item.name, balance: item.balance, accountType: item.type as 'voucher' });
+                reset({ type: 'account', name: item.name, balance: item.balance, holder: item.holder, brand: item.brand, benefitDay: item.benefitDay });
             } else {
                 reset({ type: 'card', name: item.name, limit: item.limit, dueDay: item.dueDay, holder: item.holder, brand: item.brand });
             }
         } else {
              if (tab === 'account') {
-                reset({ type: 'account', name: '', balance: 0, accountType: 'voucher' });
+                reset({ type: 'account', name: '', balance: 0, holder: coupleNames[0] || '', brand: 'ticket' });
              } else {
                 reset({ type: 'card', name: '', limit: 1000, dueDay: 10, holder: coupleNames[0] || '', brand: 'visa' });
              }
@@ -127,6 +128,7 @@ export function EditAccountCardDialog({ isOpen, onClose, onSave, item, coupleNam
             />
             {errors.type === 'account' && errors.name && <p className="text-red-500 text-xs mt-1">{errors.name.message}</p>}
         </div>
+        
         <div className="space-y-2">
             <Label htmlFor="balance">{isEditing ? "Saldo Atual" : "Saldo Inicial"}</Label>
             <Controller
@@ -142,6 +144,65 @@ export function EditAccountCardDialog({ isOpen, onClose, onSave, item, coupleNam
                 )}
             />
             {errors.type === 'account' && errors.balance && <p className="text-red-500 text-xs mt-1">{errors.balance.message}</p>}
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-2">
+                <Label htmlFor="voucher-holder">Titular</Label>
+                <Controller
+                    name="holder"
+                    control={control}
+                    rules={{ required: formType === 'account' }}
+                    render={({ field }) => (
+                    <Select onValueChange={field.onChange} value={field.value ?? ''}>
+                        <SelectTrigger id="voucher-holder">
+                            <SelectValue placeholder="Selecione o titular" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {coupleNames.map(name => (
+                                <SelectItem key={name} value={name}>{name}</SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                    )}
+                />
+                {errors.type === 'account' && errors.holder && <p className="text-red-500 text-xs mt-1">{errors.holder.message}</p>}
+            </div>
+            <div className="space-y-2">
+                <Label htmlFor="voucher-brand">Bandeira</Label>
+                 <Controller
+                    name="brand"
+                    control={control}
+                    rules={{ required: formType === 'account' }}
+                    render={({ field }) => (
+                    <Select onValueChange={field.onChange} value={field.value ?? 'other'}>
+                        <SelectTrigger id="voucher-brand">
+                            <SelectValue placeholder="Selecione a bandeira" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="ticket">Ticket</SelectItem>
+                            <SelectItem value="vr">VR</SelectItem>
+                            <SelectItem value="alelo">Alelo</SelectItem>
+                            <SelectItem value="other">Outra</SelectItem>
+                        </SelectContent>
+                    </Select>
+                    )}
+                />
+                 {errors.type === 'account' && errors.brand && <p className="text-red-500 text-xs mt-1">{errors.brand.message}</p>}
+            </div>
+        </div>
+
+         <div className="space-y-2">
+            <Label htmlFor="benefitDay">Dia do Benefício (opcional)</Label>
+             <Controller
+                name="benefitDay"
+                control={control}
+                rules={{ required: false }}
+                render={({ field }) => (
+                    <Input id="benefitDay" type="number" {...field} min="1" max="31" placeholder="Ex: 10" value={field.value ?? ''} />
+                )}
+            />
+            {errors.type === 'account' && errors.benefitDay && <p className="text-red-500 text-xs mt-1">{errors.benefitDay.message}</p>}
         </div>
     </div>
   );

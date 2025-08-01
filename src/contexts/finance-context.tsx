@@ -38,7 +38,17 @@ const allAchievements: Achievement[] = [
 ];
 
 
-export type Account = { id: string; name: string; balance: number; type: 'checking' | 'savings' | 'voucher'; }
+export type VoucherBrand = 'ticket' | 'vr' | 'alelo' | 'other';
+export type Account = { 
+    id: string; 
+    name: string; 
+    balance: number; 
+    type: 'checking' | 'savings' | 'voucher';
+    // Voucher specific fields
+    holder?: string;
+    brand?: VoucherBrand;
+    benefitDay?: number;
+}
 export type Card = { id: string; name: string; limit: number; dueDay: number; holder: string; brand: 'visa' | 'mastercard' | 'elo' | 'amex'; };
 export type Appointment = { id: string; title: string; date: string; time?: string; category: string; notes?: string; googleEventId?: string; accessToken?: string; };
 export type PantryCategory = string;

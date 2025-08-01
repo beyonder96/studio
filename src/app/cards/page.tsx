@@ -11,7 +11,7 @@ import { addDays, format, setDate } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { TransactionsTable } from '@/components/finance/transactions-table';
 import { Button } from '@/components/ui/button';
-import { PlusCircle, Info, CalendarClock, ShoppingBag, Edit, Trash2, CreditCard, Banknote } from 'lucide-react';
+import { PlusCircle, Info, CalendarClock, ShoppingBag, Edit, Trash2, CreditCard, Banknote, User } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/auth-context';
 import { EditAccountCardDialog } from '@/components/settings/edit-account-card-dialog';
@@ -27,7 +27,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { getDatabase, ref, onValue } from 'firebase/database';
 import { app as firebaseApp } from '@/lib/firebase';
-import { CardBrandLogo } from '@/components/cards/card-brand-logo';
+import { CardBrandLogo, VoucherBrandLogo } from '@/components/cards/card-brand-logo';
 import { PayBillDialog } from '@/components/cards/pay-bill-dialog';
 import { Separator } from '@/components/ui/separator';
 
@@ -139,7 +139,7 @@ export default function CardsPage() {
     const newItem = type === 'card' 
         ? { type: 'card', name: '', limit: 1000, dueDay: 10, holder: coupleNames[0] || '', brand: 'visa' as const }
         : { type: 'account', name: '', balance: 0, accountType: 'voucher' as const };
-    setEditingItem(newItem);
+    setEditingItem(newItem as any);
     setIsAccountCardDialogOpen(true);
   }
 
@@ -163,22 +163,26 @@ export default function CardsPage() {
     setItemToDelete(null);
   };
   
-  const handleSaveAccountCard = (data: AccountCardFormData) => {
-    if (editingItem) { // Editing existing item
-        if (data.type === 'card' && data.name && data.limit !== undefined && data.dueDay !== undefined && data.holder && data.brand) {
-            updateCard(editingItem.id, { name: data.name, limit: data.limit, dueDay: data.dueDay, holder: data.holder, brand: data.brand });
-        } else if (data.type === 'account' && data.name && data.balance !== undefined && data.accountType) {
-            updateAccount(editingItem.id, { name: data.name, balance: data.balance, type: data.accountType });
-        }
-    } else { // Adding new item
-        if (data.type === 'card' && data.name && data.limit !== undefined && data.dueDay !== undefined && data.holder && data.brand) {
-            addCard({ name: data.name, limit: data.limit, dueDay: data.dueDay, holder: data.holder, brand: data.brand });
-        } else if (data.type === 'account' && data.name && data.balance !== undefined && data.accountType) {
-            addAccount({ name: data.name, balance: data.balance, type: data.accountType });
-        }
+  const handleSaveAccountCard = (data: any) => { // Using `any` due to discriminated union complexity
+    if (data.type === 'card') {
+      const cardData = { name: data.name, limit: data.limit, dueDay: data.dueDay, holder: data.holder, brand: data.brand };
+      if (editingItem && 'limit' in editingItem) {
+        updateCard(editingItem.id, cardData);
+      } else {
+        addCard(cardData);
+      }
+    } else if (data.type === 'account') {
+      const accountData = { name: data.name, balance: data.balance, type: 'voucher' as const, holder: data.holder, brand: data.brand, benefitDay: data.benefitDay };
+       if (editingItem && 'balance' in editingItem) {
+        updateAccount(editingItem.id, accountData);
+      } else {
+        addAccount(accountData);
+      }
     }
+    setEditingItem(null);
     setIsAccountCardDialogOpen(false);
   };
+  
   
   if (cards.length === 0 && vouchers.length === 0) {
       return (
@@ -278,6 +282,7 @@ export default function CardsPage() {
                                 transactions={cardTransactions}
                                 onEdit={handleEditTransaction}
                                 onDeleteRequest={(t) => setItemToDelete(t)}
+                                onTogglePaid={() => {}}
                             />
                         </div>
                     </CardContent>
@@ -299,10 +304,21 @@ export default function CardsPage() {
                         {vouchers.map(voucher => (
                         <li key={voucher.id} className="flex items-center justify-between p-4 rounded-lg border bg-background/30">
                             <div className="flex items-center gap-4">
-                                <Banknote className="h-6 w-6 text-primary" />
+                                <VoucherBrandLogo brand={voucher.brand} className="h-8" />
                                 <div>
                                     <p className="font-medium">{voucher.name}</p>
                                     <p className="text-sm text-muted-foreground">Saldo: {formatCurrency(voucher.balance)}</p>
+                                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                        <User className="h-3 w-3" />
+                                        <span>{voucher.holder}</span>
+                                        {voucher.benefitDay && (
+                                            <>
+                                                <span className="mx-1">•</span>
+                                                <CalendarClock className="h-3 w-3" />
+                                                <span>Todo dia {voucher.benefitDay}</span>
+                                            </>
+                                        )}
+                                    </div>
                                 </div>
                             </div>
                             <div className="flex items-center gap-2">
