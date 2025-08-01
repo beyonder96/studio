@@ -28,6 +28,7 @@ const initialWishes: Wish[] = [ { id: 'wish1', name: 'Liquidificador Novo', pric
 const initialAppointments: Appointment[] = [];
 const initialMemories: Memory[] = [];
 const initialShoppingLists: ShoppingList[] = [ { id: 'list1', name: 'Mercado', shared: true, items: [ { id: 'item1', name: 'Leite Integral', quantity: 1, checked: false } ] } ];
+const initialPets: Pet[] = [];
 const allAchievements: Achievement[] = [
     { id: 'goal1', name: 'Conquistador', description: 'Atingiu a primeira meta', icon: '🏆' },
     { id: 'goal5', name: 'Planejador Mestre', description: 'Atingiu 5 metas', icon: '🏅' },
@@ -65,6 +66,17 @@ export type ShoppingListItem = { id: string; name: string; quantity: number; che
 export type ShoppingList = { id: string; name: string; items: ShoppingListItem[]; shared: boolean; };
 export type Memory = { id: string; title: string; description: string; date: string; imageUrl?: string; };
 export type Achievement = { id: string; name: string; description: string; icon: string; };
+
+export type Pet = {
+    id: string;
+    name: string;
+    species: 'cat' | 'dog' | 'other';
+    breed?: string;
+    birthDate: string;
+    imageUrl?: string;
+    microchip?: string;
+}
+
 
 const mapShoppingItemToPantryCategory = (itemName: string): PantryCategory => {
     const lowerCaseName = itemName.toLowerCase();
@@ -153,6 +165,10 @@ type FinanceContextType = {
   achievements: Achievement[];
   googleEvents: any[];
   setGoogleEvents: React.Dispatch<React.SetStateAction<any[]>>;
+  pets: Pet[];
+  addPet: (pet: Omit<Pet, 'id'>) => void;
+  updatePet: (id: string, pet: Partial<Omit<Pet, 'id'>>) => void;
+  deletePet: (id: string) => void;
 };
 
 export const FinanceContext = createContext<FinanceContextType>({} as FinanceContextType);
@@ -174,6 +190,7 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [memories, setMemories] = useState<Memory[]>([]);
   const [achievements, setAchievements] = useState<Achievement[]>([]);
+  const [pets, setPets] = useState<Pet[]>([]);
   
   const [isSensitiveDataVisible, setIsSensitiveDataVisible] = useState(true);
   const [shoppingLists, setShoppingLists] = useState<ShoppingList[]>([]);
@@ -271,6 +288,7 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
                 setAppointments(transformData(data.appointments));
                 setMemories(transformData(data.memories));
                 setAchievements(data.achievements || []);
+                setPets(transformData(data.pets));
                 const dbShoppingLists: ShoppingList[] = transformDataWithSubItems(data.shoppingLists, 'items');
                 setShoppingLists(dbShoppingLists);
                 if (!selectedListId && dbShoppingLists.length > 0) {
@@ -292,6 +310,7 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
                     memories: {},
                     shoppingLists: Object.fromEntries(initialShoppingLists.map(l => [l.id, l])),
                     achievements: [],
+                    pets: {},
                 };
                 set(userRef, initialData);
             }
@@ -312,6 +331,7 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
         setAppointments([]);
         setMemories([]);
         setAchievements([]);
+        setPets([]);
         setShoppingLists([]);
         setSelectedListId(null);
         setGoogleEvents([]);
@@ -495,7 +515,7 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
     if (!user) return;
     const database = getDatabase(firebaseApp);
     const updates: { [key: string]: null } = {};
-    const pathsToDelete = ['transactions', 'accounts', 'cards', 'pantryItems', 'tasks', 'goals', 'wishes', 'appointments', 'shoppingLists', 'memories'];
+    const pathsToDelete = ['transactions', 'accounts', 'cards', 'pantryItems', 'tasks', 'goals', 'wishes', 'appointments', 'shoppingLists', 'memories', 'pets'];
     pathsToDelete.forEach(path => {
         updates[`users/${user.uid}/${path}`] = null;
     });
@@ -1016,6 +1036,21 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
     const newId = push(getDbRef('memories')).key!;
     set(getDbRef(`memories/${newId}`), memory);
   };
+  
+  // Pet Management
+  const addPet = (pet: Omit<Pet, 'id'>) => {
+      if(!user) return;
+      const newId = push(getDbRef('pets')).key!;
+      set(getDbRef(`pets/${newId}`), pet);
+  };
+  const updatePet = (id: string, pet: Partial<Omit<Pet, 'id'>>) => {
+      if(!user) return;
+      update(getDbRef(`pets/${id}`), pet);
+  };
+  const deletePet = (id: string) => {
+      if(!user) return;
+      remove(getDbRef(`pets/${id}`));
+  };
 
   const value = {
     transactions, addTransaction, updateTransaction, deleteTransaction, toggleTransactionPaid, deleteRecurringTransaction,
@@ -1039,7 +1074,8 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
     handlePayCardBill,
     memories, addMemory,
     achievements,
-    googleEvents, setGoogleEvents
+    googleEvents, setGoogleEvents,
+    pets, addPet, updatePet, deletePet,
   };
 
   return (

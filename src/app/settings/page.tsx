@@ -146,7 +146,7 @@ export default function SettingsPage() {
                         ) : (
                         <Button
                             onClick={() => requestPermission(user?.uid)}
-                            disabled={permission === 'denied' || !user}
+                            disabled={!user}
                             className="whitespace-normal h-auto w-full sm:w-auto text-left justify-start sm:justify-center"
                         >
                             <Bell className="mr-2 h-4 w-4 shrink-0" />
