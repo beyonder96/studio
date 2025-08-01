@@ -418,15 +418,16 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
         }
     }
     
-    const finalUpdate = { ...originalTransaction, ...updatedTransaction };
+    const finalUpdate: Partial<Transaction> = { ...updatedTransaction };
     // Ensure undefined values are not sent to Firebase
     Object.keys(finalUpdate).forEach(key => {
-        if (finalUpdate[key as keyof typeof finalUpdate] === undefined) {
-            delete finalUpdate[key as keyof typeof finalUpdate];
+        const k = key as keyof typeof finalUpdate;
+        if (finalUpdate[k] === undefined) {
+            delete finalUpdate[k];
         }
     });
 
-    updates[`transactions/${id}`] = finalUpdate;
+    updates[`transactions/${id}`] = { ...originalTransaction, ...finalUpdate };
     update(getDbRef(''), updates);
   };
   
@@ -654,15 +655,16 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
       const updates: { [key: string]: any } = {};
       
       const goalToUpdate = { ...goals.find(g => g.id === id)!, ...updatedGoal };
-      
-      // Update the main goal object (without milestones)
-      const goalDataForUpdate: any = { ...goalToUpdate };
-      delete goalDataForUpdate.milestones;
-      updates[`goals/${id}`] = goalDataForUpdate;
 
+      // Atomically update each field of the goal object
+      Object.keys(updatedGoal).forEach(key => {
+        const goalKey = key as keyof typeof updatedGoal;
+        updates[`goals/${id}/${goalKey}`] = updatedGoal[goalKey];
+      });
+      
       // Handle milestones
       const existingMilestoneIds = goalToUpdate.milestones?.map(ms => ms.id) || [];
-      const updatedMilestoneIds = milestones.map(ms => ms.id).filter(Boolean);
+      const updatedMilestoneIds = milestones.map(ms => 'id' in ms ? ms.id : undefined).filter(Boolean);
 
       // Delete removed milestones
       existingMilestoneIds.forEach(existingId => {
@@ -673,7 +675,7 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
       
       // Add or update milestones
       milestones.forEach(ms => {
-          const msId = ms.id || push(child(getDbRef('goals'), `${id}/milestones`)).key!;
+          const msId = 'id' in ms ? ms.id : push(child(getDbRef('goals'), `${id}/milestones`)).key!;
           updates[`goals/${id}/milestones/${msId}`] = { name: ms.name, cost: ms.cost, completed: ms.completed || false };
       });
       
