@@ -144,9 +144,13 @@ export default function SettingsPage() {
                         {permission === 'granted' ? (
                         <p className="text-sm text-green-600 flex items-center gap-2"><Check className="h-4 w-4" /> As notificações estão ativas para este dispositivo.</p>
                         ) : (
-                        <Button onClick={() => requestPermission(user?.uid)} disabled={permission === 'denied' || !user}>
-                            <Bell className="mr-2 h-4 w-4" />
-                            {permission === 'denied' ? 'Permissão negada nas configurações do navegador' : 'Ativar Notificações'}
+                        <Button
+                            onClick={() => requestPermission(user?.uid)}
+                            disabled={permission === 'denied' || !user}
+                            className="whitespace-normal h-auto w-full sm:w-auto text-left justify-start sm:justify-center"
+                        >
+                            <Bell className="mr-2 h-4 w-4 shrink-0" />
+                            <span>{permission === 'denied' ? 'Permissão negada nas configurações do navegador' : 'Ativar Notificações'}</span>
                         </Button>
                         )}
                     </CardContent>
