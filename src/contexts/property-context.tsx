@@ -9,6 +9,16 @@ import { useToast } from '@/hooks/use-toast';
 
 // --- Types ---
 export type PropertyType = 'house' | 'apartment' | 'construction';
+export type ShoppingItemStatus = 'needed' | 'researching' | 'purchased';
+export type ShoppingItemCategory = 'furniture' | 'appliances' | 'decor' | 'materials' | 'other';
+
+export type PropertyShoppingItem = {
+    id: string;
+    name: string;
+    category: ShoppingItemCategory;
+    status: ShoppingItemStatus;
+    price: number;
+}
 
 export type Property = {
     id: string;
@@ -17,6 +27,7 @@ export type Property = {
     address: string;
     imageUrl?: string;
     purchaseDate?: string;
+    shoppingItems?: PropertyShoppingItem[];
 };
 
 
@@ -35,6 +46,9 @@ type PropertyContextType = {
     editingProperty: Property | null;
     setEditingProperty: React.Dispatch<React.SetStateAction<Property | null>>;
     getPropertyById: (id: string) => Property | undefined;
+    addShoppingItem: (propertyId: string, item: Omit<PropertyShoppingItem, 'id'>) => void;
+    updateShoppingItem: (propertyId: string, itemId: string, item: Omit<PropertyShoppingItem, 'id'>) => void;
+    deleteShoppingItem: (propertyId: string, itemId: string) => void;
 };
 
 export const PropertyContext = createContext<PropertyContextType>({} as PropertyContextType);
@@ -69,7 +83,19 @@ export const PropertyProvider = ({ children }: { children: ReactNode }) => {
             const propertiesRef = getDbRef('properties');
             const unsubscribe = onValue(propertiesRef, (snapshot) => {
                 const data = snapshot.val();
-                const propertiesArray = data ? Object.keys(data).map(key => ({ id: key, ...data[key] })) : [];
+                 const propertiesArray = data ? Object.keys(data).map(key => {
+                    const prop = { id: key, ...data[key] };
+                    // Convert nested shoppingItems object to array
+                    if (prop.shoppingItems && typeof prop.shoppingItems === 'object') {
+                        prop.shoppingItems = Object.keys(prop.shoppingItems).map(itemKey => ({
+                            id: itemKey,
+                            ...prop.shoppingItems[itemKey]
+                        }));
+                    } else {
+                        prop.shoppingItems = [];
+                    }
+                    return prop;
+                }) : [];
                 setProperties(propertiesArray);
             });
             return () => unsubscribe();
@@ -112,6 +138,33 @@ export const PropertyProvider = ({ children }: { children: ReactNode }) => {
         return properties.find(p => p.id === id);
     }, [properties]);
     
+    const addShoppingItem = (propertyId: string, item: Omit<PropertyShoppingItem, 'id'>) => {
+        if(!user) return;
+        const itemsRef = getDbRef(`properties/${propertyId}/shoppingItems`);
+        const newItemId = push(itemsRef).key;
+        if(newItemId){
+            set(child(itemsRef, newItemId), item)
+                .then(() => toast({ title: 'Item Adicionado!', description: `${item.name} foi adicionado à lista de compras.`}))
+                .catch((err) => toast({ variant: 'destructive', title: 'Erro', description: err.message }));
+        }
+    };
+    
+    const updateShoppingItem = (propertyId: string, itemId: string, itemUpdate: Omit<PropertyShoppingItem, 'id'>) => {
+        if(!user) return;
+        const itemRef = getDbRef(`properties/${propertyId}/shoppingItems/${itemId}`);
+        update(itemRef, itemUpdate)
+            .then(() => toast({ title: 'Item Atualizado!'}))
+            .catch((err) => toast({ variant: 'destructive', title: 'Erro', description: err.message }));
+    };
+
+    const deleteShoppingItem = (propertyId: string, itemId: string) => {
+        if(!user) return;
+        const itemRef = getDbRef(`properties/${propertyId}/shoppingItems/${itemId}`);
+        remove(itemRef)
+             .then(() => toast({ title: 'Item Removido!'}))
+            .catch((err) => toast({ variant: 'destructive', title: 'Erro', description: err.message }));
+    };
+
     const value = {
         properties,
         addProperty,
@@ -122,6 +175,9 @@ export const PropertyProvider = ({ children }: { children: ReactNode }) => {
         editingProperty,
         setEditingProperty,
         getPropertyById,
+        addShoppingItem,
+        updateShoppingItem,
+        deleteShoppingItem,
     };
 
     return (

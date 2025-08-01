@@ -1,15 +1,16 @@
 
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useProperty, PropertyProvider } from '@/contexts/property-context';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Edit, Trash2, Home, Building, HardHat, FileText, Wrench, ShoppingCart } from 'lucide-react';
+import { ArrowLeft, Edit, Trash2, Home, Building, HardHat, FileText, Wrench } from 'lucide-react';
 import Image from 'next/image';
 import { AddPropertyDialog } from '@/components/home/add-property-dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { PropertyShoppingList } from '@/components/home/property-shopping-list';
 
 const typeDetails = {
     house: { icon: <Home className="h-5 w-5 text-muted-foreground"/>, label: 'Casa (Residência)' },
@@ -114,20 +115,13 @@ function PropertyDetailPageContent() {
                         <p className="text-sm text-muted-foreground pt-1">{property.address}</p>
                     </CardHeader>
                     <CardContent className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        <PropertyShoppingList property={property} />
                         <Card className="bg-transparent">
                             <CardHeader>
                                 <CardTitle className="flex items-center gap-2"><FileText /> Documentos</CardTitle>
                             </CardHeader>
                             <CardContent>
                                 <p className="text-muted-foreground">Em breve: um local para guardar plantas, contratos e manuais.</p>
-                            </CardContent>
-                        </Card>
-                         <Card className="bg-transparent">
-                            <CardHeader>
-                                <CardTitle className="flex items-center gap-2"><ShoppingCart /> Lista de Compras</CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                                <p className="text-muted-foreground">Em breve: planeje as compras de móveis e decoração.</p>
                             </CardContent>
                         </Card>
                          <Card className="bg-transparent">
