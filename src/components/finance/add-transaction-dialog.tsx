@@ -193,6 +193,7 @@ export function AddTransactionDialog({
         }
     } else {
         finalData.description = `Transferência de ${data.fromAccount} para ${data.toAccount}`;
+        finalData.category = 'Transferência';
     }
 
     if (finalData.linkedGoalId === '' || finalData.linkedGoalId === 'none') {
