@@ -87,9 +87,9 @@ export function CopilotCard() {
         // 1. Anniversary/Birthday Insight
         const specialDates = [];
         const [name1, name2] = (profileData.names || 'Pessoa 1 & Pessoa 2').split(' & ');
-        if (profileData.sinceDate && profileData.sinceDate) specialDates.push({ date: parseISO(profileData.sinceDate), type: 'Aniversário de Namoro', name: 'de vocês' });
-        if (profileData.birthday1 && profileData.birthday1) specialDates.push({ date: parseISO(profileData.birthday1), type: 'Aniversário', name: `de ${name1}` });
-        if (profileData.birthday2 && profileData.birthday2) specialDates.push({ date: parseISO(profileData.birthday2), type: 'Aniversário', name: `de ${name2}` });
+        if (profileData.sinceDate) specialDates.push({ date: parseISO(profileData.sinceDate), type: 'Aniversário de Namoro', name: 'de vocês' });
+        if (profileData.birthday1) specialDates.push({ date: parseISO(profileData.birthday1), type: 'Aniversário', name: `de ${name1}` });
+        if (profileData.birthday2) specialDates.push({ date: parseISO(profileData.birthday2), type: 'Aniversário', name: `de ${name2}` });
 
         for (const specialDate of specialDates) {
             const dateThisYear = new Date(today.getFullYear(), getMonth(specialDate.date), getDate(specialDate.date));
@@ -262,7 +262,7 @@ export function CopilotCard() {
                 </Button>
             )
         ) : (
-            <Button asChild variant="outline" className="w-full bg-transparent border-primary/50 text-primary hover:bg-primary/10 hover:text-primary">
+            currentInsight && <Button asChild variant="outline" className="w-full bg-transparent border-primary/50 text-primary hover:bg-primary/10 hover:text-primary">
             <Link href={getButtonLink()}>
                 {getButtonText()} <ArrowUpRight className="ml-2 h-4 w-4" />
             </Link>
@@ -272,5 +272,3 @@ export function CopilotCard() {
     </Card>
   );
 }
-
-    

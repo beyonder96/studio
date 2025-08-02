@@ -23,6 +23,7 @@ import {
   Home as HomeIcon,
   Landmark,
   Cat,
+  HeartPulse,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
@@ -52,6 +53,7 @@ const navItems = [
 ];
 
 const bottomNavItems = [
+    { href: '/profile', icon: HeartPulse, label: 'Minha Saúde' },
     { href: '/settings', icon: Settings, label: 'Ajustes' },
     { href: '/profile', icon: User, label: 'Perfil' },
 ]
@@ -193,7 +195,7 @@ const NavPanel = ({ isOpen, setIsOpen }: { isOpen: boolean, setIsOpen: (open: bo
                                 <div
                                 className={cn(
                                     'flex items-center gap-4 p-3 rounded-lg transition-colors text-foreground',
-                                    isActive(item.href)
+                                    isActive(item.href) && item.href !== '/profile'
                                     ? 'bg-primary/20 text-primary font-semibold'
                                     : 'hover:bg-muted'
                                 )}

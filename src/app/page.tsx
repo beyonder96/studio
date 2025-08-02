@@ -17,11 +17,12 @@ import { AddAppointmentDialog } from '@/components/calendar/add-appointment-dial
 import { ptBR } from 'date-fns/locale';
 import { format } from 'date-fns';
 import { useRouter } from 'next/navigation';
-import { Loader2, Eye, EyeOff, Moon, Sun } from 'lucide-react';
+import { Loader2, Eye, EyeOff, Moon, Sun, HeartPulse } from 'lucide-react';
 import { useAuth } from '@/contexts/auth-context';
 import { WeatherOverview } from '@/components/dashboard/weather-overview';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
+import Link from 'next/link';
 
 type Theme = 'light' | 'dark';
 
@@ -50,6 +51,22 @@ const DateDisplay = () => {
       </Card>
   );
 };
+
+const HealthCard = () => {
+    return (
+        <Link href="/profile" className="block">
+            <Card className="bg-white/10 dark:bg-black/10 border-none shadow-none h-full hover:bg-white/20 dark:hover:bg-black/20 transition-colors">
+                <CardContent className="p-6 flex items-center justify-center h-full">
+                    <div className="text-center">
+                        <HeartPulse className="mx-auto h-10 w-10 text-primary mb-2" />
+                        <h3 className="font-semibold text-lg">Minha Saúde</h3>
+                        <p className="text-xs text-muted-foreground">Contatos de emergência e informações.</p>
+                    </div>
+                </CardContent>
+            </Card>
+        </Link>
+    )
+}
 
 
 export default function Home() {
@@ -131,6 +148,7 @@ export default function Home() {
              <JourneyCard />
              <GoalsOverview />
              <ShoppingListOverview />
+             <HealthCard />
              <DateDisplay />
              <WeatherOverview />
           </div>
