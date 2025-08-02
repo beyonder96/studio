@@ -66,6 +66,12 @@ export type ShoppingListItem = { id: string; name: string; quantity: number; che
 export type ShoppingList = { id: string; name: string; items: ShoppingListItem[]; shared: boolean; };
 export type Memory = { id: string; title: string; description: string; date: string; imageUrl?: string; };
 export type Achievement = { id: string; name: string; description: string; icon: string; };
+export type HealthInfo = {
+    bloodType?: string;
+    allergies?: string;
+    healthPlan?: string;
+    emergencyContact?: string;
+};
 
 export type HealthRecordType = 'vaccine' | 'dewormer' | 'flea_tick' | 'consultation' | 'other';
 export type HealthRecord = {

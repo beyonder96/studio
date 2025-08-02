@@ -19,7 +19,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { useAuth } from '@/contexts/auth-context';
 import { getDatabase, ref, onValue, update } from 'firebase/database';
 import { app as firebaseApp } from '@/lib/firebase';
-import { FinanceContext } from '@/contexts/finance-context';
+import { FinanceContext, HealthInfo } from '@/contexts/finance-context';
 import { Badge } from '@/components/ui/badge';
 
 
@@ -42,13 +42,6 @@ type ProfileData = {
   healthInfo1?: HealthInfo;
   healthInfo2?: HealthInfo;
 };
-
-type HealthInfo = {
-    bloodType?: string;
-    allergies?: string;
-    healthPlan?: string;
-    emergencyContact?: string;
-}
 
 const defaultHealthInfo: HealthInfo = {
     bloodType: '',
@@ -275,7 +268,7 @@ export default function ProfilePage() {
     );
 };
 
-  const [name1, name2] = (profileData.names || '').split(' & ').map(name => name.trim());
+  const [name1, name2] = (tempData.names || '').split(' & ').map(name => name.trim());
   const person1Name = name1 || 'Pessoa 1';
   const person2Name = name2 || 'Pessoa 2';
 
@@ -287,7 +280,7 @@ export default function ProfilePage() {
             {/* Profile Header */}
             <div className="relative w-full h-[35vh] sm:h-[45vh] text-white">
                 <Image
-                src={profileData.profileImage || defaultProfileImage}
+                src={tempData.profileImage || defaultProfileImage}
                 alt="Foto do casal"
                 fill
                 className="object-cover brightness-90"
