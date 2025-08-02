@@ -53,7 +53,7 @@ const navItems = [
 ];
 
 const bottomNavItems = [
-    { href: '/profile', icon: HeartPulse, label: 'Minha Saúde' },
+    { href: '/health', icon: HeartPulse, label: 'Minha Saúde' },
     { href: '/settings', icon: Settings, label: 'Ajustes' },
     { href: '/profile', icon: User, label: 'Perfil' },
 ]

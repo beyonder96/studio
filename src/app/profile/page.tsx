@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { ArrowLeft, Camera, Edit, Utensils, Film, Music, MapPin, Save, Calendar as CalendarIcon, Loader2, Disc, Mail, Users, Info, Gift as GiftIcon, HeartPulse, Shield, Phone, Hospital, Trophy } from 'lucide-react';
+import { ArrowLeft, Camera, Edit, Utensils, Film, Music, MapPin, Save, Calendar as CalendarIcon, Loader2, Disc, Mail, Users, Info, Gift as GiftIcon, Trophy } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
@@ -19,8 +19,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { useAuth } from '@/contexts/auth-context';
 import { getDatabase, ref, onValue, update } from 'firebase/database';
 import { app as firebaseApp } from '@/lib/firebase';
-import { FinanceContext, HealthInfo, Achievement } from '@/contexts/finance-context';
-import { Badge } from '@/components/ui/badge';
+import { FinanceContext, Achievement } from '@/contexts/finance-context';
 
 
 const defaultProfileImage = "https://placehold.co/600x800.png";
@@ -39,15 +38,6 @@ type ProfileData = {
   partnerEmail?: string;
   details?: string;
   profileImage?: string;
-  healthInfo1?: HealthInfo;
-  healthInfo2?: HealthInfo;
-};
-
-const defaultHealthInfo: HealthInfo = {
-    bloodType: '',
-    allergies: '',
-    healthPlan: '',
-    emergencyContact: '',
 };
 
 const defaultProfileData: ProfileData = {
@@ -64,8 +54,6 @@ const defaultProfileData: ProfileData = {
     partnerEmail: '',
     details: 'Amamos viajar, descobrir novos restaurantes e assistir a séries juntos nos fins de semana. Sonhamos em conhecer o mundo, começando pela Itália!',
     profileImage: defaultProfileImage,
-    healthInfo1: defaultHealthInfo,
-    healthInfo2: defaultHealthInfo,
 };
 
 const getSinceText = (isoDate?: string): string => {
@@ -104,8 +92,6 @@ export default function ProfilePage() {
               ...defaultProfileData,
               ...data,
               email: data.email || user.email,
-              healthInfo1: data.healthInfo1 || defaultHealthInfo,
-              healthInfo2: data.healthInfo2 || defaultHealthInfo,
           };
           setProfileData(fetchedData);
           setTempData(fetchedData);
@@ -212,18 +198,8 @@ export default function ProfilePage() {
     });
   }
 
-  const handleInputChange = (field: keyof Omit<ProfileData, 'sinceDate' | 'details' | 'birthday1' | 'birthday2' | 'profileImage' | 'healthInfo1' | 'healthInfo2'>, value: string) => {
+  const handleInputChange = (field: keyof Omit<ProfileData, 'sinceDate' | 'details' | 'birthday1' | 'birthday2' | 'profileImage'>, value: string) => {
     setTempData(prev => ({...prev, [field]: value}));
-  };
-
-  const handleHealthInfoChange = (person: 'healthInfo1' | 'healthInfo2', field: keyof HealthInfo, value: string) => {
-    setTempData(prev => ({
-        ...prev,
-        [person]: {
-            ...prev[person],
-            [field]: value,
-        }
-    }))
   };
   
   const handleTextareaChange = (field: keyof Pick<ProfileData, 'details'>, value: string) => {
@@ -441,90 +417,6 @@ export default function ProfilePage() {
                        ) : (
                            <p className="text-muted-foreground text-center">Comecem a usar o app para desbloquear conquistas!</p>
                        )}
-                    </CardContent>
-                </Card>
-
-                <Card className="bg-transparent">
-                    <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                            <HeartPulse className="h-5 w-5" />
-                            Saúde e Emergência
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
-                        {/* Person 1 Health Info */}
-                        <div className="space-y-4">
-                            <h4 className="font-semibold text-center md:text-left">{person1Name}</h4>
-                            <div className="space-y-2">
-                                <Label>Tipo Sanguíneo</Label>
-                                {isEditing ? (
-                                    <Input value={tempData.healthInfo1?.bloodType} onChange={e => handleHealthInfoChange('healthInfo1', 'bloodType', e.target.value)} placeholder="Ex: A+" />
-                                ) : (
-                                    <p className="text-muted-foreground">{profileData.healthInfo1?.bloodType || 'Não informado'}</p>
-                                )}
-                            </div>
-                            <div className="space-y-2">
-                                <Label>Alergias</Label>
-                                {isEditing ? (
-                                    <Input value={tempData.healthInfo1?.allergies} onChange={e => handleHealthInfoChange('healthInfo1', 'allergies', e.target.value)} placeholder="Ex: Poeira, Lactose" />
-                                ) : (
-                                    <p className="text-muted-foreground">{profileData.healthInfo1?.allergies || 'Nenhuma'}</p>
-                                )}
-                            </div>
-                            <div className="space-y-2">
-                                <Label>Plano de Saúde</Label>
-                                {isEditing ? (
-                                    <Input value={tempData.healthInfo1?.healthPlan} onChange={e => handleHealthInfoChange('healthInfo1', 'healthPlan', e.target.value)} placeholder="Ex: Plano Top (123456)" />
-                                ) : (
-                                    <p className="text-muted-foreground">{profileData.healthInfo1?.healthPlan || 'Não informado'}</p>
-                                )}
-                            </div>
-                            <div className="space-y-2">
-                                <Label>Contato de Emergência</Label>
-                                {isEditing ? (
-                                    <Input value={tempData.healthInfo1?.emergencyContact} onChange={e => handleHealthInfoChange('healthInfo1', 'emergencyContact', e.target.value)} placeholder="Ex: Mãe (11 99999-8888)" />
-                                ) : (
-                                    <p className="text-muted-foreground">{profileData.healthInfo1?.emergencyContact || 'Não informado'}</p>
-                                )}
-                            </div>
-                        </div>
-
-                        {/* Person 2 Health Info */}
-                         <div className="space-y-4">
-                            <h4 className="font-semibold text-center md:text-left">{person2Name}</h4>
-                            <div className="space-y-2">
-                                <Label>Tipo Sanguíneo</Label>
-                                {isEditing ? (
-                                    <Input value={tempData.healthInfo2?.bloodType} onChange={e => handleHealthInfoChange('healthInfo2', 'bloodType', e.target.value)} placeholder="Ex: O-" />
-                                ) : (
-                                    <p className="text-muted-foreground">{profileData.healthInfo2?.bloodType || 'Não informado'}</p>
-                                )}
-                            </div>
-                            <div className="space-y-2">
-                                <Label>Alergias</Label>
-                                {isEditing ? (
-                                    <Input value={tempData.healthInfo2?.allergies} onChange={e => handleHealthInfoChange('healthInfo2', 'allergies', e.target.value)} placeholder="Ex: Glúten" />
-                                ) : (
-                                    <p className="text-muted-foreground">{profileData.healthInfo2?.allergies || 'Nenhuma'}</p>
-                                )}
-                            </div>
-                            <div className="space-y-2">
-                                <Label>Plano de Saúde</Label>
-                                {isEditing ? (
-                                    <Input value={tempData.healthInfo2?.healthPlan} onChange={e => handleHealthInfoChange('healthInfo2', 'healthPlan', e.target.value)} placeholder="Ex: Plano Master (654321)" />
-                                ) : (
-                                    <p className="text-muted-foreground">{profileData.healthInfo2?.healthPlan || 'Não informado'}</p>
-                                )}
-                            </div>
-                             <div className="space-y-2">
-                                <Label>Contato de Emergência</Label>
-                                {isEditing ? (
-                                    <Input value={tempData.healthInfo2?.emergencyContact} onChange={e => handleHealthInfoChange('healthInfo2', 'emergencyContact', e.target.value)} placeholder="Ex: Pai (11 98888-7777)" />
-                                ) : (
-                                    <p className="text-muted-foreground">{profileData.healthInfo2?.emergencyContact || 'Não informado'}</p>
-                                )}
-                            </div>
-                        </div>
                     </CardContent>
                 </Card>
 

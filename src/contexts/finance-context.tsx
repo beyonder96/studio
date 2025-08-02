@@ -1078,7 +1078,7 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
         const finalRecord: any = { ...record };
         // Remove undefined fields before saving
         if (finalRecord.notes === undefined) delete finalRecord.notes;
-        if (finalRecord.nextDueDate === undefined) delete finalRecord.nextDueDate;
+        if (finalRecord.nextDueDate === undefined || finalRecord.nextDueDate === '') delete finalRecord.nextDueDate;
         set(child(recordsRef, newRecordId), finalRecord);
     }
   };

@@ -54,7 +54,7 @@ const DateDisplay = () => {
 
 const HealthCard = () => {
     return (
-        <Link href="/profile" className="block">
+        <Link href="/health" className="block">
             <Card className="bg-white/10 dark:bg-black/10 border-none shadow-none h-full hover:bg-white/20 dark:hover:bg-black/20 transition-colors">
                 <CardContent className="p-6 flex items-center justify-center h-full">
                     <div className="text-center">
