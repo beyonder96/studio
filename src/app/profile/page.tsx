@@ -19,7 +19,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { useAuth } from '@/contexts/auth-context';
 import { getDatabase, ref, onValue, update } from 'firebase/database';
 import { app as firebaseApp } from '@/lib/firebase';
-import { FinanceContext, HealthInfo } from '@/contexts/finance-context';
+import { FinanceContext, HealthInfo, Achievement } from '@/contexts/finance-context';
 import { Badge } from '@/components/ui/badge';
 
 
