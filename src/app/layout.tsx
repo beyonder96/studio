@@ -21,6 +21,7 @@ export default function RootLayout({
   const pathname = usePathname();
 
   const isAuthPage = pathname === '/login' || pathname === '/signup';
+  const isDashboard = pathname === '/';
 
   useEffect(() => {
     // Apply theme on initial load
@@ -52,7 +53,7 @@ export default function RootLayout({
             <FinanceProvider>
               <SpecialDayAnimation />
               <div className="flex min-h-screen flex-col">
-                  <main className="w-full flex-1 p-4 sm:p-6 md:p-8">
+                  <main className={cn("w-full flex-1 p-4 sm:p-6 md:p-8", !isDashboard && "pt-24")}>
                     <AnimatePresence mode="wait">
                       <motion.div
                         key={pathname}

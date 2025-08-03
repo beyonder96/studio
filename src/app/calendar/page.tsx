@@ -175,7 +175,7 @@ export default function CalendarPage() {
                     <h1 className="text-2xl font-bold">Agenda</h1>
                     <p className="text-muted-foreground">Seus próximos compromissos.</p>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex flex-col sm:flex-row items-center gap-2">
                     <Button variant="outline" onClick={() => handleSync()} disabled={isSyncing} className="w-full sm:w-auto">
                         {isSyncing ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <RefreshCw className="mr-2 h-4 w-4" />}
                         Sincronizar com Google
