@@ -413,8 +413,9 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
             }
         } else if (transaction.account) {
             const targetAccount = accounts.find(a => a.name === transaction.account);
-            // Check if it's an account (including vouchers) and not a card
-            if (targetAccount && !cards.some(c => c.name === transaction.account)) {
+            const isCard = cards.some(c => c.name === transaction.account);
+
+            if (targetAccount && !isCard) {
                 updates[`accounts/${targetAccount.id}/balance`] = targetAccount.balance + (transaction.amount || 0);
             }
         }
@@ -464,26 +465,30 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
     if (!originalTransaction) return;
 
     const updates: { [key: string]: any } = {};
+    const account = accounts.find(acc => acc.name === originalTransaction.account);
+    const isCard = cards.some(c => c.name === originalTransaction.account);
 
-    // Only adjust balance if the 'paid' status is true for either original or updated
-    if (originalTransaction.paid || updatedTransaction.paid) {
-        const account = accounts.find(acc => acc.name === originalTransaction.account);
-        if (account && !cards.some(c => c.name === account.name)) {
-            let balanceChange = 0;
-            // If it was paid, revert the old amount
-            if (originalTransaction.paid) {
-                balanceChange -= originalTransaction.amount;
-            }
-            // If it's now paid, apply the new amount
-            if (updatedTransaction.paid) {
-                balanceChange += updatedTransaction.amount ?? originalTransaction.amount;
-            }
+    // Only adjust balance if it's an account and paid status changes
+    if (account && !isCard) {
+        const originalAmount = originalTransaction.amount;
+        const newAmount = updatedTransaction.amount ?? originalAmount;
+
+        let balanceChange = 0;
+        // Revert old transaction if it was paid
+        if (originalTransaction.paid) {
+            balanceChange -= originalAmount;
+        }
+        // Apply new transaction if it is paid
+        if (updatedTransaction.paid) {
+            balanceChange += newAmount;
+        }
+
+        if (balanceChange !== 0) {
             updates[`accounts/${account.id}/balance`] = account.balance + balanceChange;
         }
     }
     
     const finalUpdate: Partial<Transaction> = { ...updatedTransaction };
-    // Ensure undefined values are not sent to Firebase
     Object.keys(finalUpdate).forEach(key => {
         const k = key as keyof typeof finalUpdate;
         if (finalUpdate[k] === undefined) {
@@ -1102,7 +1107,7 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
     if (newRecordId) {
         const finalRecord: any = { ...record };
         // Remove undefined fields before saving
-        if (finalRecord.notes === undefined) delete finalRecord.notes;
+        if (finalRecord.notes === undefined || finalRecord.notes === '') delete finalRecord.notes;
         if (finalRecord.nextDueDate === undefined || finalRecord.nextDueDate === '') delete finalRecord.nextDueDate;
         set(child(recordsRef, newRecordId), finalRecord);
     }
