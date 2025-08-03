@@ -84,7 +84,7 @@ export function AddTransactionDialog({
   transaction,
 }: AddTransactionDialogProps) {
   const isEditing = !!transaction;
-  const { accounts, cards, incomeCategories, expenseCategories, goals, formatCurrency } = useContext(FinanceContext);
+  const { transactions, accounts, cards, incomeCategories, expenseCategories, goals, formatCurrency } = useContext(FinanceContext);
 
   const combinedAccounts = useMemo(() => [
       ...accounts.map(a => ({...a, id: a.id, name: a.name, type: a.type, limit: undefined})), 
@@ -167,6 +167,12 @@ export function AddTransactionDialog({
     return null;
   }, [isCreditCard, amount, installments]);
 
+  const getVoucherCurrentBalance = (voucher: Account) => {
+    const associatedTransactions = transactions.filter(t => t.account === voucher.name);
+    const balance = associatedTransactions.reduce((sum, t) => sum + t.amount, voucher.balance);
+    return balance;
+  };
+
   const remainingBalanceText = useMemo(() => {
     if (!selectedAccount) return null;
 
@@ -183,10 +189,11 @@ export function AddTransactionDialog({
     if (isVoucher) {
       const voucherAccount = accounts.find(acc => acc.id === selectedAccount.id) as Account | undefined;
       if (voucherAccount && voucherAccount.balance !== undefined) {
-        const remainingBalance = voucherAccount.balance - (transactionType === 'expense' ? amount : 0);
+        const currentBalance = getVoucherCurrentBalance(voucherAccount);
+        const remainingBalance = currentBalance - (transactionType === 'expense' ? amount : 0);
         return (
           <div className="text-xs text-muted-foreground mt-1 text-right">
-            Saldo: {formatCurrency(voucherAccount.balance, true)}
+            Saldo: {formatCurrency(currentBalance, true)}
             {amount > 0 && <span className="text-blue-500"> | Restante: {formatCurrency(remainingBalance, true)}</span>}
           </div>
         );
@@ -194,7 +201,7 @@ export function AddTransactionDialog({
     }
     
     return null;
-  }, [isCreditCard, isVoucher, selectedAccount, amount, transactionType, formatCurrency, accounts]);
+  }, [isCreditCard, isVoucher, selectedAccount, amount, transactionType, formatCurrency, accounts, getVoucherCurrentBalance]);
 
 
   const pendingGoals = useMemo(() => goals.filter(g => !g.completed), [goals]);
