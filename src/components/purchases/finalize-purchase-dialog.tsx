@@ -25,10 +25,13 @@ import {
 } from '@/components/ui/select';
 import { FinanceContext, ShoppingList } from '@/contexts/finance-context';
 import type { Transaction } from '@/components/finance/transactions-table';
+import { CurrencyInput } from '../finance/currency-input';
+
 
 const finalizeSchema = z.object({
   category: z.string().min(1, 'A categoria é obrigatória'),
   account: z.string().min(1, 'A conta/cartão é obrigatória'),
+  discount: z.coerce.number().min(0, "O desconto não pode ser negativo").optional(),
 });
 
 type FinalizeFormData = z.infer<typeof finalizeSchema>;
@@ -36,7 +39,7 @@ type FinalizeFormData = z.infer<typeof finalizeSchema>;
 type FinalizePurchaseDialogProps = {
   isOpen: boolean;
   onClose: () => void;
-  onConfirm: (list: ShoppingList, transactionDetails: Omit<Transaction, 'id' | 'amount' | 'description'>) => void;
+  onConfirm: (list: ShoppingList, transactionDetails: Omit<Transaction, 'id' | 'amount' | 'description'>, discount?: number) => void;
   list: ShoppingList;
 };
 
@@ -52,12 +55,14 @@ export function FinalizePurchaseDialog({ isOpen, onClose, onConfirm, list }: Fin
     handleSubmit,
     control,
     reset,
+    watch,
     formState: { errors },
   } = useForm<FinalizeFormData>({
     resolver: zodResolver(finalizeSchema),
     defaultValues: {
       category: 'Alimentação',
       account: '',
+      discount: 0,
     },
   });
   
@@ -67,9 +72,12 @@ export function FinalizePurchaseDialog({ isOpen, onClose, onConfirm, list }: Fin
     }, 0);
   }, [list]);
 
+  const discountValue = watch('discount') || 0;
+  const finalCost = totalCost - discountValue;
+
   useEffect(() => {
     if (isOpen) {
-      reset({ category: 'Alimentação', account: '' });
+      reset({ category: 'Alimentação', account: '', discount: 0 });
     }
   }, [isOpen, reset]);
 
@@ -80,7 +88,7 @@ export function FinalizePurchaseDialog({ isOpen, onClose, onConfirm, list }: Fin
         account: data.account,
         date: new Date().toISOString().split('T')[0],
     }
-    onConfirm(list, transactionDetails);
+    onConfirm(list, transactionDetails, data.discount);
   };
 
   return (
@@ -106,7 +114,7 @@ export function FinalizePurchaseDialog({ isOpen, onClose, onConfirm, list }: Fin
                           </SelectTrigger>
                           <SelectContent>
                               {expenseCategories.filter(c => c !== 'Transferência').map(cat => (
-                                  <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                                  <SelectItem key={cat} value={cat}>{cat}>{cat}</SelectItem>
                               ))}
                           </SelectContent>
                       </Select>
@@ -136,6 +144,27 @@ export function FinalizePurchaseDialog({ isOpen, onClose, onConfirm, list }: Fin
               {errors.account && <p className="text-red-500 text-xs mt-1">{errors.account.message}</p>}
             </div>
 
+             <div className="space-y-2">
+                <Label htmlFor="discount">Desconto (Opcional)</Label>
+                <Controller
+                    name="discount"
+                    control={control}
+                    render={({ field }) => (
+                    <CurrencyInput
+                        value={field.value || 0}
+                        onValueChange={(value) => field.onChange(value)}
+                    />
+                    )}
+                />
+                {errors.discount && <p className="text-red-500 text-xs mt-1">{errors.discount.message}</p>}
+            </div>
+            
+            {finalCost !== totalCost && (
+                <p className="text-right text-muted-foreground text-lg">
+                    Total Final: <span className="font-bold text-primary">{formatCurrency(finalCost)}</span>
+                </p>
+            )}
+
           </div>
           <DialogFooter>
             <DialogClose asChild>
@@ -143,7 +172,7 @@ export function FinalizePurchaseDialog({ isOpen, onClose, onConfirm, list }: Fin
                 Cancelar
               </Button>
             </DialogClose>
-            <Button type="submit">Confirmar e Registrar</Button>
+            <Button type="submit" disabled={finalCost < 0}>Confirmar e Registrar</Button>
           </DialogFooter>
         </form>
       </DialogContent>

@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -16,6 +16,7 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { ShoppingListItem } from '@/contexts/finance-context';
 import { CurrencyInput } from '@/components/finance/currency-input';
+import { formatCurrency } from '@/lib/utils'; // Assuming formatCurrency is available here
 
 type SetPriceDialogProps = {
   isOpen: boolean;
@@ -25,28 +26,41 @@ type SetPriceDialogProps = {
 };
 
 export function SetPriceDialog({ isOpen, onClose, onSetPrice, item }: SetPriceDialogProps) {
-  const [price, setPrice] = useState<number | undefined>(undefined);
+  const [unitPrice, setUnitPrice] = useState<number | undefined>(undefined);
   const [quantity, setQuantity] = useState('1');
 
   useEffect(() => {
     if (item) {
-      setPrice(item.price);
+      // If a total price exists and quantity is valid, calculate unit price, otherwise default to undefined
+      const numQuantity = parseInt(item.quantity.toString(), 10);
+      if (item.price && numQuantity > 0) {
+        setUnitPrice(item.price / numQuantity);
+      } else {
+        setUnitPrice(undefined);
+      }
       setQuantity(item.quantity.toString());
     } else {
-      setPrice(undefined);
+      setUnitPrice(undefined);
       setQuantity('1');
     }
   }, [item]);
 
+  const numQuantity = parseInt(quantity, 10);
+  const totalPrice = useMemo(() => {
+    if (unitPrice !== undefined && !isNaN(numQuantity) && numQuantity > 0) {
+      return unitPrice * numQuantity;
+    }
+    return 0;
+  }, [unitPrice, numQuantity]);
+
   const handleSave = () => {
-    const numQuantity = parseInt(quantity, 10);
-    if (item && price !== undefined && !isNaN(numQuantity) && numQuantity > 0) {
-      onSetPrice(item.id, price, numQuantity);
+    if (item && !isNaN(totalPrice)) {
+      onSetPrice(item.id, totalPrice, numQuantity);
     }
   };
 
   const handleClose = () => {
-    setPrice(undefined);
+    setUnitPrice(undefined);
     setQuantity('1');
     onClose();
   };
@@ -57,8 +71,6 @@ export function SetPriceDialog({ isOpen, onClose, onSetPrice, item }: SetPriceDi
         setQuantity(value);
     }
   };
-  
-  const numQuantity = parseInt(quantity, 10);
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => { if (!open) handleClose() }}>
@@ -66,30 +78,37 @@ export function SetPriceDialog({ isOpen, onClose, onSetPrice, item }: SetPriceDi
         <DialogHeader>
           <DialogTitle>Adicionar Preço e Quantidade</DialogTitle>
           <DialogDescription>
-            Qual o valor e a quantidade para <span className="font-semibold">{item?.name}</span>?
+            Qual o valor unitário e a quantidade para <span className="font-semibold">{item?.name}</span>?
           </DialogDescription>
         </DialogHeader>
         <div className="py-4 space-y-4">
-            <div className="space-y-2">
-                <Label htmlFor="item-quantity">Quantidade Comprada</Label>
-                <Input
-                    id="item-quantity"
-                    value={quantity}
-                    onChange={handleQuantityChange}
-                    min="1"
-                    type="number"
-                />
+            <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                    <Label htmlFor="item-quantity">Quantidade</Label>
+                    <Input
+                        id="item-quantity"
+                        value={quantity}
+                        onChange={handleQuantityChange}
+                        min="1"
+                        type="number"
+                    />
+                </div>
+                 <div className="space-y-2">
+                    <Label htmlFor="item-unit-price">Preço Unitário</Label>
+                    <CurrencyInput
+                        id="item-unit-price"
+                        value={unitPrice || 0}
+                        onValueChange={(value) => setUnitPrice(value)}
+                        placeholder="R$ 0,00"
+                        autoFocus
+                    />
+                </div>
             </div>
-            <div className="space-y-2">
-                <Label htmlFor="item-price">Preço Total</Label>
-                <CurrencyInput
-                    id="item-price"
-                    value={price || 0}
-                    onValueChange={(value) => setPrice(value)}
-                    placeholder="R$ 0,00"
-                    autoFocus
-                />
-            </div>
+             {totalPrice > 0 && (
+                <p className="text-right text-muted-foreground text-sm">
+                    Total do item: <span className="font-bold text-foreground">{formatCurrency(totalPrice, true)}</span>
+                </p>
+             )}
         </div>
         <DialogFooter>
           <DialogClose asChild>
@@ -97,7 +116,7 @@ export function SetPriceDialog({ isOpen, onClose, onSetPrice, item }: SetPriceDi
               Cancelar
             </Button>
           </DialogClose>
-          <Button type="button" onClick={handleSave} disabled={price === undefined || price <= 0 || !quantity || numQuantity <= 0}>
+          <Button type="button" onClick={handleSave} disabled={unitPrice === undefined || unitPrice <= 0 || !quantity || numQuantity <= 0}>
             Salvar
           </Button>
         </DialogFooter>
@@ -105,4 +124,3 @@ export function SetPriceDialog({ isOpen, onClose, onSetPrice, item }: SetPriceDi
     </Dialog>
   );
 }
-

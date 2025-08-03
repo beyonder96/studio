@@ -184,7 +184,7 @@ type FinanceContextType = {
   handleDeleteList: (listId: string) => void;
   handleStartRenameList: (list: ShoppingList) => void;
   handleRenameList: (listId: string, newName: string, callback: () => void) => void;
-  handleFinishList: (list: ShoppingList, transactionDetails: Omit<Transaction, 'id' | 'amount' | 'description'>) => void;
+  handleFinishList: (list: ShoppingList, transactionDetails: Omit<Transaction, 'id' | 'amount' | 'description'>, discount?: number) => void;
   handlePayCardBill: (card: Card, amount: number, accountId: string) => void;
   memories: Memory[];
   addMemory: (memory: Omit<Memory, 'id'>) => void;
@@ -414,8 +414,15 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
         } else if (transaction.account) {
             const targetAccount = accounts.find(a => a.name === transaction.account);
             if (targetAccount) {
-                // This is a bank account or voucher, update its balance
-                updates[`accounts/${targetAccount.id}/balance`] = targetAccount.balance + (transaction.amount || 0);
+                 if (targetAccount.type === 'voucher') {
+                     // For vouchers, the balance update happens here.
+                     const currentBalance = targetAccount.balance;
+                     const newBalance = currentBalance + (transaction.amount || 0);
+                     updates[`accounts/${targetAccount.id}/balance`] = newBalance;
+                 } else if (targetAccount.type === 'checking' || targetAccount.type === 'savings') {
+                    // For regular accounts, update balance
+                     updates[`accounts/${targetAccount.id}/balance`] = targetAccount.balance + (transaction.amount || 0);
+                 }
             }
         }
     }
@@ -1003,16 +1010,17 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
   
   const handleStartRenameList = () => {};
 
-  const handleFinishList = useCallback((list: ShoppingList, transactionDetails: Omit<Transaction, 'id' | 'amount' | 'description'>) => {
+  const handleFinishList = useCallback((list: ShoppingList, transactionDetails: Omit<Transaction, 'id' | 'amount' | 'description'>, discount: number = 0) => {
      if (!user) return;
 
      const totalCost = list.items.reduce((sum, item) => item.checked && item.price ? sum + item.price : sum, 0);
+     const finalCost = totalCost - discount;
 
-     if (totalCost > 0) {
+     if (finalCost > 0) {
         const purchaseTransaction: Omit<Transaction, 'id'> = {
             ...transactionDetails,
             description: `Compra: ${list.name}`,
-            amount: -totalCost, // as an expense
+            amount: -finalCost, // as an expense
             type: 'expense',
             paid: true, // Purchase is immediately settled
             date: format(new Date(), 'yyyy-MM-dd'),
