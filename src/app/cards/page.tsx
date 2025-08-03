@@ -52,7 +52,7 @@ const GlassCard = ({ card }: { card: CardType }) => {
 };
 
 const VoucherCard = ({ voucher, balance }: { voucher: Account, balance: number }) => {
-    const { formatCurrency } = useContext(FinanceContext);
+    const { formatCurrency, isSensitiveDataVisible } = useContext(FinanceContext);
     return (
         <div className="relative w-full aspect-[1.586] rounded-xl bg-black/20 dark:bg-white/20 backdrop-blur-lg shadow-2xl p-6 text-white overflow-hidden">
             <div className="absolute top-0 left-0 w-48 h-48 bg-green-500/30 rounded-full -translate-x-1/2 -translate-y-1/4"></div>
@@ -63,7 +63,7 @@ const VoucherCard = ({ voucher, balance }: { voucher: Account, balance: number }
                     <h3 className="text-sm uppercase">{voucher.holder}</h3>
                 </div>
                 <div className="flex justify-between items-end">
-                    <p className="text-3xl font-semibold">{formatCurrency(balance)}</p>
+                    <p className="text-3xl font-semibold">{formatCurrency(balance, isSensitiveDataVisible)}</p>
                     <VoucherBrandLogo brand={voucher.brand} className="h-8" />
                 </div>
             </div>
@@ -378,4 +378,3 @@ export default function CardsPage() {
     </div>
   );
 }
-

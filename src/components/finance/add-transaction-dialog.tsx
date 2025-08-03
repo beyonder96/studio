@@ -167,11 +167,11 @@ export function AddTransactionDialog({
     return null;
   }, [isCreditCard, amount, installments]);
 
-  const getVoucherCurrentBalance = (voucher: Account) => {
+  const getVoucherCurrentBalance = useCallback((voucher: Account) => {
     const associatedTransactions = transactions.filter(t => t.account === voucher.name);
     const balance = associatedTransactions.reduce((sum, t) => sum + t.amount, voucher.balance);
     return balance;
-  };
+  }, [transactions]);
 
   const remainingBalanceText = useMemo(() => {
     if (!selectedAccount) return null;
@@ -213,14 +213,14 @@ export function AddTransactionDialog({
     // Don't pass installment data if not a credit card purchase
     const finalInstallments = (isCreditCard && (data.installments || 1) > 1) ? data.installments : undefined;
     
-    const finalData = { ...data, amount: transactionAmount };
+    let finalData: Omit<Transaction, 'id'> & { fromAccount?: string; toAccount?: string } = { ...data, amount: transactionAmount };
     
     if (data.type !== 'transfer') {
         if (!finalData.isRecurring) {
             delete finalData.frequency;
         }
          if (!isCreditCard || (finalData.installments || 1) <= 1) {
-          delete finalData.installments;
+          delete (finalData as any).installments;
         }
     } else {
         finalData.description = `Transferência de ${data.fromAccount} para ${data.toAccount}`;

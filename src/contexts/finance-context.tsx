@@ -414,13 +414,8 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
         } else if (transaction.account) {
             const targetAccount = accounts.find(a => a.name === transaction.account);
             if (targetAccount) {
-                if (targetAccount.type === 'voucher') {
-                    // This is a voucher, update its balance
-                    updates[`accounts/${targetAccount.id}/balance`] = targetAccount.balance + (transaction.amount || 0);
-                } else {
-                    // This is a bank account, update its balance
-                    updates[`accounts/${targetAccount.id}/balance`] = targetAccount.balance + (transaction.amount || 0);
-                }
+                // This is a bank account or voucher, update its balance
+                updates[`accounts/${targetAccount.id}/balance`] = targetAccount.balance + (transaction.amount || 0);
             }
         }
     }
