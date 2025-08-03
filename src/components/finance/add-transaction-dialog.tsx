@@ -25,7 +25,7 @@ import { z } from 'zod';
 import { Transaction } from './transactions-table';
 import { CurrencyInput } from './currency-input';
 import { useEffect, useContext, useMemo } from 'react';
-import { FinanceContext } from '@/contexts/finance-context';
+import { FinanceContext, Account } from '@/contexts/finance-context';
 import { Input } from '@/components/ui/input';
 import { addMonths, format } from 'date-fns';
 
@@ -87,8 +87,8 @@ export function AddTransactionDialog({
   const { accounts, cards, incomeCategories, expenseCategories, goals, formatCurrency } = useContext(FinanceContext);
 
   const combinedAccounts = useMemo(() => [
-      ...accounts.map(a => ({...a, id: a.id, name: a.name, type: 'account', limit: undefined})), 
-      ...cards.map(c => ({...c, id: c.id, name: c.name, type: 'card', balance: undefined}))
+      ...accounts.map(a => ({...a, id: a.id, name: a.name, type: a.type, limit: undefined})), 
+      ...cards.map(c => ({...c, id: c.id, name: c.name, type: 'card' as const, balance: undefined}))
     ], [accounts, cards]);
 
   const {
@@ -157,7 +157,7 @@ export function AddTransactionDialog({
   }, [selectedAccountId, combinedAccounts]);
 
   const isCreditCard = selectedAccount?.type === 'card';
-  const isVoucher = selectedAccount?.type === 'account' && (selectedAccount as any).type === 'voucher';
+  const isVoucher = selectedAccount?.type === 'voucher';
 
   
   const installmentValue = useMemo(() => {
@@ -168,28 +168,33 @@ export function AddTransactionDialog({
   }, [isCreditCard, amount, installments]);
 
   const remainingBalanceText = useMemo(() => {
-    if(!selectedAccount) return null;
+    if (!selectedAccount) return null;
 
     if (isCreditCard && selectedAccount.limit !== undefined) {
-        const remainingLimit = selectedAccount.limit - (transactionType === 'expense' ? amount : 0);
-        return (
-            <div className="text-xs text-muted-foreground mt-1 text-right">
-                Limite: {formatCurrency(selectedAccount.limit, true)}
-                {amount > 0 && <span className="text-blue-500"> | Restante: {formatCurrency(remainingLimit, true)}</span>}
-            </div>
-        )
+      const remainingLimit = selectedAccount.limit - (transactionType === 'expense' ? amount : 0);
+      return (
+        <div className="text-xs text-muted-foreground mt-1 text-right">
+          Limite: {formatCurrency(selectedAccount.limit, true)}
+          {amount > 0 && <span className="text-blue-500"> | Restante: {formatCurrency(remainingLimit, true)}</span>}
+        </div>
+      );
     }
-    if (isVoucher && selectedAccount.balance !== undefined) {
-        const remainingBalance = selectedAccount.balance - (transactionType === 'expense' ? amount : 0);
+    
+    if (isVoucher) {
+      const voucherAccount = accounts.find(acc => acc.id === selectedAccount.id) as Account | undefined;
+      if (voucherAccount && voucherAccount.balance !== undefined) {
+        const remainingBalance = voucherAccount.balance - (transactionType === 'expense' ? amount : 0);
         return (
-             <div className="text-xs text-muted-foreground mt-1 text-right">
-                Saldo: {formatCurrency(selectedAccount.balance, true)}
-                {amount > 0 && <span className="text-blue-500"> | Restante: {formatCurrency(remainingBalance, true)}</span>}
-            </div>
-        )
+          <div className="text-xs text-muted-foreground mt-1 text-right">
+            Saldo: {formatCurrency(voucherAccount.balance, true)}
+            {amount > 0 && <span className="text-blue-500"> | Restante: {formatCurrency(remainingBalance, true)}</span>}
+          </div>
+        );
+      }
     }
+    
     return null;
-  }, [isCreditCard, isVoucher, selectedAccount, amount, transactionType, formatCurrency]);
+  }, [isCreditCard, isVoucher, selectedAccount, amount, transactionType, formatCurrency, accounts]);
 
 
   const pendingGoals = useMemo(() => goals.filter(g => !g.completed), [goals]);
