@@ -51,7 +51,7 @@ const GlassCard = ({ card }: { card: CardType }) => {
   );
 };
 
-const VoucherCard = ({ voucher }: { voucher: Account }) => {
+const VoucherCard = ({ voucher, balance }: { voucher: Account, balance: number }) => {
     const { formatCurrency } = useContext(FinanceContext);
     return (
         <div className="relative w-full aspect-[1.586] rounded-xl bg-black/20 dark:bg-white/20 backdrop-blur-lg shadow-2xl p-6 text-white overflow-hidden">
@@ -63,7 +63,7 @@ const VoucherCard = ({ voucher }: { voucher: Account }) => {
                     <h3 className="text-sm uppercase">{voucher.holder}</h3>
                 </div>
                 <div className="flex justify-between items-end">
-                    <p className="text-3xl font-semibold">{formatCurrency(voucher.balance)}</p>
+                    <p className="text-3xl font-semibold">{formatCurrency(balance)}</p>
                     <VoucherBrandLogo brand={voucher.brand} className="h-8" />
                 </div>
             </div>
@@ -106,6 +106,12 @@ export default function CardsPage() {
     const allItems: DisplayableItem[] = [...cards, ...vouchers];
     return allItems;
   }, [cards, vouchers]);
+  
+  const getVoucherCurrentBalance = (voucher: Account) => {
+    const associatedTransactions = transactions.filter(t => t.account === voucher.name);
+    const balance = associatedTransactions.reduce((sum, t) => sum + t.amount, voucher.balance);
+    return balance;
+  }
 
   useEffect(() => {
     if (user) {
@@ -142,6 +148,7 @@ export default function CardsPage() {
 
   const selectedItem = useMemo(() => displayableItems[currentItemIndex], [displayableItems, currentItemIndex]);
   const isSelectedCard = selectedItem && 'limit' in selectedItem;
+  const isSelectedVoucher = selectedItem && 'balance' in selectedItem;
 
   const itemTransactions = useMemo(() => {
     if (!selectedItem) return [];
@@ -256,7 +263,7 @@ export default function CardsPage() {
             <CarouselItem key={item.id}>
               {'limit' in item 
                 ? <GlassCard card={item} />
-                : <VoucherCard voucher={item} />
+                : <VoucherCard voucher={item} balance={getVoucherCurrentBalance(item)} />
               }
             </CarouselItem>
           ))}
@@ -371,3 +378,4 @@ export default function CardsPage() {
     </div>
   );
 }
+
