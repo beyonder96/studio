@@ -236,7 +236,7 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
   const setGoogleEvents = useCallback((events: any[]) => {
       setGoogleEventsState(events);
       if (typeof window !== 'undefined') {
-          localStorage.setItem('google_events', JSON.stringify(events));
+          sessionStorage.setItem('google_events', JSON.stringify(events));
       }
   }, []);
   
@@ -280,7 +280,7 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
     if (user) {
         // Load events from localStorage first
         if (typeof window !== 'undefined') {
-            const savedEvents = localStorage.getItem('google_events');
+            const savedEvents = sessionStorage.getItem('google_events');
             if (savedEvents) {
                 setGoogleEventsState(JSON.parse(savedEvents));
             }
@@ -378,7 +378,7 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
         setShoppingLists([]);
         setSelectedListId(null);
         setGoogleEvents([]);
-        if(typeof window !== 'undefined') localStorage.removeItem('google_events');
+        if(typeof window !== 'undefined') sessionStorage.removeItem('google_events');
     }
 }, [user, selectedListId, setGoogleEvents]);
 
@@ -412,17 +412,10 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
                 updates[`accounts/${toAccount.id}/balance`] = toAccount.balance + Math.abs(transaction.amount || 0);
             }
         } else if (transaction.account) {
-            const targetAccount = accounts.find(a => a.name === transaction.account);
-            if (targetAccount) {
-                 if (targetAccount.type === 'voucher') {
-                     // For vouchers, the balance update happens here.
-                     const currentBalance = targetAccount.balance;
-                     const newBalance = currentBalance + (transaction.amount || 0);
-                     updates[`accounts/${targetAccount.id}/balance`] = newBalance;
-                 } else if (targetAccount.type === 'checking' || targetAccount.type === 'savings') {
-                    // For regular accounts, update balance
-                     updates[`accounts/${targetAccount.id}/balance`] = targetAccount.balance + (transaction.amount || 0);
-                 }
+            const allAccountsAndCards = [...accounts, ...cards];
+            const targetAccount = allAccountsAndCards.find(a => a.name === transaction.account);
+            if (targetAccount && 'balance' in targetAccount) {
+                 updates[`accounts/${targetAccount.id}/balance`] = targetAccount.balance + (transaction.amount || 0);
             }
         }
     }
@@ -471,19 +464,17 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
     if (!originalTransaction) return;
 
     const updates: { [key: string]: any } = {};
-    const account = accounts.find(acc => acc.name === originalTransaction.account);
+    const allAccountsAndCards = [...accounts, ...cards];
+    const account = allAccountsAndCards.find(acc => acc.name === originalTransaction.account);
     
-    // Only adjust balance if it's an account (not card) and paid status changes
-    if (account) {
+    if (account && 'balance' in account) {
         const originalAmount = originalTransaction.amount;
         const newAmount = updatedTransaction.amount ?? originalAmount;
 
         let balanceChange = 0;
-        // Revert old transaction if it was paid
         if (originalTransaction.paid) {
             balanceChange -= originalAmount;
         }
-        // Apply new transaction if it is paid
         if (updatedTransaction.paid) {
             balanceChange += newAmount;
         }
@@ -514,8 +505,9 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
     updates[`transactions/${id}/paid`] = !currentStatus;
 
     if (transaction.account) {
-        const account = accounts.find(acc => acc.name === transaction.account);
-        if (account) {
+        const allAccountsAndCards = [...accounts, ...cards];
+        const account = allAccountsAndCards.find(acc => acc.name === transaction.account);
+        if (account && 'balance' in account) {
             const amount = transaction.amount;
             const newBalance = currentStatus ? account.balance - amount : account.balance + amount;
             updates[`accounts/${account.id}/balance`] = newBalance;
@@ -533,8 +525,9 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
     updates[`transactions/${id}`] = null;
 
     if (transactionToDelete.paid && transactionToDelete.account) {
-        const account = accounts.find(acc => acc.name === transactionToDelete.account);
-        if (account) {
+        const allAccountsAndCards = [...accounts, ...cards];
+        const account = allAccountsAndCards.find(acc => acc.name === transactionToDelete.account);
+        if (account && 'balance' in account) {
             updates[`accounts/${account.id}/balance`] = account.balance - transactionToDelete.amount;
         }
     }
@@ -864,12 +857,14 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
 
   const updateAppointment = (id: string, updatedAppointment: Partial<Omit<Appointment, 'id'>>) => {
     if (!user) return;
+    // For now, only update in Firebase. Google Calendar update is more complex.
     delete updatedAppointment.accessToken; // Ensure token is not saved
     update(getDbRef(`appointments/${id}`), updatedAppointment);
   };
 
   const deleteAppointment = (id: string) => {
     if (!user) return;
+    // For now, only delete from Firebase. Google Calendar delete is more complex.
     remove(getDbRef(`appointments/${id}`));
   };
   

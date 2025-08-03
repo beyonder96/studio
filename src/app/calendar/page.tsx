@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useMemo, useContext, useEffect } from 'react';
+import { useState, useMemo, useContext, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { FinanceContext, Appointment } from '@/contexts/finance-context';
@@ -38,7 +38,7 @@ const getRelativeDate = (date: Date) => {
 
 
 export default function CalendarPage() {
-  const { user, signInWithGoogle } = useAuth();
+  const { user, signInWithGoogle, googleAccessToken } = useAuth();
   const { 
     appointments, 
     addAppointment, 
@@ -52,42 +52,50 @@ export default function CalendarPage() {
   const [editingAppointment, setEditingAppointment] = useState<Appointment | null>(null);
   const [isSyncing, setIsSyncing] = useState(false);
   
-  const handleSync = async (showToast: boolean = true) => {
+  const handleSync = useCallback(async (showToast: boolean = true) => {
     setIsSyncing(true);
-    let result: UserCredential;
-    try {
-        result = await signInWithGoogle();
-    } catch (e) {
-        console.error("Error signing in with Google:", e);
-        if (e instanceof Error && ((e as any).code === 'auth/popup-closed-by-user' || (e as any).code === 'auth/cancelled-popup-request')) {
-          // Don't show an error toast if user simply closes the popup
-        } else {
-          if(showToast) toast({ variant: "destructive", title: "Erro de Login", description: "Não foi possível autenticar com o Google." });
+    let token = googleAccessToken;
+
+    if (!token) {
+        try {
+            const result = await signInWithGoogle();
+            const credential = GoogleAuthProvider.credentialFromResult(result);
+            token = credential?.accessToken || null;
+            if (!token && showToast) {
+                toast({ variant: "destructive", title: "Erro de Autenticação", description: "Não foi possível obter o token de acesso do Google." });
+                setIsSyncing(false);
+                return;
+            }
+        } catch (e) {
+            console.error("Error signing in with Google:", e);
+             if (e instanceof Error && ((e as any).code !== 'auth/popup-closed-by-user' && (e as any).code !== 'auth/cancelled-popup-request')) {
+                if(showToast) toast({ variant: "destructive", title: "Erro de Login", description: "Não foi possível autenticar com o Google." });
+            }
+            setIsSyncing(false);
+            return;
         }
-        setIsSyncing(false);
-        return;
     }
-
-    const credential = GoogleAuthProvider.credentialFromResult(result);
-    if (!credential?.accessToken) {
-        if(showToast) toast({ variant: "destructive", title: "Erro de Autenticação", description: "Não foi possível obter o token de acesso do Google." });
-        setIsSyncing(false);
-        return;
+    
+    if (token) {
+        try {
+            const events = await getCalendarEvents({ accessToken: token });
+            setGoogleEvents(events);
+            if(showToast) toast({ title: "Sincronização Concluída", description: `${events.length} eventos encontrados no Google Calendar.` });
+        } catch(e) {
+            console.error("Error fetching Google Calendar events:", e);
+            if(showToast) toast({ variant: "destructive", title: "Erro de Sincronização", description: "Não foi possível buscar os eventos do Google Calendar." });
+        } finally {
+            setIsSyncing(false);
+        }
     }
-    const accessToken = credential.accessToken;
-    localStorage.setItem('google_calendar_permission', 'true');
-
-    try {
-        const events = await getCalendarEvents({ accessToken });
-        setGoogleEvents(events);
-        if(showToast) toast({ title: "Sincronização Concluída", description: `${events.length} eventos encontrados no Google Calendar.` });
-    } catch(e) {
-        console.error("Error fetching Google Calendar events:", e);
-        if(showToast) toast({ variant: "destructive", title: "Erro de Sincronização", description: "Não foi possível buscar os eventos do Google Calendar." });
-    } finally {
-        setIsSyncing(false);
+  }, [googleAccessToken, setGoogleEvents, signInWithGoogle, toast]);
+  
+  // Auto-sync on page load if token is available
+  useEffect(() => {
+    if (googleAccessToken) {
+        handleSync(false); // don't show toast on auto-sync
     }
-  }
+  }, [googleAccessToken, handleSync]);
 
   const allEvents = useMemo(() => {
     const localAppointments = appointments.map((a: Appointment) => ({
@@ -112,7 +120,6 @@ export default function CalendarPage() {
         isGoogleEvent: true,
     }));
     
-    // Simple deduplication based on id
     const combined = [...localAppointments, ...syncedGoogleEvents];
     const uniqueEvents = Array.from(new Map(combined.map(e => [e.id, e])).values());
 
@@ -146,21 +153,11 @@ export default function CalendarPage() {
   };
 
   const handleSaveAppointment = async (data: Omit<Appointment, 'id'> & { id?: string }) => {
-    let accessToken: string | undefined | null;
-    try {
-        const result = await signInWithGoogle();
-        const credential = GoogleAuthProvider.credentialFromResult(result);
-        accessToken = credential?.accessToken;
-    } catch (e) {
-        console.error("Could not get access token for saving event", e);
-    }
-
-    const dataWithToken = { ...data, accessToken: accessToken || undefined };
-    
+    const dataToSave = { ...data, accessToken: googleAccessToken || undefined };
     if (data.id) {
-      updateAppointment(data.id, dataWithToken);
+      updateAppointment(data.id, dataToSave);
     } else {
-      addAppointment(dataWithToken);
+      addAppointment(dataToSave);
     }
     setIsDialogOpen(false);
   };

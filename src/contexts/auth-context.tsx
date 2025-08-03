@@ -13,45 +13,67 @@ type AuthContextType = {
   loading: boolean;
   signInWithGoogle: () => Promise<UserCredential>;
   getAccessToken: () => Promise<string | null>;
+  googleAccessToken: string | null;
 };
 
-const AuthContext = createContext<AuthContextType>({ user: null, loading: true, signInWithGoogle: async () => { throw new Error('signInWithGoogle not implemented') }, getAccessToken: async () => null });
+const AuthContext = createContext<AuthContextType>({ 
+    user: null, 
+    loading: true, 
+    signInWithGoogle: async () => { throw new Error('signInWithGoogle not implemented') }, 
+    getAccessToken: async () => null,
+    googleAccessToken: null,
+});
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
+  const [googleAccessToken, setGoogleAccessToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const { init } = useFCM();
 
   useEffect(() => {
-    // auth is only available on the client
+    const storedToken = typeof window !== 'undefined' ? sessionStorage.getItem('google_access_token') : null;
+    if(storedToken) {
+        setGoogleAccessToken(storedToken);
+    }
+  }, []);
+
+  useEffect(() => {
     if (auth) {
       const unsubscribe = onAuthStateChanged(auth, (user) => {
         setUser(user);
         if (user) {
-          init(user.uid); // Initialize FCM when user logs in
+          init(user.uid); 
+        } else {
+          // Clear token on logout
+          sessionStorage.removeItem('google_access_token');
+          setGoogleAccessToken(null);
         }
         setLoading(false);
       });
       return () => unsubscribe();
     } else {
-        // If on server, we're not loading and there's no user.
         setLoading(false);
     }
   }, [init]);
   
   const getAccessToken = useCallback(async (): Promise<string | null> => {
-     // This method is being simplified as getting a token without re-auth is complex.
-     // The primary way to get a token is now via signInWithGoogle.
-    if (!auth.currentUser) return null;
+    if (googleAccessToken) return googleAccessToken;
+    
+    // If no token, prompt sign-in to get one
     try {
         const credential = await signInWithGoogle();
         const token = GoogleAuthProvider.credentialFromResult(credential)?.accessToken;
-        return token || null;
+        if(token) {
+            setGoogleAccessToken(token);
+            sessionStorage.setItem('google_access_token', token);
+            return token;
+        }
+        return null;
     } catch (error) {
         console.error("Error getting ID token:", error);
         return null;
     }
-  }, []);
+  }, [googleAccessToken]);
 
   const signInWithGoogle = async (): Promise<UserCredential> => {
     if (!auth) throw new Error("Firebase Auth not initialized");
@@ -59,14 +81,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     try {
       const result = await signInWithPopup(auth, googleProvider);
       const user = result.user;
+      const credential = GoogleAuthProvider.credentialFromResult(result);
+      if(credential?.accessToken) {
+        setGoogleAccessToken(credential.accessToken);
+        sessionStorage.setItem('google_access_token', credential.accessToken);
+      }
+
       const additionalInfo = getAdditionalUserInfo(result);
       
-      // If new user, create a profile entry
       if (additionalInfo?.isNewUser) {
         const db = getDatabase(firebaseApp);
         const profileRef = ref(db, `users/${user.uid}/profile`);
         
-        // Check if profile already exists to prevent overwriting
         const snapshot = await get(profileRef);
         if (!snapshot.exists()) {
              const profileData = { 
@@ -86,7 +112,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  return <AuthContext.Provider value={{ user, loading, signInWithGoogle, getAccessToken }}>{children}</AuthContext.Provider>;
+  return <AuthContext.Provider value={{ user, loading, signInWithGoogle, getAccessToken, googleAccessToken }}>{children}</AuthContext.Provider>;
 };
 
 export const useAuth = () => useContext(AuthContext);
