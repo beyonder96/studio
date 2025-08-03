@@ -66,11 +66,19 @@ export type ShoppingListItem = { id: string; name: string; quantity: number; che
 export type ShoppingList = { id: string; name: string; items: ShoppingListItem[]; shared: boolean; };
 export type Memory = { id: string; title: string; description: string; date: string; imageUrl?: string; };
 export type Achievement = { id: string; name: string; description: string; icon: string; };
+
+export type Medication = {
+    id: string;
+    name: string;
+    dosage: string;
+    frequency: string;
+}
 export type HealthInfo = {
     bloodType?: string;
     allergies?: string;
     healthPlan?: string;
     emergencyContact?: string;
+    medications?: Medication[];
 };
 
 export type HealthRecordType = 'vaccine' | 'dewormer' | 'flea_tick' | 'consultation' | 'other';
@@ -188,6 +196,9 @@ type FinanceContextType = {
   updatePet: (id: string, pet: Partial<Omit<Pet, 'id'>>) => void;
   deletePet: (id: string) => void;
   addHealthRecord: (petId: string, record: Omit<HealthRecord, 'id'>) => void;
+  addMedication: (personKey: 'healthInfo1' | 'healthInfo2', medication: Omit<Medication, 'id'>) => void;
+  updateMedication: (personKey: 'healthInfo1' | 'healthInfo2', medication: Medication) => void;
+  deleteMedication: (personKey: 'healthInfo1' | 'healthInfo2', medicationId: string) => void;
 };
 
 export const FinanceContext = createContext<FinanceContextType>({} as FinanceContextType);
@@ -293,6 +304,19 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
                     return item;
                   });
                 }
+
+                const transformHealthInfo = (profileData: any) => {
+                  if (!profileData) return {};
+                  const newProfile = {...profileData};
+                  if(newProfile.healthInfo1?.medications) {
+                    newProfile.healthInfo1.medications = Object.keys(newProfile.healthInfo1.medications).map(key => ({ id: key, ...newProfile.healthInfo1.medications[key]}));
+                  }
+                   if(newProfile.healthInfo2?.medications) {
+                    newProfile.healthInfo2.medications = Object.keys(newProfile.healthInfo2.medications).map(key => ({ id: key, ...newProfile.healthInfo2.medications[key]}));
+                  }
+                  return newProfile;
+                }
+
                 const transformData = (d: any) => d ? Object.keys(d).map(key => ({ id: key, ...d[key] })) : [];
                 setTransactions(transformData(data.transactions));
                 setAccounts(transformData(data.accounts));
@@ -384,8 +408,8 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
             const fromAccount = accounts.find(a => a.name === transaction.fromAccount);
             const toAccount = accounts.find(a => a.name === transaction.toAccount);
             if (fromAccount && toAccount) {
-                updates[`accounts/${fromAccount.id}/balance`] = fromAccount.balance - transaction.amount;
-                updates[`accounts/${toAccount.id}/balance`] = toAccount.balance + transaction.amount;
+                updates[`accounts/${fromAccount.id}/balance`] = fromAccount.balance - Math.abs(transaction.amount || 0);
+                updates[`accounts/${toAccount.id}/balance`] = toAccount.balance + Math.abs(transaction.amount || 0);
             }
         } else if (transaction.account && !cards.some(c => c.name === transaction.account)) {
             const targetAccount = accounts.find(a => a.name === transaction.account);
@@ -1083,6 +1107,26 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  // Health Management
+    const addMedication = (personKey: 'healthInfo1' | 'healthInfo2', medication: Omit<Medication, 'id'>) => {
+        if (!user) return;
+        const medicationsRef = getDbRef(`profile/${personKey}/medications`);
+        const newId = push(medicationsRef).key!;
+        set(child(medicationsRef, newId), medication);
+    };
+
+    const updateMedication = (personKey: 'healthInfo1' | 'healthInfo2', medication: Medication) => {
+        if (!user) return;
+        const medicationRef = getDbRef(`profile/${personKey}/medications/${medication.id}`);
+        update(medicationRef, { name: medication.name, dosage: medication.dosage, frequency: medication.frequency });
+    };
+
+    const deleteMedication = (personKey: 'healthInfo1' | 'healthInfo2', medicationId: string) => {
+        if (!user) return;
+        const medicationRef = getDbRef(`profile/${personKey}/medications/${medicationId}`);
+        remove(medicationRef);
+    };
+
 
   const value = {
     transactions, addTransaction, updateTransaction, deleteTransaction, toggleTransactionPaid, deleteRecurringTransaction,
@@ -1108,6 +1152,7 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
     achievements,
     googleEvents, setGoogleEvents,
     pets, addPet, updatePet, deletePet, addHealthRecord,
+    addMedication, updateMedication, deleteMedication,
   };
 
   return (
