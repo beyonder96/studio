@@ -413,10 +413,14 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
             }
         } else if (transaction.account) {
             const targetAccount = accounts.find(a => a.name === transaction.account);
-            const isCard = cards.some(c => c.name === transaction.account);
-
-            if (targetAccount && !isCard) {
-                updates[`accounts/${targetAccount.id}/balance`] = targetAccount.balance + (transaction.amount || 0);
+            if (targetAccount) {
+                if (targetAccount.type === 'voucher') {
+                    // This is a voucher, update its balance
+                    updates[`accounts/${targetAccount.id}/balance`] = targetAccount.balance + (transaction.amount || 0);
+                } else {
+                    // This is a bank account, update its balance
+                    updates[`accounts/${targetAccount.id}/balance`] = targetAccount.balance + (transaction.amount || 0);
+                }
             }
         }
     }
@@ -466,10 +470,9 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
 
     const updates: { [key: string]: any } = {};
     const account = accounts.find(acc => acc.name === originalTransaction.account);
-    const isCard = cards.some(c => c.name === originalTransaction.account);
-
-    // Only adjust balance if it's an account and paid status changes
-    if (account && !isCard) {
+    
+    // Only adjust balance if it's an account (not card) and paid status changes
+    if (account) {
         const originalAmount = originalTransaction.amount;
         const newAmount = updatedTransaction.amount ?? originalAmount;
 
@@ -508,7 +511,7 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
     const updates: { [key: string]: any } = {};
     updates[`transactions/${id}/paid`] = !currentStatus;
 
-    if (transaction.account && !cards.some(c => c.name === transaction.account)) {
+    if (transaction.account) {
         const account = accounts.find(acc => acc.name === transaction.account);
         if (account) {
             const amount = transaction.amount;
@@ -524,10 +527,10 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
     const transactionToDelete = transactions.find(t => t.id === id);
     if (!transactionToDelete) return;
 
-    const updates: { [key: string]: null } = {};
+    const updates: { [key: string]: null | number } = {};
     updates[`transactions/${id}`] = null;
 
-    if (transactionToDelete.paid && transactionToDelete.account && !cards.some(c => c.name === transactionToDelete.account)) {
+    if (transactionToDelete.paid && transactionToDelete.account) {
         const account = accounts.find(acc => acc.name === transactionToDelete.account);
         if (account) {
             updates[`accounts/${account.id}/balance`] = account.balance - transactionToDelete.amount;
