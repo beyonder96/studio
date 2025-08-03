@@ -411,9 +411,10 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
                 updates[`accounts/${fromAccount.id}/balance`] = fromAccount.balance - Math.abs(transaction.amount || 0);
                 updates[`accounts/${toAccount.id}/balance`] = toAccount.balance + Math.abs(transaction.amount || 0);
             }
-        } else if (transaction.account && !cards.some(c => c.name === transaction.account)) {
+        } else if (transaction.account) {
             const targetAccount = accounts.find(a => a.name === transaction.account);
-            if (targetAccount) {
+            // Check if it's an account (including vouchers) and not a card
+            if (targetAccount && !cards.some(c => c.name === transaction.account)) {
                 updates[`accounts/${targetAccount.id}/balance`] = targetAccount.balance + (transaction.amount || 0);
             }
         }
@@ -518,7 +519,7 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
     const transactionToDelete = transactions.find(t => t.id === id);
     if (!transactionToDelete) return;
 
-    const updates: { [key: string]: any } = {};
+    const updates: { [key: string]: null } = {};
     updates[`transactions/${id}`] = null;
 
     if (transactionToDelete.paid && transactionToDelete.account && !cards.some(c => c.name === transactionToDelete.account)) {

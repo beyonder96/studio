@@ -157,6 +157,8 @@ export function AddTransactionDialog({
   }, [selectedAccountId, combinedAccounts]);
 
   const isCreditCard = selectedAccount?.type === 'card';
+  const isVoucher = selectedAccount?.type === 'account' && (selectedAccount as any).type === 'voucher';
+
   
   const installmentValue = useMemo(() => {
     if (isCreditCard && amount && installments && installments > 1) {
@@ -165,13 +167,30 @@ export function AddTransactionDialog({
     return null;
   }, [isCreditCard, amount, installments]);
 
-  const remainingLimit = useMemo(() => {
-    if (isCreditCard && selectedAccount.limit !== undefined && amount) {
-       // In a real scenario, this would also check for other pending transactions
-      return selectedAccount.limit - amount;
+  const remainingBalanceText = useMemo(() => {
+    if(!selectedAccount) return null;
+
+    if (isCreditCard && selectedAccount.limit !== undefined) {
+        const remainingLimit = selectedAccount.limit - (transactionType === 'expense' ? amount : 0);
+        return (
+            <div className="text-xs text-muted-foreground mt-1 text-right">
+                Limite: {formatCurrency(selectedAccount.limit, true)}
+                {amount > 0 && <span className="text-blue-500"> | Restante: {formatCurrency(remainingLimit, true)}</span>}
+            </div>
+        )
+    }
+    if (isVoucher && selectedAccount.balance !== undefined) {
+        const remainingBalance = selectedAccount.balance - (transactionType === 'expense' ? amount : 0);
+        return (
+             <div className="text-xs text-muted-foreground mt-1 text-right">
+                Saldo: {formatCurrency(selectedAccount.balance, true)}
+                {amount > 0 && <span className="text-blue-500"> | Restante: {formatCurrency(remainingBalance, true)}</span>}
+            </div>
+        )
     }
     return null;
-  }, [isCreditCard, selectedAccount, amount]);
+  }, [isCreditCard, isVoucher, selectedAccount, amount, transactionType, formatCurrency]);
+
 
   const pendingGoals = useMemo(() => goals.filter(g => !g.completed), [goals]);
 
@@ -304,14 +323,7 @@ export function AddTransactionDialog({
                         )}
                     />
                     {errors.account && <p className="text-red-500 text-xs mt-1">{errors.account.message}</p>}
-                     {isCreditCard && selectedAccount.limit !== undefined && (
-                        <div className="text-xs text-muted-foreground mt-1 text-right">
-                            Limite: {formatCurrency(selectedAccount.limit, true)}
-                            {remainingLimit !== null && (
-                                <span className="text-blue-500"> | Restante: {formatCurrency(remainingLimit, true)}</span>
-                            )}
-                        </div>
-                    )}
+                    {remainingBalanceText}
                 </div>
                 
                  {isCreditCard && transactionType === 'expense' && !isEditing && (
