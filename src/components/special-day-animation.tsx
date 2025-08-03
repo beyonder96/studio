@@ -75,10 +75,10 @@ export function SpecialDayAnimation() {
         const checkDate = (isoDate?: string) => {
             if (!isoDate) return false;
             try {
-                // Use UTC parsing to avoid timezone issues
-                const [year, month, day] = isoDate.split('T')[0].split('-').map(Number);
-                const dateUTC = new Date(Date.UTC(year, month - 1, day));
-                return dateUTC.getUTCMonth() === todayMonth && dateUTC.getUTCDate() === todayDay;
+                // Use parseISO which correctly handles the date string in local time
+                const date = parseISO(isoDate);
+                // Compare using local time parts
+                return getMonth(date) === todayMonth && getDate(date) === todayDay;
             } catch (e) {
                 console.error("Error parsing date for animation:", e);
                 return false;
