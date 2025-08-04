@@ -48,13 +48,13 @@ const transactionSchema = z.object({
 }).superRefine((data, ctx) => {
     if (data.type === 'transfer') {
         if (!data.fromAccount) {
-            ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Conta de origem é obrigatória", path: ["fromAccount"] });
+            ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Conta de origem é obrigatória.", path: ["fromAccount"] });
         }
         if (!data.toAccount) {
-            ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Conta de destino é obrigatória", path: ["toAccount"] });
+            ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Conta de destino é obrigatória.", path: ["toAccount"] });
         }
-        if (data.fromAccount === data.toAccount) {
-            ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Contas de origem e destino não podem ser iguais", path: ["toAccount"] });
+        if (data.fromAccount && data.toAccount && data.fromAccount === data.toAccount) {
+            ctx.addIssue({ code: z.ZodIssueCode.custom, message: "As contas devem ser diferentes.", path: ["toAccount"] });
         }
     } else {
         if (!data.description) {
@@ -446,7 +446,7 @@ export function AddTransactionDialog({
                                     <SelectValue placeholder="Selecione a conta de origem" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    {accounts.map(acc => (
+                                    {accounts.filter(a => a.type !== 'voucher').map(acc => (
                                         <SelectItem key={acc.id} value={acc.name}>{acc.name}</SelectItem>
                                     ))}
                                 </SelectContent>
@@ -466,7 +466,7 @@ export function AddTransactionDialog({
                                     <SelectValue placeholder="Selecione a conta de destino" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    {accounts.map(acc => (
+                                    {accounts.filter(a => a.type !== 'voucher').map(acc => (
                                         <SelectItem key={acc.id} value={acc.name}>{acc.name}</SelectItem>
                                     ))}
                                 </SelectContent>
@@ -492,3 +492,4 @@ export function AddTransactionDialog({
     </Dialog>
   );
 }
+
