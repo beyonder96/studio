@@ -2,6 +2,7 @@
 'use client';
 
 import { useState, useContext, useMemo, useEffect } from 'react';
+import { useForm } from 'react-hook-form';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Carousel, CarouselContent, CarouselItem, type CarouselApi } from '@/components/ui/carousel';
 import { FinanceContext, Account } from '@/contexts/finance-context';
@@ -10,7 +11,7 @@ import { Button } from '@/components/ui/button';
 import { PlusCircle, Edit, Trash2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/auth-context';
-import { EditAccountDialog } from '@/components/accounts/edit-account-dialog';
+import { EditAccountDialog, AccountFormData } from '@/components/accounts/edit-account-dialog';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -64,6 +65,8 @@ export default function AccountsPage() {
   
   const bankAccounts = useMemo(() => accounts.filter(acc => acc.type === 'checking' || acc.type === 'savings'), [accounts]);
   
+  const form = useForm<AccountFormData>();
+
   useEffect(() => {
     if (user) {
       const db = getDatabase(firebaseApp);
@@ -96,11 +99,25 @@ export default function AccountsPage() {
 
   const openAddDialog = () => {
     setEditingItem(null);
+    form.reset({
+        type: 'checking',
+        name: '',
+        balance: 0,
+        holder: coupleNames[0] || '',
+        bankName: 'other',
+    });
     setIsAccountDialogOpen(true);
   };
 
   const openEditDialog = (item: Account) => {
     setEditingItem(item);
+    form.reset({
+        name: item.name,
+        balance: item.balance,
+        holder: item.holder,
+        type: item.type === 'voucher' ? 'checking' : item.type, // default to checking if it's a voucher
+        bankName: item.bankName,
+    });
     setIsAccountDialogOpen(true);
   };
 
@@ -128,20 +145,19 @@ export default function AccountsPage() {
                  <BankLogo bankName="other" className="h-12 w-12 mb-4 text-primary" />
                 <h2 className="text-2xl font-bold">Nenhuma Conta Bancária</h2>
                 <p className="text-muted-foreground mt-2">Adicione sua primeira conta para começar.</p>
-                <Button className="mt-6" onClick={() => setIsAccountDialogOpen(true)}>
+                <Button className="mt-6" onClick={openAddDialog}>
                     <PlusCircle className="mr-2 h-4 w-4"/>
                     Adicionar Conta
                 </Button>
             </CardContent>
-            {isAccountDialogOpen &&
-                <EditAccountDialog 
-                    isOpen={isAccountDialogOpen}
-                    onClose={() => setIsAccountDialogOpen(false)}
-                    onSave={handleSaveAccount}
-                    item={editingItem}
-                    coupleNames={coupleNames}
-                />
-            }
+            <EditAccountDialog 
+                isOpen={isAccountDialogOpen}
+                onClose={() => setIsAccountDialogOpen(false)}
+                onSave={handleSaveAccount}
+                item={editingItem}
+                coupleNames={coupleNames}
+                form={form}
+            />
         </Card>
       )
   }
@@ -201,15 +217,14 @@ export default function AccountsPage() {
         )}
       </AnimatePresence>
       
-      {isAccountDialogOpen &&
-        <EditAccountDialog 
-            isOpen={isAccountDialogOpen}
-            onClose={() => setIsAccountDialogOpen(false)}
-            onSave={handleSaveAccount}
-            item={editingItem}
-            coupleNames={coupleNames}
-        />
-      }
+      <EditAccountDialog 
+        isOpen={isAccountDialogOpen}
+        onClose={() => setIsAccountDialogOpen(false)}
+        onSave={handleSaveAccount}
+        item={editingItem}
+        coupleNames={coupleNames}
+        form={form}
+      />
 
       <AlertDialog open={!!itemToDelete} onOpenChange={(open) => !open && setItemToDelete(null)}>
         <AlertDialogContent>

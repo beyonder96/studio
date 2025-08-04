@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useForm, Controller } from 'react-hook-form';
+import { useForm, Controller, UseFormReturn } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import {
@@ -18,7 +18,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { CurrencyInput } from '@/components/finance/currency-input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import type { Account, Card as CardType } from '@/contexts/finance-context';
 import {
   Select,
@@ -57,56 +57,26 @@ type EditAccountCardDialogProps = {
   onSave: (data: AccountCardFormData) => void;
   item: Account | CardType | null;
   coupleNames?: string[];
+  form: UseFormReturn<AccountCardFormData>;
 };
 
-export function EditAccountCardDialog({ isOpen, onClose, onSave, item, coupleNames = [] }: EditAccountCardDialogProps) {
+export function EditAccountCardDialog({ isOpen, onClose, onSave, item, coupleNames = [], form }: EditAccountCardDialogProps) {
   const isEditing = useMemo(() => item && item.id, [item]);
   
-  const initialTab = useMemo(() => {
-    if (item) {
-        return 'balance' in item ? 'account' : 'card';
-    }
-    return 'card';
-  }, [item]);
-  
-  const [activeTab, setActiveTab] = useState<'account' | 'card'>(initialTab);
+  const [activeTab, setActiveTab] = useState<'account' | 'card'>(
+    isEditing ? (('balance' in (item || {})) ? 'account' : 'card') : 'card'
+  );
   
   const {
     handleSubmit,
     control,
-    reset,
-    formState: { errors },
     setValue,
-    watch
-  } = useForm<AccountCardFormData>({
-    resolver: zodResolver(formSchema),
-    defaultValues: { type: activeTab } as any
-  });
+    watch,
+    formState: { errors },
+  } = form;
 
   const formType = watch('type');
 
-  useEffect(() => {
-    if (isOpen) {
-        const tab = isEditing ? (('balance' in (item || {})) ? 'account' : 'card') : activeTab;
-        setActiveTab(tab);
-        setValue('type', tab);
-
-        if (isEditing && item) {
-             if ('balance' in item) {
-                reset({ type: 'account', name: item.name, balance: item.balance, holder: item.holder, brand: item.brand, benefitDay: item.benefitDay });
-            } else {
-                reset({ type: 'card', name: item.name, limit: item.limit, closingDay: item.closingDay, paymentDay: item.paymentDay, holder: item.holder, brand: item.brand });
-            }
-        } else {
-             if (tab === 'account') {
-                reset({ type: 'account', name: '', balance: 0, holder: coupleNames[0] || '', brand: 'ticket' });
-             } else {
-                reset({ type: 'card', name: '', limit: 1000, closingDay: 28, paymentDay: 10, holder: coupleNames[0] || '', brand: 'visa' });
-             }
-        }
-    }
-  }, [isOpen, item, isEditing, reset, setValue, activeTab, coupleNames]);
-  
   const handleTabChange = (value: string) => {
     const newTab = value as 'account' | 'card';
     setActiveTab(newTab);

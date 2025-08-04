@@ -2,6 +2,7 @@
 'use client';
 
 import { useState, useContext, useMemo, useEffect } from 'react';
+import { useForm } from 'react-hook-form';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Carousel, CarouselContent, CarouselItem, type CarouselApi } from '@/components/ui/carousel';
 import { FinanceContext, Transaction, Card as CardType, Account } from '@/contexts/finance-context';
@@ -14,7 +15,7 @@ import { Button } from '@/components/ui/button';
 import { PlusCircle, Info, CalendarClock, ShoppingBag, Edit, Trash2, CreditCard, Banknote, User, TrendingUp } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/auth-context';
-import { EditAccountCardDialog } from '@/components/settings/edit-account-card-dialog';
+import { EditAccountCardDialog, AccountCardFormData } from '@/components/settings/edit-account-card-dialog';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -99,6 +100,8 @@ export default function CardsPage() {
   const [itemToDelete, setItemToDelete] = useState<DisplayableItem | null>(null);
   const [transactionToDelete, setTransactionToDelete] = useState<Transaction | null>(null);
   const [coupleNames, setCoupleNames] = useState<string[]>([]);
+  
+  const form = useForm<AccountCardFormData>();
   
   const vouchers = useMemo(() => accounts.filter(acc => acc.type === 'voucher'), [accounts]);
   
@@ -211,13 +214,24 @@ export default function CardsPage() {
   }, [selectedItem, isSelectedCard, transactions]);
   
   
-  const openAddDialog = () => {
+  const openAddDialog = (type: 'card' | 'account') => {
     setEditingItem(null);
+    form.setValue('type', type);
+    if (type === 'card') {
+      form.reset({ type: 'card', name: '', limit: 1000, closingDay: 28, paymentDay: 10, holder: coupleNames[0] || '', brand: 'visa' });
+    } else {
+      form.reset({ type: 'account', name: '', balance: 0, holder: coupleNames[0] || '', brand: 'ticket' });
+    }
     setIsAccountCardDialogOpen(true);
   }
 
   const openEditDialog = (item: DisplayableItem) => {
     setEditingItem(item);
+    if ('balance' in item) {
+      form.reset({ type: 'account', name: item.name, balance: item.balance, holder: item.holder, brand: item.brand, benefitDay: item.benefitDay });
+    } else {
+      form.reset({ type: 'card', name: item.name, limit: item.limit, closingDay: item.closingDay, paymentDay: item.paymentDay, holder: item.holder, brand: item.brand });
+    }
     setIsAccountCardDialogOpen(true);
   }
 
@@ -268,20 +282,19 @@ export default function CardsPage() {
                 <Info className="h-12 w-12 mb-4 text-primary"/>
                 <h2 className="text-2xl font-bold">Nenhum Cartão ou Vale</h2>
                 <p className="text-muted-foreground mt-2">Adicione seu primeiro cartão ou vale para começar.</p>
-                <Button className="mt-6" onClick={() => setIsAccountCardDialogOpen(true)}>
+                <Button className="mt-6" onClick={() => openAddDialog('card')}>
                     <PlusCircle className="mr-2 h-4 w-4"/>
                     Adicionar
                 </Button>
             </CardContent>
-            {isAccountCardDialogOpen &&
-                <EditAccountCardDialog 
-                    isOpen={isAccountCardDialogOpen}
-                    onClose={() => setIsAccountCardDialogOpen(false)}
-                    onSave={handleSaveAccountCard}
-                    item={editingItem}
-                    coupleNames={coupleNames}
-                />
-            }
+            <EditAccountCardDialog 
+                isOpen={isAccountCardDialogOpen}
+                onClose={() => setIsAccountCardDialogOpen(false)}
+                onSave={handleSaveAccountCard}
+                item={editingItem}
+                coupleNames={coupleNames}
+                form={form}
+            />
         </Card>
       )
   }
@@ -289,7 +302,7 @@ export default function CardsPage() {
   return (
     <div className="space-y-6">
       <div className="flex justify-end">
-          <Button onClick={() => setIsAccountCardDialogOpen(true)}>
+          <Button onClick={() => openAddDialog('card')}>
               <PlusCircle className="mr-2 h-4 w-4"/>
               Adicionar Cartão ou Vale
           </Button>
@@ -392,15 +405,14 @@ export default function CardsPage() {
         )}
       </AnimatePresence>
       
-      {isAccountCardDialogOpen &&
-        <EditAccountCardDialog 
-            isOpen={isAccountCardDialogOpen}
-            onClose={() => setIsAccountCardDialogOpen(false)}
-            onSave={handleSaveAccountCard}
-            item={editingItem}
-            coupleNames={coupleNames}
-        />
-      }
+      <EditAccountCardDialog 
+        isOpen={isAccountCardDialogOpen}
+        onClose={() => setIsAccountCardDialogOpen(false)}
+        onSave={handleSaveAccountCard}
+        item={editingItem}
+        coupleNames={coupleNames}
+        form={form}
+      />
        {cardToPay && (
         <PayBillDialog
             isOpen={isPayBillDialogOpen}

@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useForm, Controller } from 'react-hook-form';
+import { useForm, Controller, UseFormReturn } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import {
@@ -17,7 +17,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { CurrencyInput } from '@/components/finance/currency-input';
-import { useEffect } from 'react';
 import type { Account, BankName } from '@/contexts/finance-context';
 import {
   Select,
@@ -43,42 +42,17 @@ type EditAccountDialogProps = {
   onSave: (data: Omit<Account, 'id'>) => void;
   item: Account | null;
   coupleNames?: string[];
+  form: UseFormReturn<AccountFormData>;
 };
 
-export function EditAccountDialog({ isOpen, onClose, onSave, item, coupleNames = [] }: EditAccountDialogProps) {
+export function EditAccountDialog({ isOpen, onClose, onSave, item, coupleNames = [], form }: EditAccountDialogProps) {
   const isEditing = !!item;
   
   const {
     handleSubmit,
     control,
-    reset,
     formState: { errors },
-  } = useForm<AccountFormData>({
-    resolver: zodResolver(accountSchema),
-    defaultValues: { type: 'checking', name: '', balance: 0, holder: '', bankName: 'other' }
-  });
-
-  useEffect(() => {
-    if (isOpen) {
-        if (isEditing && item) {
-            reset({
-                name: item.name,
-                balance: item.balance,
-                holder: item.holder,
-                type: item.type === 'voucher' ? 'checking' : item.type, // default to checking if it's a voucher
-                bankName: item.bankName,
-            });
-        } else {
-            reset({
-                type: 'checking',
-                name: '',
-                balance: 0,
-                holder: coupleNames[0] || '',
-                bankName: 'other',
-            });
-        }
-    }
-  }, [isOpen, item, isEditing, reset, coupleNames]);
+  } = form;
 
   const onSubmit = (data: AccountFormData) => {
     onSave(data);
