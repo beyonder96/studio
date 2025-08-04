@@ -127,7 +127,7 @@ export function AddAppointmentDialog({ isOpen, onClose, onSave, appointment, sel
                   name="category"
                   control={control}
                   render={({ field }) => (
-                      <Select onValueChange={field.onChange} value={field.value} disabled={appointment?.isGoogleEvent}>
+                      <Select onValueChange={field.onChange} value={field.value}>
                           <SelectTrigger>
                               <SelectValue placeholder="Selecione uma categoria" />
                           </SelectTrigger>
@@ -160,5 +160,3 @@ export function AddAppointmentDialog({ isOpen, onClose, onSave, appointment, sel
     </Dialog>
   );
 }
-
-    

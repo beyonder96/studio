@@ -189,19 +189,22 @@ export const updateGoogleCalendarEvent = ai.defineTool(
             date: z.string().describe('The updated date in YYYY-MM-DD format.'),
             time: z.string().optional().describe('The updated time in HH:MM format.'),
             notes: z.string().optional().describe('Updated notes for the event.'),
+            category: z.string().optional().describe('The category of the event, e.g., "Social", "Lazer", "Pessoal".'),
         }),
         outputSchema: z.object({ success: z.boolean() }),
     },
-    async ({ accessToken, eventId, title, date, time, notes }) => {
+    async ({ accessToken, eventId, title, date, time, notes, category }) => {
         const authClient = getGoogleAuthClient(accessToken);
         const calendar = google.calendar({ version: 'v3', auth: authClient });
 
         const eventStartTime = time ? parseISO(`${date}T${time}:00`) : parseISO(date);
         const eventEndTime = time ? new Date(eventStartTime.getTime() + 60 * 60 * 1000) : new Date(eventStartTime.getTime() + 24 * 60 * 60 * 1000);
 
+        const description = `Categoria: ${category || 'Outros'}\n\n${notes || ''}`;
+
         const event = {
             summary: title,
-            description: notes || '',
+            description: description,
             start: {
                 dateTime: time ? eventStartTime.toISOString() : undefined,
                 date: !time ? date : undefined,
@@ -414,5 +417,3 @@ export const addItemToShoppingList = ai.defineTool(
       });
   }
 );
-
-    

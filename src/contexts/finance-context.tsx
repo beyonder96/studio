@@ -412,9 +412,8 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
                 updates[`accounts/${toAccount.id}/balance`] = toAccount.balance + Math.abs(transaction.amount || 0);
             }
         } else if (transaction.account) {
-            const allAccountsAndCards = [...accounts, ...cards];
-            const targetAccount = allAccountsAndCards.find(a => a.name === transaction.account);
-            if (targetAccount && 'balance' in targetAccount) {
+            const targetAccount = accounts.find(a => a.name === transaction.account);
+            if (targetAccount) { // Only update balance for 'accounts', not 'cards'
                  updates[`accounts/${targetAccount.id}/balance`] = targetAccount.balance + (transaction.amount || 0);
             }
         }
@@ -464,10 +463,9 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
     if (!originalTransaction) return;
 
     const updates: { [key: string]: any } = {};
-    const allAccountsAndCards = [...accounts, ...cards];
-    const account = allAccountsAndCards.find(acc => acc.name === originalTransaction.account);
+    const account = accounts.find(acc => acc.name === originalTransaction.account);
     
-    if (account && 'balance' in account) {
+    if (account) {
         const originalAmount = originalTransaction.amount;
         const newAmount = updatedTransaction.amount ?? originalAmount;
 
@@ -505,9 +503,8 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
     updates[`transactions/${id}/paid`] = !currentStatus;
 
     if (transaction.account) {
-        const allAccountsAndCards = [...accounts, ...cards];
-        const account = allAccountsAndCards.find(acc => acc.name === transaction.account);
-        if (account && 'balance' in account) {
+        const account = accounts.find(acc => acc.name === transaction.account);
+        if (account) {
             const amount = transaction.amount;
             const newBalance = currentStatus ? account.balance - amount : account.balance + amount;
             updates[`accounts/${account.id}/balance`] = newBalance;
@@ -525,9 +522,8 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
     updates[`transactions/${id}`] = null;
 
     if (transactionToDelete.paid && transactionToDelete.account) {
-        const allAccountsAndCards = [...accounts, ...cards];
-        const account = allAccountsAndCards.find(acc => acc.name === transactionToDelete.account);
-        if (account && 'balance' in account) {
+        const account = accounts.find(acc => acc.name === transactionToDelete.account);
+        if (account) {
             updates[`accounts/${account.id}/balance`] = account.balance - transactionToDelete.amount;
         }
     }
@@ -869,6 +865,7 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
             date: updatedData.date!,
             time: updatedData.time,
             notes: updatedData.notes,
+            category: updatedData.category!,
         });
         if (!success) {
             toast({ variant: 'destructive', title: 'Erro de Sincronização', description: 'Não foi possível atualizar o evento no Google Calendar.' });
@@ -879,7 +876,7 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
         setGoogleEvents(events);
     }
 
-    const localAppointment = appointments.find(a => a.googleEventId === id || a.id === id);
+    const localAppointment = appointments.find(a => a.id === id);
     if (localAppointment) {
         updates[`appointments/${localAppointment.id}`] = { ...localAppointment, ...updatedData };
     }
@@ -1214,5 +1211,3 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
     </FinanceContext.Provider>
   );
 };
-
-    
