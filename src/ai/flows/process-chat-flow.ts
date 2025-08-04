@@ -37,42 +37,69 @@ const processChatFlow = ai.defineFlow(
         model: 'googleai/gemini-1.5-flash-latest',
         tools: [addTransaction, createTask, createCalendarEvent, addItemToShoppingList, getTransactions],
         toolChoice: 'auto',
-        prompt: `Você é um assistente pessoal para um casal. Sua tarefa principal é ajudá-los a gerenciar suas vidas, o que inclui responder a perguntas gerais e executar ações dentro do aplicativo através das ferramentas disponíveis.
+        prompt: `Você é o "Copilot Vida a 2", um assistente de IA para casais, integrado a um aplicativo de gerenciamento de vida.
+          Sua principal função é executar ações práticas dentro do aplicativo com base nos comandos do usuário.
+          Seja direto, prático e eficiente.
 
-          **Contexto Disponível:**
+          FERRAMENTAS DISPONÍVEIS:
+          - 'addTransaction': Para adicionar despesas ou receitas. Requer valor, descrição e data.
+          - 'createTask': Para adicionar uma tarefa à lista de afazeres.
+          - 'createCalendarEvent': Para agendar um compromisso no calendário.
+          - 'addItemToShoppingList': Para adicionar um ou mais itens à lista de compras. Pode receber múltiplos itens de uma vez.
+          - 'getTransactions': Para responder a perguntas sobre gastos e transações.
+
+          COMO AGIR:
+          1. ANALISE o comando do usuário para identificar a intenção.
+          2. SELECIONE a ferramenta mais apropriada.
+          3. EXTRAIA as informações necessárias (ex: nome do item, valor da despesa).
+          4. SE UMA INFORMAÇÃO ESSENCIAL ESTIVER FALTANDO (ex: valor da despesa), peça ao usuário de forma clara e direta. Ex: "Claro, qual o valor da despesa com gasolina?"
+          5. NÃO responda de forma conversacional se uma ação puder ser executada. Execute a ação.
+          6. SEMPRE passe o 'userId' para a ferramenta que você chamar.
+
+          EXEMPLOS DE COMANDOS:
+          - "adicione leite e pão na lista de compras" -> Deve usar 'addItemToShoppingList' com os itens ["leite", "pão"].
+          - "gastei 50 reais no outback" -> Deve usar 'addTransaction' com amount: 50, description: "Outback". A data deve ser hoje.
+          - "adicionar tarefa: limpar a casa" -> Deve usar 'createTask'.
+          - "quanto gastei com iFood em agosto de 2024?" -> Deve usar 'getTransactions' com descriptionQuery: "iFood", month: 8, year: 2024.
+
+          Se o comando não corresponder a nenhuma ferramenta, responda de forma útil como um assistente geral.
+
+          Contexto Disponível:
           - Data Atual: ${input.context?.currentDate} (use isso para resolver datas relativas como 'hoje' ou 'amanhã').
-
-          **Processo de Resposta:**
-          1.  **Analise o Comando:** Entenda o que o usuário está pedindo.
-          2.  **Use uma Ferramenta (se aplicável):** Se o comando do usuário corresponder a uma das ações abaixo, chame a ferramenta apropriada com os parâmetros corretos.
-              - **addTransaction:** Para registrar gastos ou ganhos.
-              - **createTask:** Para criar uma tarefa ou um item em uma lista de 'a fazer'.
-              - **createCalendarEvent:** Para agendar um evento, compromisso ou reserva com data e/ou hora.
-              - **addItemToShoppingList:** Para adicionar itens a uma lista de compras.
-              - **getTransactions:** Para responder a perguntas sobre gastos e transações. Use esta ferramenta para obter os dados necessários antes de formular a resposta.
-          3.  **Gere uma Resposta de Confirmação:** APÓS a ferramenta ser executada com sucesso, você DEVE retornar uma mensagem de confirmação amigável e curta. Por exemplo: "Tarefa criada!", "Evento agendado com sucesso!", "Adicionado à sua lista de compras!". Se a ferramenta for de consulta (getTransactions), resuma os dados de forma clara para o usuário.
-          4.  **Responda a Perguntas Gerais:** Se o comando não for uma ação para uma ferramenta, responda à pergunta do usuário da melhor forma possível, usando seu conhecimento geral.
-
-          **Importante:** Você DEVE passar o \`userId: "${input.userId}"\` para todas as chamadas de ferramenta.
-
+          
           Comando do usuário: "${input.command}"
         `,
     });
 
-    const confirmationMessage = llmResponse.text;
-    
-    // Check if the model decided to call a tool
-    if (llmResponse.toolRequest) {
-      // The 'auto' toolChoice should handle execution, so we just need the confirmation.
-       return {
-            answer: confirmationMessage || "Ação executada com sucesso!",
-        };
+    const toolRequests = llmResponse.toolRequests;
+
+    if (toolRequests.length > 0) {
+        // Right now, only process the first tool request for simplicity.
+        const toolRequest = toolRequests[0];
+        const toolResult = await toolRequest.run({ userId: input.userId });
+        
+        let answer = "Ação executada com sucesso!";
+
+        if(toolRequest.name === 'getTransactions') {
+          const transactions = toolResult as any[];
+          if(transactions.length === 0) {
+            answer = "Não encontrei nenhuma transação com esses critérios."
+          } else {
+            const total = transactions.reduce((sum, t) => sum + Math.abs(t.amount), 0);
+            const items = transactions.map(t => `- ${t.description}: R$ ${Math.abs(t.amount).toFixed(2)}`).join('\n');
+            answer = `Encontrei ${transactions.length} transação(ões), totalizando R$ ${total.toFixed(2)}:\n${items}`;
+          }
+        } else if (typeof toolResult === 'object' && toolResult && 'message' in toolResult) {
+            answer = (toolResult as any).message;
+        }
+
+        return { answer };
     }
     
     // If no tool was called, return the text response
-    if (confirmationMessage) {
+    if (llmResponse.text) {
         return {
-            answer: confirmationMessage,
+            answer: llmResponse.text,
         };
     }
 

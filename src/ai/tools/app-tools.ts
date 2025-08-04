@@ -371,52 +371,51 @@ export const recordSpendingFeedback = ai.defineTool({
 export const addItemToShoppingList = ai.defineTool(
   {
     name: 'addItemToShoppingList',
-    description: "Adds an item to the user's shopping list. If no list exists, it creates one.",
+    description: "Adds one or more items to the user's shopping list. If no list exists, it creates one.",
     inputSchema: z.object({
       userId: z.string().describe("The user's unique ID. This MUST be provided."),
-      itemName: z.string().describe("The name of the item to add, e.g., 'leite' ou '2 pacotes de arroz'."),
-      quantity: z.number().optional().describe("The quantity of the item. Defaults to 1."),
+      items: z.array(z.string()).describe("An array of item names to add, e.g., ['leite', 'pão', 'ovos']."),
     }),
     outputSchema: z.object({
       success: z.boolean(),
-      listId: z.string().optional(),
-      itemId: z.string().optional(),
+      message: z.string(),
     }),
   },
-  async (input) => {
-      if (!input.userId) {
-          console.warn("User ID is missing, cannot add item to shopping list.");
-          return { success: false };
+  async ({ userId, items }) => {
+      if (!userId) {
+          return { success: false, message: 'ID do usuário não fornecido.' };
       }
-      const db = getDatabase(firebaseApp);
-      const shoppingListsRef = ref(db, `users/${input.userId}/shoppingLists`);
+      try {
+        const db = getDatabase(firebaseApp);
+        const shoppingListsRef = ref(db, `users/${userId}/shoppingLists`);
 
-      return new Promise((resolve) => {
-          onValue(shoppingListsRef, async (snapshot) => {
-              const lists = snapshot.val();
-              let targetListId: string;
+        const snapshot = await get(shoppingListsRef);
+        const lists = snapshot.val();
+        let targetListId: string;
 
-              if (lists && Object.keys(lists).length > 0) {
-                  // Use the first existing list
-                  targetListId = Object.keys(lists)[0];
-              } else {
-                  // Create a new list if none exist
-                  const newListRef = push(shoppingListsRef);
-                  targetListId = newListRef.key!;
-                  await set(newListRef, { name: 'Lista de Compras', shared: false, items: {} });
-              }
-              
-              const itemsRef = ref(db, `users/${input.userId}/shoppingLists/${targetListId}/items`);
-              const newItemRef = push(itemsRef);
-              await set(newItemRef, {
-                  name: input.itemName,
-                  quantity: input.quantity || 1,
-                  checked: false,
-              });
-
-              resolve({ success: true, listId: targetListId, itemId: newItemRef.key! });
-          }, { onlyOnce: true }); // Important to prevent multiple triggers
-      });
+        if (lists && Object.keys(lists).length > 0) {
+            targetListId = Object.keys(lists)[0];
+        } else {
+            const newListRef = push(shoppingListsRef);
+            targetListId = newListRef.key!;
+            await set(newListRef, { name: 'Lista de Compras', shared: false, items: {} });
+        }
+        
+        const itemsRef = ref(db, `users/${userId}/shoppingLists/${targetListId}/items`);
+        for (const itemName of items) {
+          const newItemRef = push(itemsRef);
+          await set(newItemRef, {
+            name: itemName,
+            quantity: 1,
+            checked: false,
+          });
+        }
+        
+        return { success: true, message: `${items.join(', ')} adicionado(s) à lista de compras.` };
+      } catch (error) {
+        console.error("Erro ao adicionar item à lista de compras:", error);
+        return { success: false, message: 'Ocorreu um erro ao adicionar o item.' };
+      }
   }
 );
 
@@ -479,3 +478,4 @@ export const getTransactions = ai.defineTool(
     }));
   }
 );
+
