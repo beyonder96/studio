@@ -5,7 +5,7 @@
 import React, { createContext, useState, ReactNode, useEffect, useCallback, useMemo } from 'react';
 import { getDatabase, ref, onValue, set, push, remove, update, child } from 'firebase/database';
 import type { Transaction } from '@/components/finance/transactions-table';
-import { addMonths, format, isSameMonth, startOfMonth, endOfMonth, addDays, isBefore, isAfter, startOfDay } from 'date-fns';
+import { addMonths, format, isSameMonth, startOfMonth, endOfMonth, addDays, isBefore, isAfter, startOfDay, parseISO } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from './auth-context';
 import { app as firebaseApp } from '@/lib/firebase';
