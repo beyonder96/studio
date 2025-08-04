@@ -97,7 +97,7 @@ export function FinalizePurchaseDialog({ isOpen, onClose, onConfirm, list }: Fin
         <DialogHeader>
           <DialogTitle>Finalizar Compra e Registrar Despesa</DialogTitle>
           <DialogDescription>
-            Confirme os detalhes para registrar a despesa de <span className="font-bold">{formatCurrency(totalCost)}</span>.
+            Confirme os detalhes para registrar a despesa de <span className="font-bold">{formatCurrency(totalCost, true)}</span>.
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit(onSubmit)}>
@@ -114,7 +114,7 @@ export function FinalizePurchaseDialog({ isOpen, onClose, onConfirm, list }: Fin
                           </SelectTrigger>
                           <SelectContent>
                               {expenseCategories.filter(c => c !== 'Transferência').map(cat => (
-                                  <SelectItem key={cat} value={cat}>{cat}>{cat}</SelectItem>
+                                  <SelectItem key={cat} value={cat}>{cat}</SelectItem>
                               ))}
                           </SelectContent>
                       </Select>
@@ -161,7 +161,7 @@ export function FinalizePurchaseDialog({ isOpen, onClose, onConfirm, list }: Fin
             
             {finalCost !== totalCost && (
                 <p className="text-right text-muted-foreground text-lg">
-                    Total Final: <span className="font-bold text-primary">{formatCurrency(finalCost)}</span>
+                    Total Final: <span className="font-bold text-primary">{formatCurrency(finalCost, true)}</span>
                 </p>
             )}
 
