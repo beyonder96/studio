@@ -74,6 +74,7 @@ type PropertyContextType = {
     updateShoppingItem: (propertyId: string, itemId: string, item: Omit<PropertyShoppingItem, 'id'>) => void;
     deleteShoppingItem: (propertyId: string, itemId: string) => void;
     addConstructionPayment: (propertyId: string, payment: Omit<ConstructionPayment, 'id' | 'paid'>) => void;
+    updateConstructionPayment: (propertyId: string, paymentId: string, paymentUpdate: Partial<Omit<ConstructionPayment, 'id'>>) => void;
     toggleConstructionPayment: (propertyId: string, paymentId: string) => void;
     updateConstructionProgress: (propertyId: string, percentage: number, budget: number) => void;
     addDocument: (propertyId: string, file: File) => Promise<void>;
@@ -214,6 +215,14 @@ export const PropertyProvider = ({ children }: { children: ReactNode }) => {
             set(child(paymentsRef, newPaymentId), { ...payment, paid: false });
         }
     };
+    
+    const updateConstructionPayment = (propertyId: string, paymentId: string, paymentUpdate: Partial<Omit<ConstructionPayment, 'id'>>) => {
+        if (!user) return;
+        const paymentRef = getDbRef(`properties/${propertyId}/constructionProgress/payments/${paymentId}`);
+        update(paymentRef, paymentUpdate)
+            .then(() => toast({ title: 'Pagamento Atualizado!'}))
+            .catch((err) => toast({ variant: 'destructive', title: 'Erro', description: err.message }));
+    };
 
     const toggleConstructionPayment = (propertyId: string, paymentId: string) => {
         if (!user) return;
@@ -291,6 +300,7 @@ export const PropertyProvider = ({ children }: { children: ReactNode }) => {
         updateShoppingItem,
         deleteShoppingItem,
         addConstructionPayment,
+        updateConstructionPayment,
         toggleConstructionPayment,
         updateConstructionProgress,
         addDocument,

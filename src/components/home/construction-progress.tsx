@@ -8,8 +8,8 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
-import { Property, useProperty } from '@/contexts/property-context';
-import { PlusCircle, HardHat, DollarSign, Edit, TrendingUp, Wallet, MinusCircle } from 'lucide-react';
+import { Property, useProperty, ConstructionPayment } from '@/contexts/property-context';
+import { PlusCircle, HardHat, DollarSign, Edit, TrendingUp, Wallet, MinusCircle, Pencil } from 'lucide-react';
 import { AddConstructionPaymentDialog } from './add-construction-payment-dialog';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -17,6 +17,7 @@ import { cn } from '@/lib/utils';
 import { FinanceContext } from '@/contexts/finance-context';
 import { useContext } from 'react';
 import { EditProgressDialog } from './edit-progress-dialog';
+import { EditConstructionPaymentDialog } from './edit-construction-payment-dialog';
 
 
 export function ConstructionProgress({ property }: { property: Property }) {
@@ -24,6 +25,7 @@ export function ConstructionProgress({ property }: { property: Property }) {
     const { toggleConstructionPayment } = useProperty();
     const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false);
     const [isProgressDialogOpen, setIsProgressDialogOpen] = useState(false);
+    const [editingPayment, setEditingPayment] = useState<ConstructionPayment | null>(null);
 
     const progress = useMemo(() => {
         return property.constructionProgress?.progressPercentage || 0;
@@ -41,6 +43,10 @@ export function ConstructionProgress({ property }: { property: Property }) {
     const remainingBudget = totalBudget - spentAmount;
 
     const payments = property.constructionProgress?.payments || [];
+
+    const handleEditClick = (payment: ConstructionPayment) => {
+        setEditingPayment(payment);
+    };
 
     return (
         <>
@@ -103,6 +109,9 @@ export function ConstructionProgress({ property }: { property: Property }) {
                                     <Badge variant={payment.paid ? 'default' : 'secondary'} className={cn(payment.paid && 'bg-green-600/80')}>
                                         {formatCurrency(payment.amount)}
                                     </Badge>
+                                    <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground" onClick={() => handleEditClick(payment)}>
+                                        <Pencil className="h-4 w-4" />
+                                    </Button>
                                 </div>
                             ))
                         ) : (
@@ -119,6 +128,14 @@ export function ConstructionProgress({ property }: { property: Property }) {
                 onClose={() => setIsPaymentDialogOpen(false)}
                 propertyId={property.id}
             />
+            {editingPayment && (
+                <EditConstructionPaymentDialog 
+                    isOpen={!!editingPayment}
+                    onClose={() => setEditingPayment(null)}
+                    propertyId={property.id}
+                    payment={editingPayment}
+                />
+            )}
             <EditProgressDialog
                 isOpen={isProgressDialogOpen}
                 onClose={() => setIsProgressDialogOpen(false)}
