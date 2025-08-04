@@ -44,8 +44,12 @@ export function CommandInput() {
 
             recognitionRef.current.onerror = (event: any) => {
                 console.error("Speech recognition error", event.error);
+                if (event.error === 'not-allowed') {
+                    toast({ variant: 'destructive', title: "Permissão Negada", description: "Você precisa permitir o acesso ao microfone no seu navegador." });
+                } else {
+                    toast({ variant: 'destructive', title: "Erro de Áudio", description: "Não consegui entender o que você disse. Tente novamente." });
+                }
                 setIsListening(false);
-                toast({ variant: 'destructive', title: "Erro de áudio", description: "Não consegui entender o que você disse." });
             };
             
             recognitionRef.current.onend = () => {
