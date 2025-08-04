@@ -23,6 +23,7 @@ import { WeatherOverview } from '@/components/dashboard/weather-overview';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
+import { CommandInput } from '@/components/dashboard/command-input';
 
 type Theme = 'light' | 'dark';
 
@@ -123,23 +124,27 @@ export default function Home() {
   return (
     <>
       <div className="mx-auto w-full max-w-7xl">
+        <div className="flex items-center justify-between pb-6">
+            <DashboardHeader />
+            <div className="flex items-center gap-2">
+                <Button variant="ghost" size="icon" onClick={toggleSensitiveDataVisibility}>
+                    {isSensitiveDataVisible ? <Eye className="h-5 w-5" /> : <EyeOff className="h-5 w-5" />}
+                </Button>
+                  <Button variant="ghost" size="icon" onClick={handleThemeChange}>
+                    {theme === 'light' ? <Moon className="h-5 w-5" /> : <Sun className="h-5 w-5" />}
+                </Button>
+                <UserNav />
+            </div>
+        </div>
+
+        <div className="pb-6">
+            <CommandInput />
+        </div>
+        
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
           
           {/* Left Column */}
           <div className="flex flex-col gap-6 lg:col-span-1">
-            <div className="flex items-center justify-between">
-              <DashboardHeader />
-              <div className="flex items-center gap-2">
-                  <Button variant="ghost" size="icon" onClick={toggleSensitiveDataVisibility}>
-                      {isSensitiveDataVisible ? <Eye className="h-5 w-5" /> : <EyeOff className="h-5 w-5" />}
-                  </Button>
-                   <Button variant="ghost" size="icon" onClick={handleThemeChange}>
-                      {theme === 'light' ? <Moon className="h-5 w-5" /> : <Sun className="h-5 w-5" />}
-                  </Button>
-                  <UserNav />
-              </div>
-            </div>
-            
             <TransactionsOverview />
           </div>
 

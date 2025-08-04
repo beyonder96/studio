@@ -10,6 +10,13 @@ import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/auth-context';
 import { cn } from '@/lib/utils';
 
+declare global {
+    interface Window {
+        SpeechRecognition: any;
+        webkitSpeechRecognition: any;
+    }
+}
+
 export function CommandInput() {
     const [command, setCommand] = useState('');
     const [isLoading, setIsLoading] = useState(false);
