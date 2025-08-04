@@ -42,8 +42,15 @@ const baseSchema = z.object({
   linkedGoalId: z.string().optional(),
 });
 
-const incomeExpenseSchema = baseSchema.extend({
-  type: z.enum(['income', 'expense']),
+const incomeSchema = baseSchema.extend({
+  type: z.literal('income'),
+  description: z.string().min(1, 'Descrição é obrigatória'),
+  category: z.string().min(1, 'Categoria é obrigatória'),
+  account: z.string().min(1, 'Conta/Cartão é obrigatório'),
+});
+
+const expenseSchema = baseSchema.extend({
+  type: z.literal('expense'),
   description: z.string().min(1, 'Descrição é obrigatória'),
   category: z.string().min(1, 'Categoria é obrigatória'),
   account: z.string().min(1, 'Conta/Cartão é obrigatório'),
@@ -59,7 +66,8 @@ const transferSchema = baseSchema.extend({
 });
 
 const transactionSchema = z.discriminatedUnion('type', [
-  incomeExpenseSchema,
+  incomeSchema,
+  expenseSchema,
   transferSchema,
 ]);
 
