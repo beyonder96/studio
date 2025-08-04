@@ -9,7 +9,7 @@ import { addMonths, format, isSameMonth, startOfMonth, endOfMonth, addDays } fro
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from './auth-context';
 import { app as firebaseApp } from '@/lib/firebase';
-import { createCalendarEvent, deleteGoogleCalendarEvent, updateGoogleCalendarEvent } from '@/ai/tools/app-tools';
+import { createCalendarEvent, deleteGoogleCalendarEvent, updateGoogleCalendarEvent, getCalendarEvents } from '@/ai/tools/app-tools';
 
 // --- Default Data for New Users ---
 const initialTransactions: Transaction[] = [
