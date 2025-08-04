@@ -75,6 +75,7 @@ type PropertyContextType = {
     deleteShoppingItem: (propertyId: string, itemId: string) => void;
     addConstructionPayment: (propertyId: string, payment: Omit<ConstructionPayment, 'id' | 'paid'>) => void;
     updateConstructionPayment: (propertyId: string, paymentId: string, paymentUpdate: Partial<Omit<ConstructionPayment, 'id'>>) => void;
+    deleteConstructionPayment: (propertyId: string, paymentId: string) => void;
     toggleConstructionPayment: (propertyId: string, paymentId: string) => void;
     updateConstructionProgress: (propertyId: string, percentage: number, budget: number) => void;
     addDocument: (propertyId: string, file: File) => Promise<void>;
@@ -224,6 +225,14 @@ export const PropertyProvider = ({ children }: { children: ReactNode }) => {
             .catch((err) => toast({ variant: 'destructive', title: 'Erro', description: err.message }));
     };
 
+    const deleteConstructionPayment = (propertyId: string, paymentId: string) => {
+        if (!user) return;
+        const paymentRef = getDbRef(`properties/${propertyId}/constructionProgress/payments/${paymentId}`);
+        remove(paymentRef)
+            .then(() => toast({ title: 'Pagamento Excluído!' }))
+            .catch((err) => toast({ variant: 'destructive', title: 'Erro ao excluir', description: err.message }));
+    };
+
     const toggleConstructionPayment = (propertyId: string, paymentId: string) => {
         if (!user) return;
         const property = properties.find(p => p.id === propertyId);
@@ -301,6 +310,7 @@ export const PropertyProvider = ({ children }: { children: ReactNode }) => {
         deleteShoppingItem,
         addConstructionPayment,
         updateConstructionPayment,
+        deleteConstructionPayment,
         toggleConstructionPayment,
         updateConstructionProgress,
         addDocument,

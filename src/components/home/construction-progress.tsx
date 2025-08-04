@@ -9,7 +9,7 @@ import { Progress } from '@/components/ui/progress';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Property, useProperty, ConstructionPayment } from '@/contexts/property-context';
-import { PlusCircle, HardHat, DollarSign, Edit, TrendingUp, Wallet, MinusCircle, Pencil } from 'lucide-react';
+import { PlusCircle, HardHat, DollarSign, Edit, TrendingUp, Wallet, MinusCircle, Pencil, Trash2 } from 'lucide-react';
 import { AddConstructionPaymentDialog } from './add-construction-payment-dialog';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -18,14 +18,26 @@ import { FinanceContext } from '@/contexts/finance-context';
 import { useContext } from 'react';
 import { EditProgressDialog } from './edit-progress-dialog';
 import { EditConstructionPaymentDialog } from './edit-construction-payment-dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 
 export function ConstructionProgress({ property }: { property: Property }) {
     const { formatCurrency } = useContext(FinanceContext);
-    const { toggleConstructionPayment } = useProperty();
+    const { toggleConstructionPayment, deleteConstructionPayment } = useProperty();
     const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false);
     const [isProgressDialogOpen, setIsProgressDialogOpen] = useState(false);
     const [editingPayment, setEditingPayment] = useState<ConstructionPayment | null>(null);
+    const [paymentToDelete, setPaymentToDelete] = useState<ConstructionPayment | null>(null);
 
     const progress = useMemo(() => {
         return property.constructionProgress?.progressPercentage || 0;
@@ -46,6 +58,13 @@ export function ConstructionProgress({ property }: { property: Property }) {
 
     const handleEditClick = (payment: ConstructionPayment) => {
         setEditingPayment(payment);
+    };
+
+    const handleDeletePayment = () => {
+        if (paymentToDelete) {
+            deleteConstructionPayment(property.id, paymentToDelete.id);
+            setPaymentToDelete(null);
+        }
     };
 
     return (
@@ -91,8 +110,9 @@ export function ConstructionProgress({ property }: { property: Property }) {
                    <h3 className="font-semibold mb-4 text-lg">Pagamentos</h3>
                    <div className="space-y-3 max-h-60 overflow-y-auto pr-2">
                        {payments.length > 0 ? (
-                            payments.sort((a,b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime()).map(payment => (
+                            payments.sort((a,b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime()).map((payment, index) => (
                                 <div key={payment.id} className="flex items-center space-x-3 p-3 bg-background rounded-lg border">
+                                     <span className="font-mono text-xs text-muted-foreground">{index + 1}.</span>
                                      <Checkbox 
                                         id={`payment-${payment.id}`}
                                         checked={payment.paid}
@@ -111,6 +131,9 @@ export function ConstructionProgress({ property }: { property: Property }) {
                                     </Badge>
                                     <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground" onClick={() => handleEditClick(payment)}>
                                         <Pencil className="h-4 w-4" />
+                                    </Button>
+                                    <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive/70 hover:text-destructive" onClick={() => setPaymentToDelete(payment)}>
+                                        <Trash2 className="h-4 w-4" />
                                     </Button>
                                 </div>
                             ))
@@ -143,6 +166,22 @@ export function ConstructionProgress({ property }: { property: Property }) {
                 currentProgress={progress}
                 currentBudget={totalBudget}
             />
+             <AlertDialog open={!!paymentToDelete} onOpenChange={(open) => !open && setPaymentToDelete(null)}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Excluir Pagamento?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            Tem certeza que deseja excluir o pagamento "{paymentToDelete?.description}"? Esta ação não pode ser desfeita.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                        <AlertDialogAction onClick={handleDeletePayment} className="bg-destructive hover:bg-destructive/90">
+                            Sim, Excluir
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </>
     );
 }
