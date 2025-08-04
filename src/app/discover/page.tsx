@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
-import { Utensils, Plane, Heart, Lightbulb, Loader2, Sparkles, Copy, ShoppingCart, Star, Building, Map, MapPin as VenueIcon } from 'lucide-react';
+import { Utensils, Plane, Heart, Lightbulb, Loader2, Sparkles, Copy, ShoppingCart, Star, Building, MapPin as VenueIcon, Briefcase } from 'lucide-react';
 import { generateRecipeSuggestion, GenerateRecipeOutput } from '@/ai/flows/generate-recipe-flow';
 import { generateTripPlan, GenerateTripPlanOutput } from '@/ai/flows/generate-trip-plan-flow';
 import { generateDateIdea, GenerateDateIdeaOutput } from '@/ai/flows/generate-date-idea-flow';
@@ -166,8 +166,17 @@ export default function DiscoverPage() {
     let rawText = '';
     if (typeof textToCopy === 'string') {
         rawText = textToCopy;
-    } else if ('planMarkdown' in (textToCopy as any)) {
-        rawText = (textToCopy as any).planMarkdown;
+    } else if ('destination' in (textToCopy as any)) {
+        const plan = textToCopy as GenerateTripPlanOutput;
+        rawText += `Viagem para ${plan.destination}\n\nAcomodação: ${plan.accommodation.name}\n${plan.accommodation.description}\n\n`;
+        plan.itinerary.forEach(day => {
+            rawText += `Dia ${day.day}: ${day.title}\n`;
+            day.activities.forEach(act => {
+                rawText += `- ${act.name}: ${act.description}\n`;
+            });
+            rawText += '\n';
+        });
+        rawText += `Checklist: ${plan.checklist.join(', ')}`;
     } else if ('recipe' in (textToCopy as any)) {
         rawText = (textToCopy as any).recipe;
     } else if ('detailsMarkdown' in (textToCopy as any)) {
@@ -259,6 +268,7 @@ export default function DiscoverPage() {
         <p className="text-muted-foreground pl-7">{plan.accommodation.description}</p>
         {plan.accommodation.reviews && plan.accommodation.reviews.length > 0 && (
           <div className="pl-7 mt-2 space-y-2">
+            <h4 className="font-semibold text-sm">Avaliações:</h4>
             {plan.accommodation.reviews.map((review, index) => (
               <div key={index} className="border-l-2 pl-3">
                 {renderStars(review.rating)}
@@ -269,32 +279,37 @@ export default function DiscoverPage() {
           </div>
         )}
       </div>
-       <div>
-        <h3 className="text-xl font-semibold flex items-center gap-2"><Map className="h-5 w-5"/> Atividades</h3>
-        <div className="space-y-4 mt-2">
-          {plan.activities.map((activity, index) => (
-            <div key={index} className="pl-7">
-              <h4 className="font-semibold">{activity.name}</h4>
-              <p className="text-muted-foreground">{activity.description}</p>
-              {activity.reviews && activity.reviews.length > 0 && (
-                <div className="mt-2 space-y-2">
-                  {activity.reviews.map((review, r_index) => (
-                    <div key={r_index} className="border-l-2 pl-3">
-                      {renderStars(review.rating)}
-                      <p className="text-sm italic">"{review.comment}"</p>
-                      <p className="text-xs text-right text-muted-foreground">- {review.author}</p>
-                    </div>
-                  ))}
+       <div className="space-y-4">
+        <h3 className="text-xl font-semibold flex items-center gap-2">Roteiro Sugerido 🗺️</h3>
+        {plan.itinerary.map((day) => (
+            <div key={day.day} className="pl-4 border-l-2">
+                <h4 className="font-semibold text-lg">Dia {day.day}: {day.title}</h4>
+                <div className="space-y-3 mt-2">
+                    {day.activities.map((activity, index) => (
+                       <div key={index} className="pl-4">
+                            <h5 className="font-semibold">{activity.name}</h5>
+                            <p className="text-muted-foreground text-sm">{activity.description}</p>
+                             {activity.reviews && activity.reviews.length > 0 && (
+                                <div className="mt-2 space-y-2">
+                                {activity.reviews.slice(0,1).map((review, r_index) => (
+                                    <div key={r_index} className="border-l-2 pl-3 text-xs">
+                                        {renderStars(review.rating)}
+                                        <p className="italic">"{review.comment}"</p>
+                                        <p className="text-right text-muted-foreground">- {review.author}</p>
+                                    </div>
+                                ))}
+                                </div>
+                            )}
+                       </div>
+                    ))}
                 </div>
-              )}
             </div>
-          ))}
-        </div>
+        ))}
       </div>
       <div>
-        <h3 className="text-xl font-semibold">O que levar na mala 🎒</h3>
+        <h3 className="text-xl font-semibold flex items-center gap-2"><Briefcase className="h-5 w-5"/> Checklist da Viagem</h3>
         <ul className="list-disc list-inside columns-2 gap-4 pl-2 mt-2">
-            {plan.packingList.map((item, index) => <li key={index}>{item}</li>)}
+            {plan.checklist.map((item, index) => <li key={index}>{item}</li>)}
         </ul>
       </div>
     </div>

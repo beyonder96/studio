@@ -32,6 +32,12 @@ const ActivitySchema = z.object({
     reviews: z.array(ReviewSchema).optional().describe('A list of reviews for this activity or place.'),
 });
 
+const DailyItinerarySchema = z.object({
+    day: z.number().describe('The day number, e.g., 1, 2, 3.'),
+    title: z.string().describe('A catchy title for the day, e.g., "Dia de Exploração Histórica".'),
+    activities: z.array(ActivitySchema).describe('An array of activities planned for this day.'),
+});
+
 const GenerateTripPlanOutputSchema = z.object({
     destination: z.string().describe('The suggested destination city/region.'),
     accommodation: z.object({
@@ -39,9 +45,8 @@ const GenerateTripPlanOutputSchema = z.object({
         description: z.string().describe('A brief description of the accommodation.'),
         reviews: z.array(ReviewSchema).optional().describe('A list of reviews for the accommodation.'),
     }),
-    activities: z.array(ActivitySchema).describe('An array of at least 3 suggested activities.'),
-    packingList: z.array(z.string()).describe('A list of items to pack for the trip.'),
-    planMarkdown: z.string().describe('The full trip plan, formatted in Markdown. This should be a user-friendly combination of all the fields above.'),
+    itinerary: z.array(DailyItinerarySchema).describe('A day-by-day itinerary for the trip.'),
+    checklist: z.array(z.string()).describe('A comprehensive checklist for the trip, including packing items and preparation tasks like buying currency.'),
 });
 export type GenerateTripPlanOutput = z.infer<typeof GenerateTripPlanOutputSchema>;
 
@@ -65,11 +70,8 @@ Use a ferramenta para DESCOBRIR lugares reais. NÃO invente nomes de lugares.
 Apenas os lugares retornados pela ferramenta devem ser incluídos na resposta final.
 
 O plano deve ser retornado no formato JSON especificado.
-Além disso, crie um resumo amigável e bem formatado em Markdown no campo 'planMarkdown', contendo as seguintes seções:
-- ## Destino Sugerido 📍
-- ## Sugestão de Acomodação 🏨 (com avaliações)
-- ## Roteiro Sugerido 🗺️ (com pelo menos 3 atividades detalhadas e suas avaliações)
-- ## O que Levar na Mala 🎒
+Crie um roteiro diário (itinerary) com pelo menos 3 dias, detalhando as atividades de cada dia.
+Crie também um checklist de viagem abrangente, incluindo itens para mala e tarefas de preparação (ex: comprar moeda, verificar passaportes).
 
 Use emojis para deixar o roteiro mais visual e convidativo. ✈️❤️
 
