@@ -28,12 +28,12 @@ function HomePageContent() {
       <Card className="bg-white/10 dark:bg-black/10 backdrop-blur-3xl border-white/20 dark:border-black/20 rounded-3xl shadow-2xl">
         <CardContent className="p-4 sm:p-6">
           <div className="flex flex-col gap-8">
-            <div className="flex items-center justify-between">
-              <div>
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <div className="flex-1">
                 <h1 className="text-3xl font-bold">Gerenciamento de Imóveis</h1>
                 <p className="text-muted-foreground">Selecione um imóvel para gerenciar ou adicione um novo.</p>
               </div>
-              <Button onClick={handleOpenAddDialog}>
+              <Button onClick={handleOpenAddDialog} className="w-full sm:w-auto">
                 <Plus className="mr-2 h-4 w-4" />
                 Adicionar Imóvel
               </Button>
