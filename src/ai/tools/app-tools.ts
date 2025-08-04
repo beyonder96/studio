@@ -8,7 +8,7 @@
  */
 import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
-import { getDatabase, ref, push, set, onValue } from 'firebase/database';
+import { getDatabase, ref, push, set, onValue, remove, get } from 'firebase/database';
 import { app as firebaseApp } from '@/lib/firebase';
 import { format, parseISO } from 'date-fns';
 import { google } from 'googleapis';
@@ -178,6 +178,82 @@ export const createCalendarEvent = ai.defineTool(
   }
 );
 
+export const updateGoogleCalendarEvent = ai.defineTool(
+    {
+        name: 'updateGoogleCalendarEvent',
+        description: 'Updates an existing event in Google Calendar.',
+        inputSchema: z.object({
+            accessToken: z.string().describe("The user's Google OAuth2 access token."),
+            eventId: z.string().describe('The ID of the Google Calendar event to update.'),
+            title: z.string().describe('The updated title.'),
+            date: z.string().describe('The updated date in YYYY-MM-DD format.'),
+            time: z.string().optional().describe('The updated time in HH:MM format.'),
+            notes: z.string().optional().describe('Updated notes for the event.'),
+        }),
+        outputSchema: z.object({ success: z.boolean() }),
+    },
+    async ({ accessToken, eventId, title, date, time, notes }) => {
+        const authClient = getGoogleAuthClient(accessToken);
+        const calendar = google.calendar({ version: 'v3', auth: authClient });
+
+        const eventStartTime = time ? parseISO(`${date}T${time}:00`) : parseISO(date);
+        const eventEndTime = time ? new Date(eventStartTime.getTime() + 60 * 60 * 1000) : new Date(eventStartTime.getTime() + 24 * 60 * 60 * 1000);
+
+        const event = {
+            summary: title,
+            description: notes || '',
+            start: {
+                dateTime: time ? eventStartTime.toISOString() : undefined,
+                date: !time ? date : undefined,
+                timeZone: 'America/Sao_Paulo',
+            },
+            end: {
+                dateTime: time ? eventEndTime.toISOString() : undefined,
+                date: !time ? date : undefined,
+                timeZone: 'America/Sao_Paulo',
+            },
+        };
+
+        try {
+            await calendar.events.update({
+                calendarId: 'primary',
+                eventId: eventId,
+                requestBody: event,
+            });
+            return { success: true };
+        } catch (error) {
+            console.error("Failed to update Google Calendar event:", error);
+            return { success: false };
+        }
+    }
+);
+
+export const deleteGoogleCalendarEvent = ai.defineTool(
+    {
+        name: 'deleteGoogleCalendarEvent',
+        description: 'Deletes an event from Google Calendar.',
+        inputSchema: z.object({
+            accessToken: z.string().describe("The user's Google OAuth2 access token."),
+            eventId: z.string().describe('The ID of the Google Calendar event to delete.'),
+        }),
+        outputSchema: z.object({ success: z.boolean() }),
+    },
+    async ({ accessToken, eventId }) => {
+        const authClient = getGoogleAuthClient(accessToken);
+        const calendar = google.calendar({ version: 'v3', auth: authClient });
+        try {
+            await calendar.events.delete({
+                calendarId: 'primary',
+                eventId: eventId,
+            });
+            return { success: true };
+        } catch (error) {
+            console.error("Failed to delete Google Calendar event:", error);
+            return { success: false };
+        }
+    }
+);
+
 
 export const createTask = ai.defineTool(
   {
@@ -338,3 +414,5 @@ export const addItemToShoppingList = ai.defineTool(
       });
   }
 );
+
+    

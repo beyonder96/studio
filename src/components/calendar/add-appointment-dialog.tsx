@@ -31,6 +31,7 @@ import { Appointment, FinanceContext } from '@/contexts/finance-context';
 
 const appointmentSchema = z.object({
   id: z.string().optional(),
+  isGoogleEvent: z.boolean().optional(),
   title: z.string().min(1, 'O título é obrigatório'),
   date: z.string().min(1, 'A data é obrigatória'),
   time: z.string().optional(),
@@ -66,13 +67,14 @@ export function AddAppointmentDialog({ isOpen, onClose, onSave, appointment, sel
       time: '',
       category: '',
       notes: '',
+      isGoogleEvent: false,
     },
   });
 
   useEffect(() => {
     if (isOpen) {
       if (appointment) {
-        reset(appointment);
+        reset({ ...appointment, time: appointment.time || '' });
       } else {
         reset({
           title: '',
@@ -80,6 +82,7 @@ export function AddAppointmentDialog({ isOpen, onClose, onSave, appointment, sel
           time: '',
           category: '',
           notes: '',
+          isGoogleEvent: false,
         });
       }
     }
@@ -124,7 +127,7 @@ export function AddAppointmentDialog({ isOpen, onClose, onSave, appointment, sel
                   name="category"
                   control={control}
                   render={({ field }) => (
-                      <Select onValueChange={field.onChange} value={field.value}>
+                      <Select onValueChange={field.onChange} value={field.value} disabled={appointment?.isGoogleEvent}>
                           <SelectTrigger>
                               <SelectValue placeholder="Selecione uma categoria" />
                           </SelectTrigger>
@@ -157,3 +160,5 @@ export function AddAppointmentDialog({ isOpen, onClose, onSave, appointment, sel
     </Dialog>
   );
 }
+
+    

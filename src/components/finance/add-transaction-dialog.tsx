@@ -24,7 +24,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Transaction } from './transactions-table';
 import { CurrencyInput } from './currency-input';
-import { useEffect, useContext, useMemo } from 'react';
+import { useEffect, useContext, useMemo, useCallback } from 'react';
 import { FinanceContext, Account } from '@/contexts/finance-context';
 import { Input } from '@/components/ui/input';
 import { addMonths, format } from 'date-fns';

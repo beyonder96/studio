@@ -9,7 +9,7 @@ import { addMonths, format, isSameMonth, startOfMonth, endOfMonth, addDays } fro
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from './auth-context';
 import { app as firebaseApp } from '@/lib/firebase';
-import { createCalendarEvent } from '@/ai/tools/app-tools';
+import { createCalendarEvent, deleteGoogleCalendarEvent, updateGoogleCalendarEvent } from '@/ai/tools/app-tools';
 
 // --- Default Data for New Users ---
 const initialTransactions: Transaction[] = [
@@ -55,7 +55,7 @@ export type Account = {
     benefitDay?: number;
 }
 export type Card = { id: string; name: string; limit: number; dueDay: number; holder: string; brand: 'visa' | 'mastercard' | 'elo' | 'amex'; };
-export type Appointment = { id: string; title: string; date: string; time?: string; category: string; notes?: string; googleEventId?: string; accessToken?: string; };
+export type Appointment = { id: string; title: string; date: string; time?: string; category: string; notes?: string; googleEventId?: string; accessToken?: string; isGoogleEvent?: boolean; };
 export type PantryCategory = string;
 export type PantryItem = { id: string; name: string; quantity: number; pantryCategory: PantryCategory; }
 export type Task = { id: string; text: string; completed: boolean; };
@@ -167,8 +167,8 @@ type FinanceContextType = {
   appointments: Appointment[];
   appointmentCategories: string[];
   addAppointment: (appointment: Omit<Appointment, 'id'>) => void;
-  updateAppointment: (id: string, appointment: Partial<Omit<Appointment, 'id'>>) => void;
-  deleteAppointment: (id: string) => void;
+  updateAppointment: (id: string, appointment: Partial<Omit<Appointment, 'id'>>, isGoogleEvent: boolean) => void;
+  deleteAppointment: (id: string, isGoogleEvent: boolean) => void;
   toast: ReturnType<typeof useToast>['toast'];
   shoppingLists: ShoppingList[];
   selectedListId: string | null;
@@ -205,7 +205,7 @@ export const FinanceContext = createContext<FinanceContextType>({} as FinanceCon
 
 export const FinanceProvider = ({ children }: { children: ReactNode }) => {
   const { toast } = useToast();
-  const { user } = useAuth();
+  const { user, googleAccessToken } = useAuth();
   
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [accounts, setAccounts] = useState<Account[]>([]);
@@ -855,17 +855,63 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
     });
   };
 
-  const updateAppointment = (id: string, updatedAppointment: Partial<Omit<Appointment, 'id'>>) => {
+  const updateAppointment = async (id: string, updatedData: Partial<Omit<Appointment, 'id'>>, isGoogleEvent: boolean) => {
     if (!user) return;
-    // For now, only update in Firebase. Google Calendar update is more complex.
-    delete updatedAppointment.accessToken; // Ensure token is not saved
-    update(getDbRef(`appointments/${id}`), updatedAppointment);
+
+    const updates: { [key: string]: any } = {};
+    const accessToken = googleAccessToken;
+
+    if (isGoogleEvent && accessToken) {
+        const success = await updateGoogleCalendarEvent({ 
+            accessToken, 
+            eventId: id,
+            title: updatedData.title!,
+            date: updatedData.date!,
+            time: updatedData.time,
+            notes: updatedData.notes,
+        });
+        if (!success) {
+            toast({ variant: 'destructive', title: 'Erro de Sincronização', description: 'Não foi possível atualizar o evento no Google Calendar.' });
+            return;
+        }
+        // As we don't have a local copy of google events, we just refetch them
+        const events = await getCalendarEvents({ accessToken });
+        setGoogleEvents(events);
+    }
+
+    const localAppointment = appointments.find(a => a.googleEventId === id || a.id === id);
+    if (localAppointment) {
+        updates[`appointments/${localAppointment.id}`] = { ...localAppointment, ...updatedData };
+    }
+
+    if (Object.keys(updates).length > 0) {
+      update(getDbRef(''), updates);
+    }
+    toast({ title: 'Evento Atualizado!' });
   };
 
-  const deleteAppointment = (id: string) => {
+  const deleteAppointment = async (id: string, isGoogleEvent: boolean) => {
     if (!user) return;
-    // For now, only delete from Firebase. Google Calendar delete is more complex.
-    remove(getDbRef(`appointments/${id}`));
+    const accessToken = googleAccessToken;
+
+    if (isGoogleEvent && accessToken) {
+        const success = await deleteGoogleCalendarEvent({ accessToken, eventId: id });
+        if (!success) {
+            toast({ variant: 'destructive', title: 'Erro de Sincronização', description: 'Não foi possível excluir o evento no Google Calendar.' });
+            return;
+        }
+        // Refetch events after deletion
+        const events = await getCalendarEvents({ accessToken });
+        setGoogleEvents(events);
+    }
+    
+    // Also delete from our DB if it exists there
+    const localAppointment = appointments.find(a => a.googleEventId === id || a.id === id);
+    if (localAppointment) {
+        remove(getDbRef(`appointments/${localAppointment.id}`));
+    }
+    
+    toast({ title: 'Evento Excluído!' });
   };
   
   const addAccount = (account: Omit<Account, 'id'>) => {
@@ -1168,3 +1214,5 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
     </FinanceContext.Provider>
   );
 };
+
+    

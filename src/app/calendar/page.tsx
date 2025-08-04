@@ -147,15 +147,31 @@ export default function CalendarPage() {
     setIsDialogOpen(true);
   };
   
-  const openEditDialog = (appointment: Appointment) => {
-    setEditingAppointment(appointment);
+  const openEditDialog = (event: CalendarEvent) => {
+    // We need to transform the raw event data back into something the dialog can use
+    const dialogData: Appointment = {
+      id: event.isGoogleEvent ? (event.raw as any).id : (event.raw as Appointment).id,
+      googleEventId: event.isGoogleEvent ? (event.raw as any).id : (event.raw as Appointment).googleEventId,
+      title: event.title,
+      date: format(event.date, 'yyyy-MM-dd'),
+      time: event.time,
+      category: event.isGoogleEvent ? 'Google' : (event.raw as Appointment).category,
+      notes: (event.raw as any).notes || '',
+      isGoogleEvent: event.isGoogleEvent,
+    };
+    setEditingAppointment(dialogData);
     setIsDialogOpen(true);
   };
+  
+  const handleDeleteEvent = (event: CalendarEvent) => {
+    if(!window.confirm(`Tem certeza que deseja excluir o evento "${event.title}"?`)) return;
+    deleteAppointment(event.isGoogleEvent ? (event.raw as any).id : (event.raw as Appointment).id, event.isGoogleEvent);
+  }
 
   const handleSaveAppointment = async (data: Omit<Appointment, 'id'> & { id?: string }) => {
     const dataToSave = { ...data, accessToken: googleAccessToken || undefined };
     if (data.id) {
-      updateAppointment(data.id, dataToSave);
+      updateAppointment(data.id, dataToSave, !!data.isGoogleEvent);
     } else {
       addAppointment(dataToSave);
     }
@@ -217,16 +233,14 @@ export default function CalendarPage() {
                                                     )}
                                                 </div>
                                             </div>
-                                            {!event.isGoogleEvent && (
-                                                <div className="flex items-center gap-1">
-                                                    <Button variant="ghost" size="icon" onClick={() => openEditDialog(event.raw as Appointment)}>
-                                                    <Edit className="h-4 w-4" />
-                                                    </Button>
-                                                    <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={() => deleteAppointment((event.raw as Appointment).id)}>
-                                                    <Trash2 className="h-4 w-4" />
-                                                    </Button>
-                                                </div>
-                                            )}
+                                            <div className="flex items-center gap-1">
+                                                <Button variant="ghost" size="icon" onClick={() => openEditDialog(event)}>
+                                                <Edit className="h-4 w-4" />
+                                                </Button>
+                                                <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={() => handleDeleteEvent(event)}>
+                                                <Trash2 className="h-4 w-4" />
+                                                </Button>
+                                            </div>
                                         </div>
                                     ))}
                                 </div>
@@ -253,3 +267,5 @@ export default function CalendarPage() {
     </Card>
   );
 }
+
+    
