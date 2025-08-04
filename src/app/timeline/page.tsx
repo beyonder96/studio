@@ -110,7 +110,7 @@ export default function TimelinePage() {
         const currentYear = getYear(today);
         const startYear = getYear(since);
         
-        for (let year = startYear + 1; year < currentYear; year++) {
+        for (let year = startYear + 1; year <= currentYear; year++) {
             const anniversaryDate = new Date(year, since.getMonth(), since.getDate());
              if (anniversaryDate < today) {
                 events.push({
