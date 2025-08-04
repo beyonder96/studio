@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import {
@@ -73,7 +74,7 @@ type TransactionFormData = z.infer<typeof transactionSchema>;
 type AddTransactionDialogProps = {
   isOpen: boolean;
   onClose: () => void;
-  onSaveTransaction: (transaction: Omit<Transaction, 'id' > & { id?: string; fromAccount?: string; toAccount?: string; }, installments?: number) => void;
+  onSaveTransaction: (transaction: Omit<Transaction, 'id' | 'amount' > & { id?: string; amount: number; fromAccount?: string; toAccount?: string; }, installments?: number) => void;
   transaction: Transaction | null;
 };
 
@@ -148,13 +149,14 @@ export function AddTransactionDialog({
 
   const transactionType = watch('type');
   const isRecurring = watch('isRecurring');
-  const selectedAccountId = watch('account');
+  const selectedAccountName = watch('account');
   const amount = watch('amount');
   const installments = watch('installments');
   
   const selectedAccount = useMemo(() => {
-    return combinedAccounts.find(acc => acc.name === selectedAccountId);
-  }, [selectedAccountId, combinedAccounts]);
+    if (!selectedAccountName) return null;
+    return combinedAccounts.find(acc => acc.name === selectedAccountName);
+  }, [selectedAccountName, combinedAccounts]);
 
   const isCreditCard = selectedAccount?.type === 'card';
   const isVoucher = selectedAccount?.type === 'voucher';
@@ -187,7 +189,7 @@ export function AddTransactionDialog({
     }
     
     if (isVoucher) {
-      const voucherAccount = accounts.find(acc => acc.id === selectedAccount.id) as Account | undefined;
+      const voucherAccount = accounts.find(acc => acc.name === selectedAccount.name) as Account | undefined;
       if (voucherAccount && voucherAccount.balance !== undefined) {
         const currentBalance = getVoucherCurrentBalance(voucherAccount);
         const remainingBalance = currentBalance - (transactionType === 'expense' ? amount : 0);
@@ -208,12 +210,10 @@ export function AddTransactionDialog({
 
 
   const onSubmit = (data: TransactionFormData) => {
-    const transactionAmount = data.type === 'expense' ? -Math.abs(data.amount) : Math.abs(data.amount);
-    
     // Don't pass installment data if not a credit card purchase
     const finalInstallments = (isCreditCard && (data.installments || 1) > 1) ? data.installments : undefined;
     
-    let finalData: Omit<Transaction, 'id'> & { fromAccount?: string; toAccount?: string } = { ...data, amount: transactionAmount };
+    let finalData: Omit<Transaction, 'id' | 'amount'> & { id?: string; amount: number; fromAccount?: string; toAccount?: string; } = { ...data, amount: data.amount };
     
     if (data.type !== 'transfer') {
         if (!finalData.isRecurring) {
@@ -222,9 +222,6 @@ export function AddTransactionDialog({
          if (!isCreditCard || (finalData.installments || 1) <= 1) {
           delete (finalData as any).installments;
         }
-    } else {
-        finalData.description = `Transferência de ${data.fromAccount} para ${data.toAccount}`;
-        finalData.category = 'Transferência';
     }
 
     if (finalData.linkedGoalId === '' || finalData.linkedGoalId === 'none') {

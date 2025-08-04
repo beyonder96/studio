@@ -18,7 +18,7 @@ const initialTransactions: Transaction[] = [
 ];
 const initialAccounts: Account[] = [ { id: 'acc1', name: 'Conta Corrente', balance: 3500, type: 'checking', holder: 'Pessoa 1', bankName: 'nubank' } ];
 const initialCards = [ { id: 'card1', name: 'Cartão de Crédito', limit: 5000, dueDay: 10, holder: 'Pessoa 1', brand: 'visa' as const } ];
-const initialIncomeCategories = ['Salário', 'Freelance', 'Investimentos', 'Outros'];
+const initialIncomeCategories = ['Salário', 'Freelance', 'Investimentos', 'Transferência', 'Outros'];
 const initialExpenseCategories = ['Alimentação', 'Moradia', 'Transporte', 'Lazer', 'Saúde', 'Educação', 'Compras', 'Transferência', 'Investimento', 'Outros', 'Pagamento de Fatura'];
 const initialPantryCategories: PantryCategory[] = [ 'Laticínios', 'Carnes', 'Peixes', 'Frutas e Vegetais', 'Grãos e Cereais', 'Enlatados e Conservas', 'Bebidas', 'Higiene e Limpeza', 'Outros' ];
 const initialPantryItems: PantryItem[] = [];
@@ -115,7 +115,7 @@ const mapShoppingItemToPantryCategory = (itemName: string): PantryCategory => {
 
 type FinanceContextType = {
   transactions: Transaction[];
-  addTransaction: (transaction: Omit<Transaction, 'id'>, installments?: number) => void;
+  addTransaction: (transaction: Omit<Transaction, 'id' | 'amount'> & { amount: number; fromAccount?: string; toAccount?: string }, installments?: number) => void;
   updateTransaction: (id: string, transaction: Partial<Omit<Transaction, 'id'>>) => void;
   deleteTransaction: (id: string) => void;
   toggleTransactionPaid: (id: string, currentStatus: boolean) => void;
@@ -396,65 +396,93 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
     return value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
   };
   
-  const addTransaction = (transaction: Omit<Transaction, 'id'>, installments: number = 1) => {
-    if (!user) return;
-    
-    const updates: { [key: string]: any } = {};
-    const rootRef = getDbRef('');
+  const addTransaction = (transaction: Omit<Transaction, 'id' | 'amount'> & { amount: number; fromAccount?: string; toAccount?: string }, installments: number = 1) => {
+      if (!user) return;
+      const updates: { [key: string]: any } = {};
+      const rootRef = getDbRef('');
 
-    // Handle Balance Update if the transaction is paid
-    if (transaction.paid) {
-        if (transaction.type === 'transfer') {
-            const fromAccount = accounts.find(a => a.name === transaction.fromAccount);
-            const toAccount = accounts.find(a => a.name === transaction.toAccount);
-            if (fromAccount && toAccount) {
-                updates[`accounts/${fromAccount.id}/balance`] = fromAccount.balance - Math.abs(transaction.amount || 0);
-                updates[`accounts/${toAccount.id}/balance`] = toAccount.balance + Math.abs(transaction.amount || 0);
-            }
-        } else if (transaction.account) {
-            const targetAccount = accounts.find(a => a.name === transaction.account);
-            if (targetAccount) { // Only update balance for 'accounts', not 'cards'
-                 updates[`accounts/${targetAccount.id}/balance`] = targetAccount.balance + (transaction.amount || 0);
+      if (transaction.type === 'transfer') {
+          const { fromAccount, toAccount, amount } = transaction;
+          const fromAcc = accounts.find(a => a.name === fromAccount);
+          const toAcc = accounts.find(a => a.name === toAccount);
+
+          if (fromAcc && toAcc) {
+              // 1. Create debit transaction
+              const debitTransId = push(child(rootRef, 'transactions')).key!;
+              const debitTransaction: Partial<Transaction> = {
+                  ...transaction,
+                  description: `Transferência para ${toAcc.name}`,
+                  amount: -Math.abs(amount),
+                  type: 'expense',
+                  category: 'Transferência',
+                  account: fromAcc.name,
+              };
+              delete debitTransaction.fromAccount;
+              delete debitTransaction.toAccount;
+              updates[`transactions/${debitTransId}`] = debitTransaction;
+              
+              // 2. Create credit transaction
+              const creditTransId = push(child(rootRef, 'transactions')).key!;
+              const creditTransaction: Partial<Transaction> = {
+                  ...transaction,
+                  description: `Transferência de ${fromAcc.name}`,
+                  amount: Math.abs(amount),
+                  type: 'income',
+                  category: 'Transferência',
+                  account: toAcc.name,
+              };
+              delete creditTransaction.fromAccount;
+              delete creditTransaction.toAccount;
+              updates[`transactions/${creditTransId}`] = creditTransaction;
+
+              // 3. Update balances
+              updates[`accounts/${fromAcc.id}/balance`] = fromAcc.balance - Math.abs(amount);
+              updates[`accounts/${toAcc.id}/balance`] = toAcc.balance + Math.abs(amount);
+          }
+      } else {
+        // Handle regular expense/income
+        const finalAmount = transaction.type === 'expense' ? -Math.abs(transaction.amount) : Math.abs(transaction.amount);
+
+        if (transaction.paid) {
+            const allAccounts = [...accounts, ...cards];
+            const targetAccount = allAccounts.find(a => a.name === transaction.account);
+            if (targetAccount && 'balance' in targetAccount) {
+                 updates[`accounts/${targetAccount.id}/balance`] = targetAccount.balance + finalAmount;
             }
         }
-    }
-    
-    // Add transaction and update goal if linked
-    if (transaction.type === 'expense' && transaction.linkedGoalId) {
-        const goal = goals.find(g => g.id === transaction.linkedGoalId);
-        if(goal) {
-            const newCurrentAmount = goal.currentAmount + Math.abs(transaction.amount || 0);
-            updates[`goals/${goal.id}/currentAmount`] = newCurrentAmount;
+        if (transaction.type === 'expense' && transaction.linkedGoalId) {
+            const goal = goals.find(g => g.id === transaction.linkedGoalId);
+            if(goal) {
+                updates[`goals/${goal.id}/currentAmount`] = goal.currentAmount + Math.abs(transaction.amount);
+            }
         }
-    }
-
-
-    if (transaction.type !== 'transfer' && installments > 1 && transaction.account && cards.some(c => c.name === transaction.account)) {
-        const installmentAmount = (transaction.amount || 0) / installments;
-        const installmentGroupId = push(child(rootRef, 'transactions')).key!;
-
-        for (let i = 1; i <= installments; i++) {
-            const installmentDate = addMonths(new Date(transaction.date + 'T00:00:00'), i - 1);
-            const newTransaction: Partial<Transaction> = {
-                ...transaction,
-                amount: installmentAmount,
-                date: format(installmentDate, 'yyyy-MM-dd'),
-                paid: false, // Future installments are not paid yet
-                installmentGroupId,
-                currentInstallment: i,
-                totalInstallments: installments,
-                isRecurring: false,
-            };
+        
+        if (installments > 1 && cards.some(c => c.name === transaction.account)) {
+            const installmentAmount = finalAmount / installments;
+            const installmentGroupId = push(child(rootRef, 'transactions')).key!;
+            for (let i = 1; i <= installments; i++) {
+                const installmentDate = addMonths(new Date(transaction.date + 'T00:00:00'), i - 1);
+                const newTransaction: Partial<Transaction> = {
+                    ...transaction,
+                    amount: installmentAmount,
+                    date: format(installmentDate, 'yyyy-MM-dd'),
+                    paid: false,
+                    installmentGroupId,
+                    currentInstallment: i,
+                    totalInstallments: installments,
+                    isRecurring: false,
+                };
+                const newId = push(child(rootRef, 'transactions')).key!;
+                updates[`transactions/${newId}`] = newTransaction;
+            }
+        } else {
             const newId = push(child(rootRef, 'transactions')).key!;
-            updates[`transactions/${newId}`] = newTransaction;
+            updates[`transactions/${newId}`] = { ...transaction, amount: finalAmount };
         }
-    } else {
-        const newId = push(child(rootRef, 'transactions')).key!;
-        updates[`transactions/${newId}`] = transaction;
     }
-    
     update(rootRef, updates);
   };
+
 
   const updateTransaction = (id: string, updatedTransaction: Partial<Omit<Transaction, 'id'>>) => {
     if (!user) return;
@@ -857,12 +885,12 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
     const updates: { [key: string]: any } = {};
     const accessToken = googleAccessToken;
 
-    if (isGoogleEvent && accessToken) {
+    if (isGoogleEvent && accessToken && updatedData.title && updatedData.date) {
         const success = await updateGoogleCalendarEvent({ 
             accessToken, 
             eventId: id,
-            title: updatedData.title!,
-            date: updatedData.date!,
+            title: updatedData.title,
+            date: updatedData.date,
             time: updatedData.time,
             notes: updatedData.notes,
             category: updatedData.category!,
@@ -1055,7 +1083,7 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
      const finalCost = totalCost - discount;
 
      if (finalCost > 0) {
-        const purchaseTransaction: Omit<Transaction, 'id'> = {
+        const purchaseTransaction: Omit<Transaction, 'id' | 'amount'> & {amount: number} = {
             ...transactionDetails,
             description: `Compra: ${list.name}`,
             amount: -finalCost, // as an expense
@@ -1093,7 +1121,7 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
     updates[`accounts/${accountId}/balance`] = newBalance;
     
     // 2. Create debit transaction for bank account
-    const debitTransaction: Omit<Transaction, 'id'> = {
+    const debitTransaction: Omit<Transaction, 'id' | 'amount'> & {amount: number} = {
         description: `Pagamento Fatura ${card.name}`,
         amount: -amount,
         date: format(new Date(), 'yyyy-MM-dd'),
@@ -1106,7 +1134,7 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
     updates[`transactions/${debitTransId}`] = debitTransaction;
     
     // 3. Create credit transaction for the card
-    const creditTransaction: Omit<Transaction, 'id'> = {
+    const creditTransaction: Omit<Transaction, 'id' | 'amount'> & {amount: number} = {
         description: `Pagamento Recebido`,
         amount: amount,
         date: format(new Date(), 'yyyy-MM-dd'),
