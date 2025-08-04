@@ -12,7 +12,7 @@ import { ArrowLeft, Camera, Edit, Utensils, Film, Music, MapPin, Save, Calendar 
 import { useToast } from '@/hooks/use-toast';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
-import { format, isValid, parseISO } from 'date-fns';
+import { format, isValid, parseISO, differenceInDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { Textarea } from '@/components/ui/textarea';
@@ -59,12 +59,10 @@ const defaultProfileData: ProfileData = {
 const getSinceText = (isoDate?: string): string => {
     if (!isoDate || !isValid(parseISO(isoDate))) return 'Defina a data de início';
 
-    const [year, month, day] = isoDate.split('T')[0].split('-').map(Number);
-    const startDate = new Date(Date.UTC(year, month - 1, day));
+    const startDate = parseISO(isoDate);
     const now = new Date();
-    const nowUTC = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
 
-    const totalDays = Math.max(0, Math.floor((nowUTC.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)));
+    const totalDays = differenceInDays(now, startDate);
     
     return `Juntos há ${totalDays} dia${totalDays !== 1 ? 's' : ''}`;
 }
@@ -530,3 +528,5 @@ export default function ProfilePage() {
     </Card>
   );
 }
+
+    
