@@ -1,8 +1,7 @@
 
-
 'use client';
 
-import { useState, useContext } from 'react';
+import { useState, useContext, useMemo, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Plus, Cat } from 'lucide-react';
@@ -23,6 +22,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Carousel, CarouselContent, CarouselItem, type CarouselApi } from '@/components/ui/carousel';
 
 
 export default function PetsPage() {
@@ -33,6 +33,23 @@ export default function PetsPage() {
     const [editingHealthRecord, setEditingHealthRecord] = useState<HealthRecord | null>(null);
     const [selectedPetForHealth, setSelectedPetForHealth] = useState<Pet | null>(null);
     const [recordToDelete, setRecordToDelete] = useState<{petId: string, recordId: string} | null>(null);
+    
+    const [api, setApi] = useState<CarouselApi>();
+    const [currentItemIndex, setCurrentItemIndex] = useState(0);
+
+    useEffect(() => {
+        if (!api) return;
+        setCurrentItemIndex(api.selectedScrollSnap());
+        const onSelect = () => {
+        setCurrentItemIndex(api.selectedScrollSnap());
+        };
+        api.on('select', onSelect);
+        return () => {
+        api.off('select', onSelect);
+        };
+    }, [api]);
+
+    const selectedPet = useMemo(() => pets[currentItemIndex], [pets, currentItemIndex]);
 
 
     const handleOpenPetDialog = (pet: Pet | null = null) => {
@@ -54,11 +71,6 @@ export default function PetsPage() {
         }
         setIsPetDialogOpen(false);
     };
-
-    const handleDeletePet = (id: string) => {
-        // Implement confirmation dialog before deleting
-        deletePet(id);
-    };
     
     const handleSaveHealthRecord = (record: Omit<HealthRecord, 'id'>) => {
         if (selectedPetForHealth) {
@@ -77,58 +89,75 @@ export default function PetsPage() {
             setRecordToDelete(null);
         }
     }
+    
+    if (pets.length === 0) {
+        return (
+            <>
+                <Card className="bg-white/10 dark:bg-black/10 backdrop-blur-3xl border-white/20 dark:border-black/20 rounded-3xl shadow-2xl h-full">
+                    <CardContent className="p-4 sm:p-6 h-full flex flex-col items-center justify-center text-center">
+                        <Cat className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
+                        <h2 className="text-2xl font-bold">Nenhum pet cadastrado.</h2>
+                        <p className="text-muted-foreground mt-2">Adicione seu primeiro pet para começar.</p>
+                        <Button className="mt-6" onClick={() => handleOpenPetDialog()}>
+                            <Plus className="mr-2 h-4 w-4"/>
+                            Adicionar Pet
+                        </Button>
+                    </CardContent>
+                </Card>
+                 <AddPetDialog 
+                    isOpen={isPetDialogOpen}
+                    onClose={() => setIsPetDialogOpen(false)}
+                    onSave={handleSavePet}
+                    pet={editingPet}
+                />
+            </>
+        )
+    }
 
 
     return (
         <>
-            <Card className="bg-white/10 dark:bg-black/10 backdrop-blur-3xl border-white/20 dark:border-black/20 rounded-3xl shadow-2xl">
-                <CardHeader>
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <CardTitle className="text-3xl font-bold">Nossos Pets</CardTitle>
-                            <CardDescription>Acompanhe a saúde e os cuidados dos seus companheiros.</CardDescription>
-                        </div>
-                        <Button onClick={() => handleOpenPetDialog()}>
-                            <Plus className="mr-2 h-4 w-4" />
-                            Adicionar Pet
-                        </Button>
-                    </div>
-                </CardHeader>
-                <CardContent>
-                    {pets.length > 0 ? (
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <AnimatePresence>
-                                {pets.map(pet => (
-                                    <motion.div
-                                        key={pet.id}
-                                        layout
-                                        initial={{ opacity: 0, y: 20 }}
-                                        animate={{ opacity: 1, y: 0 }}
-                                        exit={{ opacity: 0, y: -20 }}
-                                    >
-                                        <PetProfileCard 
-                                            pet={pet}
-                                            onEdit={() => handleOpenPetDialog(pet)} 
-                                        />
-                                        <PetHealthCard
-                                            pet={pet}
-                                            onAddRecord={() => handleOpenHealthDialog(pet)}
-                                            onEditRecord={(record) => handleOpenHealthDialog(pet, record)}
-                                            onDeleteRecord={(recordId) => setRecordToDelete({petId: pet.id, recordId})}
-                                        />
-                                    </motion.div>
-                                ))}
-                            </AnimatePresence>
-                        </div>
-                    ) : (
-                        <div className="text-center text-muted-foreground py-16 border-2 border-dashed rounded-lg">
-                            <Cat className="mx-auto h-12 w-12 text-muted-foreground" />
-                            <h3 className="mt-4 text-lg font-medium">Nenhum pet cadastrado.</h3>
-                            <p className="mt-1 text-sm">Adicione seu primeiro pet para começar.</p>
-                        </div>
+             <div className="space-y-6">
+                 <div className="flex justify-end">
+                    <Button onClick={() => handleOpenPetDialog()}>
+                        <Plus className="mr-2 h-4 w-4" />
+                        Adicionar Pet
+                    </Button>
+                </div>
+
+                <Carousel setApi={setApi} className="w-full max-w-md mx-auto">
+                    <CarouselContent>
+                    {pets.map((pet) => (
+                        <CarouselItem key={pet.id}>
+                            <PetProfileCard 
+                                pet={pet}
+                                onEdit={() => handleOpenPetDialog(pet)} 
+                            />
+                        </CarouselItem>
+                    ))}
+                    </CarouselContent>
+                </Carousel>
+                
+                 <AnimatePresence mode="wait">
+                    {selectedPet && (
+                        <motion.div
+                            key={selectedPet ? selectedPet.id : 'empty'}
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -20 }}
+                            transition={{ duration: 0.3 }}
+                        >
+                             <PetHealthCard
+                                pet={selectedPet}
+                                onAddRecord={() => handleOpenHealthDialog(selectedPet)}
+                                onEditRecord={(record) => handleOpenHealthDialog(selectedPet, record)}
+                                onDeleteRecord={(recordId) => setRecordToDelete({petId: selectedPet.id, recordId})}
+                            />
+                        </motion.div>
                     )}
-                </CardContent>
-            </Card>
+                </AnimatePresence>
+            </div>
+
             <AddPetDialog 
                 isOpen={isPetDialogOpen}
                 onClose={() => setIsPetDialogOpen(false)}
