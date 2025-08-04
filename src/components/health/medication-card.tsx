@@ -51,7 +51,7 @@ export function MedicationCard({ title, personKey, medications }: MedicationCard
           </div>
         </CardHeader>
         <CardContent>
-          {medications.length > 0 ? (
+          {medications && medications.length > 0 ? (
             <div className="space-y-3">
               {medications.map((med) => (
                 <div key={med.id} className="flex items-start gap-3 p-3 rounded-lg border">
