@@ -9,6 +9,7 @@ import {
   DialogTitle,
   DialogFooter,
   DialogClose,
+  DialogDescription,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -161,6 +162,11 @@ export function AddTransactionDialog({
   const isCreditCard = selectedAccount?.type === 'card';
   const isVoucher = selectedAccount?.type === 'voucher';
 
+  const getVoucherCurrentBalance = useCallback((voucher: Account) => {
+    const associatedTransactions = transactions.filter(t => t.account === voucher.name);
+    const balance = associatedTransactions.reduce((sum, t) => sum + t.amount, voucher.balance || 0);
+    return balance;
+  }, [transactions]);
   
   const installmentValue = useMemo(() => {
     if (isCreditCard && amount && installments && installments > 1) {
@@ -168,12 +174,6 @@ export function AddTransactionDialog({
     }
     return null;
   }, [isCreditCard, amount, installments]);
-
-  const getVoucherCurrentBalance = useCallback((voucher: Account) => {
-    const associatedTransactions = transactions.filter(t => t.account === voucher.name);
-    const balance = associatedTransactions.reduce((sum, t) => sum + t.amount, voucher.balance);
-    return balance;
-  }, [transactions]);
 
   const remainingBalanceText = useMemo(() => {
     if (!selectedAccount) return null;
@@ -210,7 +210,6 @@ export function AddTransactionDialog({
 
 
   const onSubmit = (data: TransactionFormData) => {
-    // Don't pass installment data if not a credit card purchase
     const finalInstallments = (isCreditCard && (data.installments || 1) > 1) ? data.installments : undefined;
     
     let finalData: Omit<Transaction, 'id' | 'amount'> & { id?: string; amount: number; fromAccount?: string; toAccount?: string; } = { ...data, amount: data.amount };
@@ -242,9 +241,12 @@ export function AddTransactionDialog({
       <DialogContent>
         <DialogHeader>
           <DialogTitle>{isEditing ? 'Editar Transação' : 'Adicionar Transação'}</DialogTitle>
+           <DialogDescription>
+            Insira os detalhes do seu lançamento financeiro.
+          </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit(onSubmit)}>
-          <div className="space-y-4 py-4">
+          <div className="space-y-4 py-4 max-h-[70vh] overflow-y-auto pr-2">
              <div className="space-y-2">
                 <Label htmlFor="type">Tipo</Label>
                 <Controller
@@ -479,7 +481,7 @@ export function AddTransactionDialog({
             )}
             
           </div>
-          <DialogFooter>
+          <DialogFooter className="pt-6">
             <DialogClose asChild>
               <Button type="button" variant="secondary" onClick={handleClose}>
                 Cancelar
@@ -492,4 +494,3 @@ export function AddTransactionDialog({
     </Dialog>
   );
 }
-

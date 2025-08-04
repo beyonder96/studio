@@ -397,56 +397,57 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
   };
   
   const addTransaction = (transaction: Omit<Transaction, 'id' | 'amount'> & { amount: number; fromAccount?: string; toAccount?: string }, installments: number = 1) => {
-      if (!user) return;
-      const updates: { [key: string]: any } = {};
-      const rootRef = getDbRef('');
+    if (!user) return;
+    const updates: { [key: string]: any } = {};
+    const rootRef = getDbRef('');
 
-      if (transaction.type === 'transfer') {
-          const { fromAccount, toAccount, amount } = transaction;
-          const fromAcc = accounts.find(a => a.name === fromAccount);
-          const toAcc = accounts.find(a => a.name === toAccount);
+    if (transaction.type === 'transfer') {
+        const { fromAccount: fromAccountName, toAccount: toAccountName, amount } = transaction;
+        const fromAccount = accounts.find(a => a.name === fromAccountName);
+        const toAccount = accounts.find(a => a.name === toAccountName);
 
-          if (fromAcc && toAcc) {
-              // 1. Create debit transaction
-              const debitTransId = push(child(rootRef, 'transactions')).key!;
-              const debitTransaction: Partial<Transaction> = {
-                  ...transaction,
-                  description: `Transferência para ${toAcc.name}`,
-                  amount: -Math.abs(amount),
-                  type: 'expense',
-                  category: 'Transferência',
-                  account: fromAcc.name,
-              };
-              delete debitTransaction.fromAccount;
-              delete debitTransaction.toAccount;
-              updates[`transactions/${debitTransId}`] = debitTransaction;
-              
-              // 2. Create credit transaction
-              const creditTransId = push(child(rootRef, 'transactions')).key!;
-              const creditTransaction: Partial<Transaction> = {
-                  ...transaction,
-                  description: `Transferência de ${fromAcc.name}`,
-                  amount: Math.abs(amount),
-                  type: 'income',
-                  category: 'Transferência',
-                  account: toAcc.name,
-              };
-              delete creditTransaction.fromAccount;
-              delete creditTransaction.toAccount;
-              updates[`transactions/${creditTransId}`] = creditTransaction;
+        if (fromAccount && toAccount) {
+            const transferAmount = Math.abs(amount);
 
-              // 3. Update balances
-              updates[`accounts/${fromAcc.id}/balance`] = fromAcc.balance - Math.abs(amount);
-              updates[`accounts/${toAcc.id}/balance`] = toAcc.balance + Math.abs(amount);
-          }
-      } else {
+            // 1. Create debit transaction from origin
+            const debitTransId = push(child(rootRef, 'transactions')).key!;
+            const debitTransaction = {
+                description: `Transferência para ${toAccount.name}`,
+                amount: -transferAmount,
+                date: transaction.date,
+                type: 'expense',
+                category: 'Transferência',
+                account: fromAccount.name,
+                paid: true,
+            };
+            updates[`transactions/${debitTransId}`] = debitTransaction;
+            
+            // 2. Create credit transaction to destination
+            const creditTransId = push(child(rootRef, 'transactions')).key!;
+            const creditTransaction = {
+                description: `Transferência de ${fromAccount.name}`,
+                amount: transferAmount,
+                date: transaction.date,
+                type: 'income',
+                category: 'Transferência',
+                account: toAccount.name,
+                paid: true,
+            };
+            updates[`transactions/${creditTransId}`] = creditTransaction;
+
+            // 3. Update balances
+            updates[`accounts/${fromAccount.id}/balance`] = fromAccount.balance - transferAmount;
+            updates[`accounts/${toAccount.id}/balance`] = toAccount.balance + transferAmount;
+        }
+    } else {
         // Handle regular expense/income
         const finalAmount = transaction.type === 'expense' ? -Math.abs(transaction.amount) : Math.abs(transaction.amount);
 
         if (transaction.paid) {
-            const allAccounts = [...accounts, ...cards];
-            const targetAccount = allAccounts.find(a => a.name === transaction.account);
-            if (targetAccount && 'balance' in targetAccount) {
+            const allAccountsAndVouchers = accounts.filter(a => a.type !== 'card');
+            const targetAccount = allAccountsAndVouchers.find(a => a.name === transaction.account);
+
+            if (targetAccount) {
                  updates[`accounts/${targetAccount.id}/balance`] = targetAccount.balance + finalAmount;
             }
         }
@@ -472,12 +473,17 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
                     totalInstallments: installments,
                     isRecurring: false,
                 };
+                delete newTransaction.fromAccount;
+                delete newTransaction.toAccount;
                 const newId = push(child(rootRef, 'transactions')).key!;
                 updates[`transactions/${newId}`] = newTransaction;
             }
         } else {
             const newId = push(child(rootRef, 'transactions')).key!;
-            updates[`transactions/${newId}`] = { ...transaction, amount: finalAmount };
+            const newTransaction = { ...transaction, amount: finalAmount };
+            delete newTransaction.fromAccount;
+            delete newTransaction.toAccount;
+            updates[`transactions/${newId}`] = newTransaction;
         }
     }
     update(rootRef, updates);
