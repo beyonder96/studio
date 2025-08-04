@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import {
@@ -38,6 +39,8 @@ export type Transaction = {
   installmentGroupId?: string;
   currentInstallment?: number;
   totalInstallments?: number;
+  recurringSourceId?: string; // Link to the recurring template
+  linkedGoalId?: string;
 };
 
 type TransactionsTableProps = {

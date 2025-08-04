@@ -257,6 +257,7 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
   }, [user]);
 
   const processRecurringTransactions = useCallback((allTransactions: Transaction[]) => {
+    if (!user) return;
     const recurringTemplates = allTransactions.filter(t => t.isRecurring);
     if (recurringTemplates.length === 0) return;
 
@@ -267,10 +268,11 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
     recurringTemplates.forEach(template => {
         if (!template.frequency) return;
         
-        let nextDate = startOfDay(new Date(template.date));
+        // This is a simplified logic. A more robust solution would handle the last created instance date.
+        let nextDate = startOfDay(parseISO(template.date));
         
-        // Find the next due date that is on or after today
-        while (isBefore(nextDate, today)) {
+        // Fast-forward to a date that is either in the future or the current month.
+        while (isBefore(nextDate, startOfMonth(today))) {
             switch(template.frequency) {
                 case 'monthly':
                     nextDate = addMonths(nextDate, 1);
@@ -279,16 +281,15 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
             }
         }
         
-        // Check if a transaction from this template already exists for the next due date
+        // Check if an instance from this template already exists for the calculated next due date
         const instanceExists = allTransactions.some(t => 
             t.recurringSourceId === template.id &&
-            isSameMonth(new Date(t.date), nextDate) // Simple check for monthly, needs refinement for other frequencies
+            isSameMonth(parseISO(t.date), nextDate) // Simple check for monthly, needs refinement for other frequencies
         );
-
+        
         if (!instanceExists && (isAfter(nextDate, today) || isSameMonth(nextDate, today))) {
              const newTransaction: Partial<Transaction> = {
                 ...template,
-                id: '', // remove old id
                 isRecurring: false,
                 paid: false,
                 date: format(nextDate, 'yyyy-MM-dd'),
@@ -303,11 +304,10 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
     });
 
     if (Object.keys(updates).length > 0) {
-        console.log("Creating new recurring transactions:", updates);
         update(rootRef, updates);
     }
 
-  }, [getDbRef]);
+  }, [getDbRef, user]);
   
   const checkForAchievements = useCallback(() => {
     if(!user) return;
