@@ -30,6 +30,7 @@ export type ConstructionPayment = {
 
 export type ConstructionProgress = {
     progressPercentage?: number;
+    totalBudget?: number;
     payments?: ConstructionPayment[];
 };
 
@@ -65,7 +66,7 @@ type PropertyContextType = {
     deleteShoppingItem: (propertyId: string, itemId: string) => void;
     addConstructionPayment: (propertyId: string, payment: Omit<ConstructionPayment, 'id' | 'paid'>) => void;
     toggleConstructionPayment: (propertyId: string, paymentId: string) => void;
-    updateConstructionProgress: (propertyId: string, percentage: number) => void;
+    updateConstructionProgress: (propertyId: string, percentage: number, budget: number) => void;
 };
 
 export const PropertyContext = createContext<PropertyContextType>({} as PropertyContextType);
@@ -135,7 +136,7 @@ export const PropertyProvider = ({ children }: { children: ReactNode }) => {
         if (newId) {
             let propertyData: any = {...property};
             if(property.type === 'construction') {
-                propertyData.constructionProgress = { progressPercentage: 0, payments: [] };
+                propertyData.constructionProgress = { progressPercentage: 0, totalBudget: 0, payments: [] };
             }
             set(child(propertiesRef, newId), propertyData)
                 .then(() => toast({ title: 'Imóvel Adicionado!', description: `"${property.name}" foi cadastrado com sucesso.` }))
@@ -212,10 +213,10 @@ export const PropertyProvider = ({ children }: { children: ReactNode }) => {
         }
     };
 
-    const updateConstructionProgress = (propertyId: string, percentage: number) => {
+    const updateConstructionProgress = (propertyId: string, percentage: number, budget: number) => {
         if (!user) return;
         const progressRef = getDbRef(`properties/${propertyId}/constructionProgress`);
-        update(progressRef, { progressPercentage: percentage })
+        update(progressRef, { progressPercentage: percentage, totalBudget: budget })
             .then(() => toast({ title: 'Progresso Atualizado!'}))
             .catch((err) => toast({ variant: 'destructive', title: 'Erro', description: err.message }));
     }

@@ -19,9 +19,11 @@ import { Label } from '@/components/ui/label';
 import { useProperty } from '@/contexts/property-context';
 import { Slider } from '../ui/slider';
 import { useEffect } from 'react';
+import { CurrencyInput } from '../finance/currency-input';
 
 const progressSchema = z.object({
   percentage: z.coerce.number().min(0).max(100),
+  budget: z.coerce.number().min(0, 'O orçamento não pode ser negativo'),
 });
 
 type ProgressFormData = z.infer<typeof progressSchema>;
@@ -31,9 +33,10 @@ type EditProgressDialogProps = {
   onClose: () => void;
   propertyId: string;
   currentProgress: number;
+  currentBudget: number;
 };
 
-export function EditProgressDialog({ isOpen, onClose, propertyId, currentProgress }: EditProgressDialogProps) {
+export function EditProgressDialog({ isOpen, onClose, propertyId, currentProgress, currentBudget }: EditProgressDialogProps) {
   const { updateConstructionProgress } = useProperty();
 
   const {
@@ -44,18 +47,19 @@ export function EditProgressDialog({ isOpen, onClose, propertyId, currentProgres
   } = useForm<ProgressFormData>({
     resolver: zodResolver(progressSchema),
     defaultValues: {
-        percentage: currentProgress || 0
+        percentage: currentProgress || 0,
+        budget: currentBudget || 0,
     }
   });
 
   const percentage = watch('percentage');
 
   useEffect(() => {
-    reset({ percentage: currentProgress });
-  }, [currentProgress, reset]);
+    reset({ percentage: currentProgress, budget: currentBudget });
+  }, [currentProgress, currentBudget, reset]);
 
   const onSubmit = (data: ProgressFormData) => {
-    updateConstructionProgress(propertyId, data.percentage);
+    updateConstructionProgress(propertyId, data.percentage, data.budget);
     onClose();
   };
 
@@ -63,15 +67,28 @@ export function EditProgressDialog({ isOpen, onClose, propertyId, currentProgres
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Editar Progresso da Obra</DialogTitle>
+          <DialogTitle>Editar Progresso e Orçamento</DialogTitle>
           <DialogDescription>
-            Atualize a porcentagem de conclusão da obra.
+            Atualize a porcentagem de conclusão e o orçamento total da obra.
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit(onSubmit)}>
-          <div className="space-y-4 py-4">
+          <div className="space-y-6 py-4">
             <div className="space-y-2">
-              <Label htmlFor="percentage">Progresso ({percentage}%)</Label>
+              <Label htmlFor="budget">Orçamento Total da Obra</Label>
+               <Controller
+                name="budget"
+                control={control}
+                render={({ field }) => (
+                  <CurrencyInput
+                    value={field.value}
+                    onValueChange={(value) => field.onChange(value || 0)}
+                  />
+                )}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="percentage">Progresso da Obra ({percentage}%)</Label>
                <Controller
                 name="percentage"
                 control={control}
@@ -92,7 +109,7 @@ export function EditProgressDialog({ isOpen, onClose, propertyId, currentProgres
                 Cancelar
               </Button>
             </DialogClose>
-            <Button type="submit">Salvar Progresso</Button>
+            <Button type="submit">Salvar Alterações</Button>
           </DialogFooter>
         </form>
       </DialogContent>

@@ -9,7 +9,7 @@ import { Progress } from '@/components/ui/progress';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Property, useProperty } from '@/contexts/property-context';
-import { PlusCircle, HardHat, DollarSign, Edit } from 'lucide-react';
+import { PlusCircle, HardHat, DollarSign, Edit, TrendingUp, Wallet, MinusCircle } from 'lucide-react';
 import { AddConstructionPaymentDialog } from './add-construction-payment-dialog';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -29,15 +29,16 @@ export function ConstructionProgress({ property }: { property: Property }) {
         return property.constructionProgress?.progressPercentage || 0;
     }, [property.constructionProgress?.progressPercentage]);
 
-    const totalPaid = useMemo(() => {
+    const spentAmount = useMemo(() => {
         const payments = property.constructionProgress?.payments || [];
         return payments.filter(p => p.paid).reduce((sum, p) => sum + p.amount, 0);
     }, [property.constructionProgress?.payments]);
     
-    const totalCost = useMemo(() => {
-        const payments = property.constructionProgress?.payments || [];
-        return payments.reduce((sum, p) => sum + p.amount, 0);
-    }, [property.constructionProgress?.payments]);
+    const totalBudget = useMemo(() => {
+        return property.constructionProgress?.totalBudget || 0;
+    }, [property.constructionProgress?.totalBudget]);
+
+    const remainingBudget = totalBudget - spentAmount;
 
     const payments = property.constructionProgress?.payments || [];
 
@@ -57,6 +58,30 @@ export function ConstructionProgress({ property }: { property: Property }) {
                     <Progress value={progress} className="mt-2" />
                 </CardHeader>
                 <CardContent>
+                   <div className='grid grid-cols-1 md:grid-cols-3 gap-4 mb-6'>
+                        <div className="flex items-center gap-3 p-4 rounded-lg bg-background/50 border">
+                             <Wallet className="h-6 w-6 text-muted-foreground" />
+                             <div>
+                                <p className='text-sm text-muted-foreground'>Orçamento Total</p>
+                                <p className='font-bold text-lg'>{formatCurrency(totalBudget)}</p>
+                             </div>
+                        </div>
+                        <div className="flex items-center gap-3 p-4 rounded-lg bg-background/50 border">
+                             <TrendingUp className="h-6 w-6 text-green-500" />
+                             <div>
+                                <p className='text-sm text-muted-foreground'>Total Gasto</p>
+                                <p className='font-bold text-lg text-green-500'>{formatCurrency(spentAmount)}</p>
+                             </div>
+                        </div>
+                        <div className="flex items-center gap-3 p-4 rounded-lg bg-background/50 border">
+                             <MinusCircle className="h-6 w-6 text-red-500" />
+                             <div>
+                                <p className='text-sm text-muted-foreground'>Saldo Restante</p>
+                                <p className='font-bold text-lg text-red-500'>{formatCurrency(remainingBudget)}</p>
+                             </div>
+                        </div>
+                   </div>
+
                    <h3 className="font-semibold mb-4 text-lg">Pagamentos</h3>
                    <div className="space-y-3 max-h-60 overflow-y-auto pr-2">
                        {payments.length > 0 ? (
@@ -88,19 +113,6 @@ export function ConstructionProgress({ property }: { property: Property }) {
                         <PlusCircle className="mr-2 h-4 w-4" /> Adicionar Pagamento
                     </Button>
                 </CardContent>
-                <CardFooter className="flex justify-between items-center bg-muted/50 p-4 rounded-b-lg">
-                    <div className="flex items-center gap-2">
-                        <DollarSign className="h-5 w-5 text-green-500" />
-                        <div>
-                            <p className="text-sm font-semibold">Total Pago</p>
-                            <p className="text-lg font-bold text-green-500">{formatCurrency(totalPaid)}</p>
-                        </div>
-                    </div>
-                     <div className="text-right">
-                        <p className="text-sm text-muted-foreground">Custo Total</p>
-                        <p className="font-semibold text-muted-foreground">{formatCurrency(totalCost)}</p>
-                    </div>
-                </CardFooter>
             </Card>
             <AddConstructionPaymentDialog
                 isOpen={isPaymentDialogOpen}
@@ -112,6 +124,7 @@ export function ConstructionProgress({ property }: { property: Property }) {
                 onClose={() => setIsProgressDialogOpen(false)}
                 propertyId={property.id}
                 currentProgress={progress}
+                currentBudget={totalBudget}
             />
         </>
     );
