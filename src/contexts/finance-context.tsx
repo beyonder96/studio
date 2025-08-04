@@ -5,7 +5,7 @@
 import React, { createContext, useState, ReactNode, useEffect, useCallback, useMemo } from 'react';
 import { getDatabase, ref, onValue, set, push, remove, update, child } from 'firebase/database';
 import type { Transaction } from '@/components/finance/transactions-table';
-import { addMonths, format, isSameMonth, startOfMonth, endOfMonth, addDays } from 'date-fns';
+import { addMonths, format, isSameMonth, startOfMonth, endOfMonth, addDays, isBefore, isAfter, startOfDay } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from './auth-context';
 import { app as firebaseApp } from '@/lib/firebase';
@@ -115,7 +115,7 @@ const mapShoppingItemToPantryCategory = (itemName: string): PantryCategory => {
 
 type FinanceContextType = {
   transactions: Transaction[];
-  addTransaction: (transaction: Omit<Transaction, 'id' | 'amount'> & { amount: number; fromAccount?: string; toAccount?: string }, installments?: number) => void;
+  addTransaction: (transaction: Omit<Transaction, 'id' | 'amount' > & { id?: string; amount: number; fromAccount?: string; toAccount?: string; }, installments?: number) => void;
   updateTransaction: (id: string, transaction: Partial<Omit<Transaction, 'id'>>) => void;
   deleteTransaction: (id: string) => void;
   toggleTransactionPaid: (id: string, currentStatus: boolean) => void;
@@ -245,6 +245,59 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
     const db = getDatabase(firebaseApp);
     return ref(db, `users/${user.uid}/${path}`);
   }, [user]);
+
+  const processRecurringTransactions = useCallback((allTransactions: Transaction[]) => {
+    const recurringTemplates = allTransactions.filter(t => t.isRecurring);
+    if (recurringTemplates.length === 0) return;
+
+    const today = startOfDay(new Date());
+    const updates: { [key: string]: any } = {};
+    const rootRef = getDbRef('');
+
+    recurringTemplates.forEach(template => {
+        if (!template.frequency) return;
+        
+        let nextDate = startOfDay(new Date(template.date));
+        
+        // Find the next due date that is on or after today
+        while (isBefore(nextDate, today)) {
+            switch(template.frequency) {
+                case 'monthly':
+                    nextDate = addMonths(nextDate, 1);
+                    break;
+                // TODO: Add weekly, daily, annual logic
+            }
+        }
+        
+        // Check if a transaction from this template already exists for the next due date
+        const instanceExists = allTransactions.some(t => 
+            t.recurringSourceId === template.id &&
+            isSameMonth(new Date(t.date), nextDate) // Simple check for monthly, needs refinement for other frequencies
+        );
+
+        if (!instanceExists && (isAfter(nextDate, today) || isSameMonth(nextDate, today))) {
+             const newTransaction: Partial<Transaction> = {
+                ...template,
+                id: '', // remove old id
+                isRecurring: false,
+                paid: false,
+                date: format(nextDate, 'yyyy-MM-dd'),
+                recurringSourceId: template.id,
+            };
+            delete newTransaction.frequency;
+            delete newTransaction.id;
+            
+            const newId = push(child(rootRef, 'transactions')).key!;
+            updates[`transactions/${newId}`] = newTransaction;
+        }
+    });
+
+    if (Object.keys(updates).length > 0) {
+        console.log("Creating new recurring transactions:", updates);
+        update(rootRef, updates);
+    }
+
+  }, [getDbRef]);
   
   const checkForAchievements = useCallback(() => {
     if(!user) return;
@@ -318,7 +371,11 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
                 }
 
                 const transformData = (d: any) => d ? Object.keys(d).map(key => ({ id: key, ...d[key] })) : [];
-                setTransactions(transformData(data.transactions));
+                
+                const allTransactions = transformData(data.transactions);
+                setTransactions(allTransactions);
+                processRecurringTransactions(allTransactions);
+
                 setAccounts(transformData(data.accounts));
                 setCards(transformData(data.cards));
                 setIncomeCategories(data.incomeCategories || initialIncomeCategories);
@@ -380,7 +437,7 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
         setGoogleEvents([]);
         if(typeof window !== 'undefined') sessionStorage.removeItem('google_events');
     }
-}, [user, selectedListId, setGoogleEvents]);
+}, [user, selectedListId, setGoogleEvents, processRecurringTransactions]);
 
   useEffect(() => {
     if (shoppingLists.length > 0 && !shoppingLists.find(l => l.id === selectedListId)) {
@@ -396,12 +453,12 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
     return value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
   };
   
-  const addTransaction = (transaction: Omit<Transaction, 'id' | 'amount'> & { amount: number; fromAccount?: string; toAccount?: string }, installments: number = 1) => {
+  const addTransaction = (transaction: Omit<Transaction, 'id' | 'amount'> & { id?: string, amount: number; fromAccount?: string; toAccount?: string }, installments: number = 1) => {
     if (!user) return;
     const updates: { [key: string]: any } = {};
     const rootRef = getDbRef('');
 
-    if (transaction.type === 'transfer') {
+    if (transaction.type === 'transfer' && transaction.fromAccount && transaction.toAccount) {
         const { fromAccount: fromAccountName, toAccount: toAccountName, amount } = transaction;
         const fromAccount = accounts.find(a => a.name === fromAccountName);
         const toAccount = accounts.find(a => a.name === toAccountName);
@@ -891,7 +948,7 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
     const updates: { [key: string]: any } = {};
     const accessToken = googleAccessToken;
 
-    if (isGoogleEvent && accessToken && updatedData.title && updatedData.date) {
+    if (isGoogleEvent && accessToken && updatedData.title && updatedData.date && updatedData.category) {
         const success = await updateGoogleCalendarEvent({ 
             accessToken, 
             eventId: id,
