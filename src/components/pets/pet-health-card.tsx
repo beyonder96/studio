@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Pet, HealthRecord } from '@/contexts/finance-context';
-import { Plus, Syringe, Pill, Stethoscope, Bug } from 'lucide-react';
+import { Plus, Syringe, Pill, Stethoscope, Bug, Edit, Trash2 } from 'lucide-react';
 import { format, parseISO, isFuture, differenceInDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
@@ -20,7 +20,7 @@ const healthTypeMap = {
     other: { icon: <Pill className="h-4 w-4" />, label: 'Outro' },
 };
 
-export function PetHealthCard({ pet, onAddRecord }: { pet: Pet; onAddRecord: () => void }) {
+export function PetHealthCard({ pet, onAddRecord, onEditRecord, onDeleteRecord }: { pet: Pet; onAddRecord: () => void; onEditRecord: (record: HealthRecord) => void; onDeleteRecord: (recordId: string) => void; }) {
     
     const sortedRecords = (pet.healthRecords || []).sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime());
     
@@ -65,13 +65,23 @@ export function PetHealthCard({ pet, onAddRecord }: { pet: Pet; onAddRecord: () 
                                             {healthTypeMap[record.type]?.icon}
                                         </div>
                                         <div className="flex-1 space-y-1">
-                                            <div className="flex justify-between items-center">
+                                            <div className="flex justify-between items-start">
                                                 <p className="font-semibold">{record.description}</p>
-                                                {getNextDueBadge(record)}
+                                                <div className="flex items-center gap-1 -mr-2 -mt-1">
+                                                     <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground" onClick={() => onEditRecord(record)}>
+                                                        <Edit className="h-4 w-4" />
+                                                    </Button>
+                                                     <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive/70 hover:text-destructive" onClick={() => onDeleteRecord(record.id)}>
+                                                        <Trash2 className="h-4 w-4" />
+                                                    </Button>
+                                                </div>
                                             </div>
-                                            <p className="text-xs text-muted-foreground">
-                                                {healthTypeMap[record.type]?.label} em {format(parseISO(record.date), "dd/MM/yyyy", { locale: ptBR })}
-                                            </p>
+                                             <div className="flex items-center gap-2">
+                                                <p className="text-xs text-muted-foreground">
+                                                    {healthTypeMap[record.type]?.label} em {format(parseISO(record.date), "dd/MM/yyyy", { locale: ptBR })}
+                                                </p>
+                                                 {getNextDueBadge(record)}
+                                             </div>
                                             {record.notes && <p className="text-sm text-muted-foreground italic">"{record.notes}"</p>}
                                         </div>
                                     </div>

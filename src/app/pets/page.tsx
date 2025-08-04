@@ -13,22 +13,36 @@ import type { Pet, HealthRecord } from '@/contexts/finance-context';
 import { AnimatePresence, motion } from 'framer-motion';
 import { PetHealthCard } from '@/components/pets/pet-health-card';
 import { AddHealthRecordDialog } from '@/components/pets/add-health-record-dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 
 export default function PetsPage() {
-    const { pets, addPet, updatePet, deletePet, addHealthRecord } = useContext(FinanceContext);
+    const { pets, addPet, updatePet, deletePet, addHealthRecord, updateHealthRecord, deleteHealthRecord } = useContext(FinanceContext);
     const [isPetDialogOpen, setIsPetDialogOpen] = useState(false);
     const [isHealthDialogOpen, setIsHealthDialogOpen] = useState(false);
     const [editingPet, setEditingPet] = useState<Pet | null>(null);
+    const [editingHealthRecord, setEditingHealthRecord] = useState<HealthRecord | null>(null);
     const [selectedPetForHealth, setSelectedPetForHealth] = useState<Pet | null>(null);
+    const [recordToDelete, setRecordToDelete] = useState<{petId: string, recordId: string} | null>(null);
+
 
     const handleOpenPetDialog = (pet: Pet | null = null) => {
         setEditingPet(pet);
         setIsPetDialogOpen(true);
     };
     
-    const handleOpenHealthDialog = (pet: Pet) => {
+    const handleOpenHealthDialog = (pet: Pet, record: HealthRecord | null = null) => {
         setSelectedPetForHealth(pet);
+        setEditingHealthRecord(record);
         setIsHealthDialogOpen(true);
     };
 
@@ -48,10 +62,22 @@ export default function PetsPage() {
     
     const handleSaveHealthRecord = (record: Omit<HealthRecord, 'id'>) => {
         if (selectedPetForHealth) {
-            addHealthRecord(selectedPetForHealth.id, record);
+            if (editingHealthRecord) {
+                updateHealthRecord(selectedPetForHealth.id, { ...editingHealthRecord, ...record });
+            } else {
+                addHealthRecord(selectedPetForHealth.id, record);
+            }
         }
         setIsHealthDialogOpen(false);
     }
+    
+    const handleDeleteRecordConfirm = () => {
+        if(recordToDelete){
+            deleteHealthRecord(recordToDelete.petId, recordToDelete.recordId);
+            setRecordToDelete(null);
+        }
+    }
+
 
     return (
         <>
@@ -87,6 +113,8 @@ export default function PetsPage() {
                                         <PetHealthCard
                                             pet={pet}
                                             onAddRecord={() => handleOpenHealthDialog(pet)}
+                                            onEditRecord={(record) => handleOpenHealthDialog(pet, record)}
+                                            onDeleteRecord={(recordId) => setRecordToDelete({petId: pet.id, recordId})}
                                         />
                                     </motion.div>
                                 ))}
@@ -113,8 +141,25 @@ export default function PetsPage() {
                     onClose={() => setIsHealthDialogOpen(false)}
                     onSave={handleSaveHealthRecord}
                     pet={selectedPetForHealth}
+                    record={editingHealthRecord}
                 />
             )}
+             <AlertDialog open={!!recordToDelete} onOpenChange={(open) => !open && setRecordToDelete(null)}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Excluir Registro?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            Tem certeza que deseja excluir este registro de saúde? Esta ação não pode ser desfeita.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                        <AlertDialogAction onClick={handleDeleteRecordConfirm} className="bg-destructive hover:bg-destructive/90">
+                            Sim, Excluir
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </>
     )
 }

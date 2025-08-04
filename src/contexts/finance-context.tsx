@@ -204,6 +204,8 @@ type FinanceContextType = {
   updatePet: (id: string, pet: Partial<Omit<Pet, 'id'>>) => void;
   deletePet: (id: string) => void;
   addHealthRecord: (petId: string, record: Omit<HealthRecord, 'id'>) => void;
+  updateHealthRecord: (petId: string, record: HealthRecord) => void;
+  deleteHealthRecord: (petId: string, recordId: string) => void;
   addMedication: (personKey: 'healthInfo1' | 'healthInfo2', medication: Omit<Medication, 'id'>) => void;
   updateMedication: (personKey: 'healthInfo1' | 'healthInfo2', medication: Medication) => void;
   deleteMedication: (personKey: 'healthInfo1' | 'healthInfo2', medicationId: string) => void;
@@ -1254,6 +1256,22 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
         set(child(recordsRef, newRecordId), finalRecord);
     }
   };
+  const updateHealthRecord = (petId: string, record: HealthRecord) => {
+    if (!user) return;
+    const recordRef = getDbRef(`pets/${petId}/healthRecords/${record.id}`);
+    update(recordRef, {
+        type: record.type,
+        description: record.description,
+        date: record.date,
+        nextDueDate: record.nextDueDate || null,
+        notes: record.notes || null,
+    });
+  };
+  const deleteHealthRecord = (petId: string, recordId: string) => {
+    if (!user) return;
+    const recordRef = getDbRef(`pets/${petId}/healthRecords/${recordId}`);
+    remove(recordRef);
+  };
 
   // Health Management
     const addMedication = (personKey: 'healthInfo1' | 'healthInfo2', medication: Omit<Medication, 'id'>) => {
@@ -1299,7 +1317,7 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
     memories, addMemory,
     achievements,
     googleEvents, setGoogleEvents,
-    pets, addPet, updatePet, deletePet, addHealthRecord,
+    pets, addPet, updatePet, deletePet, addHealthRecord, updateHealthRecord, deleteHealthRecord,
     addMedication, updateMedication, deleteMedication,
   };
 

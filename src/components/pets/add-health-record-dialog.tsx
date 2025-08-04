@@ -26,7 +26,7 @@ import {
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Pet, HealthRecord, HealthRecordType } from '@/contexts/finance-context';
-import { format } from 'date-fns';
+import { format, parseISO } from 'date-fns';
 import { useEffect } from 'react';
 
 const healthRecordSchema = z.object({
@@ -44,9 +44,12 @@ type AddHealthRecordDialogProps = {
   onClose: () => void;
   onSave: (data: Omit<HealthRecord, 'id'>) => void;
   pet: Pet;
+  record: HealthRecord | null;
 };
 
-export function AddHealthRecordDialog({ isOpen, onClose, onSave, pet }: AddHealthRecordDialogProps) {
+export function AddHealthRecordDialog({ isOpen, onClose, onSave, pet, record }: AddHealthRecordDialogProps) {
+  const isEditing = !!record;
+  
   const {
     handleSubmit,
     control,
@@ -59,15 +62,23 @@ export function AddHealthRecordDialog({ isOpen, onClose, onSave, pet }: AddHealt
 
   useEffect(() => {
     if (isOpen) {
-        reset({
-            type: 'vaccine',
-            description: '',
-            date: format(new Date(), 'yyyy-MM-dd'),
-            nextDueDate: '',
-            notes: ''
-        });
+        if(record) {
+             reset({
+                ...record,
+                date: format(parseISO(record.date), 'yyyy-MM-dd'),
+                nextDueDate: record.nextDueDate ? format(parseISO(record.nextDueDate), 'yyyy-MM-dd') : '',
+            });
+        } else {
+            reset({
+                type: 'vaccine',
+                description: '',
+                date: format(new Date(), 'yyyy-MM-dd'),
+                nextDueDate: '',
+                notes: ''
+            });
+        }
     }
-  }, [isOpen, reset]);
+  }, [isOpen, record, reset]);
 
   const onSubmit = (data: HealthRecordFormData) => {
     const dataToSave: Omit<HealthRecord, 'id'> = {
@@ -82,7 +93,7 @@ export function AddHealthRecordDialog({ isOpen, onClose, onSave, pet }: AddHealt
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Adicionar Registro de Saúde</DialogTitle>
+          <DialogTitle>{isEditing ? 'Editar' : 'Adicionar'} Registro de Saúde</DialogTitle>
           <DialogDescription>
             Registre um novo evento de saúde para {pet.name}.
           </DialogDescription>
@@ -137,7 +148,7 @@ export function AddHealthRecordDialog({ isOpen, onClose, onSave, pet }: AddHealt
                 Cancelar
               </Button>
             </DialogClose>
-            <Button type="submit">Adicionar Registro</Button>
+            <Button type="submit">{isEditing ? 'Salvar' : 'Adicionar'} Registro</Button>
           </DialogFooter>
         </form>
       </DialogContent>
