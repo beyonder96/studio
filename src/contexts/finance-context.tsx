@@ -192,7 +192,7 @@ type FinanceContextType = {
   handleDeleteList: (listId: string) => void;
   handleStartRenameList: (list: ShoppingList) => void;
   handleRenameList: (listId: string, newName: string, callback: () => void) => void;
-  handleFinishList: (list: ShoppingList, transactionDetails: Omit<Transaction, 'id' | 'amount' | 'description'>, discount?: number) => void;
+  handleFinishList: (list: ShoppingList, transactionDetails: Omit<Transaction, 'id' | 'amount' | 'description'>) => void;
   handlePayCardBill: (card: Card, amount: number, accountId: string) => void;
   memories: Memory[];
   addMemory: (memory: Omit<Memory, 'id'>) => void;
@@ -1147,17 +1147,16 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
   
   const handleStartRenameList = () => {};
 
-  const handleFinishList = useCallback((list: ShoppingList, transactionDetails: Omit<Transaction, 'id' | 'amount' | 'description'>, discount: number = 0) => {
+  const handleFinishList = useCallback((list: ShoppingList, transactionDetails: Omit<Transaction, 'id' | 'amount' | 'description'>) => {
      if (!user) return;
 
      const totalCost = list.items.reduce((sum, item) => item.checked && item.price ? sum + item.price : sum, 0);
-     const finalCost = totalCost - discount;
 
-     if (finalCost > 0) {
+     if (totalCost > 0) {
         const purchaseTransaction: Omit<Transaction, 'id' | 'amount'> & {amount: number} = {
             ...transactionDetails,
             description: `Compra: ${list.name}`,
-            amount: -finalCost, // as an expense
+            amount: -totalCost, // as an expense
             type: 'expense',
             paid: true,
             date: format(new Date(), 'yyyy-MM-dd'),
