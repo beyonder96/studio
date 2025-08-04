@@ -31,44 +31,39 @@ import { FinanceContext, Account } from '@/contexts/finance-context';
 import { Input } from '@/components/ui/input';
 import { addMonths, format } from 'date-fns';
 
-const transactionSchema = z.object({
+const baseSchema = z.object({
   id: z.string().optional(),
-  description: z.string().min(1, 'Descrição é obrigatória').optional(),
   amount: z.coerce.number().min(0.01, 'Valor deve ser maior que zero'),
   date: z.string().min(1, 'Data é obrigatória'),
-  type: z.enum(['income', 'expense', 'transfer']),
-  category: z.string().optional(),
-  account: z.string().optional(),
-  fromAccount: z.string().optional(),
-  toAccount: z.string().optional(),
   paid: z.boolean().optional(),
   isRecurring: z.boolean().optional(),
   frequency: z.enum(['daily', 'weekly', 'monthly', 'annual']).optional(),
   installments: z.coerce.number().min(1).optional(),
   linkedGoalId: z.string().optional(),
-}).superRefine((data, ctx) => {
-    if (data.type === 'transfer') {
-        if (!data.fromAccount) {
-            ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Conta de origem é obrigatória.", path: ["fromAccount"] });
-        }
-        if (!data.toAccount) {
-            ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Conta de destino é obrigatória.", path: ["toAccount"] });
-        }
-        if (data.fromAccount && data.toAccount && data.fromAccount === data.toAccount) {
-            ctx.addIssue({ code: z.ZodIssueCode.custom, message: "As contas devem ser diferentes.", path: ["toAccount"] });
-        }
-    } else {
-        if (!data.description) {
-            ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Descrição é obrigatória", path: ["description"] });
-        }
-        if (!data.category) {
-            ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Categoria é obrigatória", path: ["category"] });
-        }
-        if (!data.account) {
-            ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Conta/Cartão é obrigatório", path: ["account"] });
-        }
-    }
 });
+
+const incomeExpenseSchema = baseSchema.extend({
+  type: z.enum(['income', 'expense']),
+  description: z.string().min(1, 'Descrição é obrigatória'),
+  category: z.string().min(1, 'Categoria é obrigatória'),
+  account: z.string().min(1, 'Conta/Cartão é obrigatório'),
+});
+
+const transferSchema = baseSchema.extend({
+  type: z.literal('transfer'),
+  fromAccount: z.string().min(1, "Conta de origem é obrigatória"),
+  toAccount: z.string().min(1, "Conta de destino é obrigatória"),
+}).refine(data => data.fromAccount !== data.toAccount, {
+  message: "As contas de origem e destino não podem ser iguais",
+  path: ["toAccount"],
+});
+
+// Combine-os com discriminatedUnion
+const transactionSchema = z.discriminatedUnion('type', [
+  incomeExpenseSchema,
+  transferSchema,
+]);
+
 
 type TransactionFormData = z.infer<typeof transactionSchema>;
 
@@ -110,8 +105,6 @@ export function AddTransactionDialog({
       description: '',
       category: '',
       account: '',
-      fromAccount: '',
-      toAccount: '',
       paid: true,
       isRecurring: false,
       installments: 1,
@@ -129,7 +122,7 @@ export function AddTransactionDialog({
             amount: Math.abs(transaction.amount), // Form expects positive number
             installments: transaction.totalInstallments || 1,
             linkedGoalId: transaction.linkedGoalId || '',
-          });
+          } as TransactionFormData); // Cast to avoid type issues with discriminated union
       } else {
          reset({
             type: 'expense',
@@ -150,9 +143,11 @@ export function AddTransactionDialog({
 
   const transactionType = watch('type');
   const isRecurring = watch('isRecurring');
-  const selectedAccountName = watch('account');
+  
+  const selectedAccountName = transactionType !== 'transfer' ? watch('account') : undefined;
+  
   const amount = watch('amount');
-  const installments = watch('installments');
+  const installments = transactionType !== 'transfer' ? watch('installments') : 1;
   
   const selectedAccount = useMemo(() => {
     if (!selectedAccountName) return null;
@@ -210,7 +205,7 @@ export function AddTransactionDialog({
 
 
   const onSubmit = (data: TransactionFormData) => {
-    const finalInstallments = (isCreditCard && (data.installments || 1) > 1) ? data.installments : undefined;
+    const finalInstallments = (isCreditCard && (data.type !== 'transfer' && data.installments || 1) > 1) ? data.installments : undefined;
     
     let finalData: Omit<Transaction, 'id' | 'amount'> & { id?: string; amount: number; fromAccount?: string; toAccount?: string; } = { ...data, amount: data.amount };
     
@@ -253,7 +248,7 @@ export function AddTransactionDialog({
                     name="type"
                     control={control}
                     render={({ field }) => (
-                        <Select onValueChange={field.onChange} value={field.value} disabled={isEditing}>
+                        <Select onValueChange={(value) => field.onChange(value as TransactionFormData['type'])} value={field.value} disabled={isEditing}>
                             <SelectTrigger>
                                 <SelectValue placeholder="Selecione o tipo" />
                             </SelectTrigger>
@@ -284,7 +279,11 @@ export function AddTransactionDialog({
             
             <div className="space-y-2">
               <Label htmlFor="date">Data</Label>
-              <Input id="date" type="date" {...register('date')} />
+              <Controller
+                  name="date"
+                  control={control}
+                  render={({ field }) => <Input id="date" type="date" {...field} />}
+                />
                {errors.date && <p className="text-red-500 text-xs mt-1">{errors.date.message}</p>}
             </div>
             
@@ -292,7 +291,11 @@ export function AddTransactionDialog({
               <>
                 <div className="space-y-2">
                     <Label htmlFor="description">Descrição</Label>
-                    <Input id="description" {...register('description')} />
+                    <Controller
+                        name="description"
+                        control={control}
+                        render={({ field }) => <Input id="description" {...field} />}
+                    />
                     {errors.description && <p className="text-red-500 text-xs mt-1">{errors.description.message}</p>}
                 </div>
                 <div className="space-y-2">
@@ -340,7 +343,13 @@ export function AddTransactionDialog({
                  {isCreditCard && transactionType === 'expense' && !isEditing && (
                    <div className="space-y-2">
                         <Label htmlFor="installments">Parcelas</Label>
-                           <Input id="installments" type="number" {...register('installments')} min="1" />
+                           <Controller
+                            name="installments"
+                            control={control}
+                            render={({ field }) => (
+                               <Input id="installments" type="number" {...field} min="1" />
+                            )}
+                            />
                            {installmentValue !== null && (
                                 <p className="text-xs text-muted-foreground mt-1 text-right">
                                     {installments}x de {formatCurrency(installmentValue, true)}
@@ -455,7 +464,7 @@ export function AddTransactionDialog({
                             </Select>
                         )}
                     />
-                    {errors.fromAccount && <p className="text-red-500 text-xs mt-1">{errors.fromAccount.message}</p>}
+                    {errors.type === 'transfer' && errors.fromAccount && <p className="text-red-500 text-xs mt-1">{errors.fromAccount.message}</p>}
                 </div>
                 <div className="space-y-2">
                     <Label htmlFor="toAccount">Para Conta</Label>
@@ -475,7 +484,7 @@ export function AddTransactionDialog({
                             </Select>
                         )}
                     />
-                    {errors.toAccount && <p className="text-red-500 text-xs mt-1">{errors.toAccount.message}</p>}
+                    {errors.type === 'transfer' && errors.toAccount && <p className="text-red-500 text-xs mt-1">{errors.toAccount.message}</p>}
                 </div>
               </>
             )}
