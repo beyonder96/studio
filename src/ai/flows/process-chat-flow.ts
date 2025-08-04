@@ -1,3 +1,4 @@
+
 'use server';
 /**
  * @fileOverview A general-purpose command processing flow for the AI assistant.
@@ -8,7 +9,7 @@
  */
 
 import { ai } from '@/ai/genkit';
-import { addTransaction, createCalendarEvent, createTask, addItemToShoppingList } from '../tools/app-tools';
+import { addTransaction, createCalendarEvent, createTask, addItemToShoppingList, getTransactions } from '../tools/app-tools';
 import { ProcessChatInput, ProcessChatOutput, ProcessChatInputSchema, ProcessChatOutputSchema } from './schemas/process-chat-schema';
 import { format } from 'date-fns';
 
@@ -34,7 +35,7 @@ const processChatFlow = ai.defineFlow(
     
     const llmResponse = await ai.generate({
         model: 'googleai/gemini-1.5-flash-latest',
-        tools: [addTransaction, createTask, createCalendarEvent, addItemToShoppingList],
+        tools: [addTransaction, createTask, createCalendarEvent, addItemToShoppingList, getTransactions],
         toolChoice: 'auto',
         prompt: `Você é um assistente pessoal para um casal. Sua tarefa principal é ajudá-los a gerenciar suas vidas, o que inclui responder a perguntas gerais e executar ações dentro do aplicativo através das ferramentas disponíveis.
 
@@ -48,7 +49,8 @@ const processChatFlow = ai.defineFlow(
               - **createTask:** Para criar uma tarefa ou um item em uma lista de 'a fazer'.
               - **createCalendarEvent:** Para agendar um evento, compromisso ou reserva com data e/ou hora.
               - **addItemToShoppingList:** Para adicionar itens a uma lista de compras.
-          3.  **Gere uma Resposta de Confirmação:** APÓS a ferramenta ser executada com sucesso, você DEVE retornar uma mensagem de confirmação amigável e curta. Por exemplo: "Tarefa criada!", "Evento agendado com sucesso!", "Adicionado à sua lista de compras!".
+              - **getTransactions:** Para responder a perguntas sobre gastos e transações. Use esta ferramenta para obter os dados necessários antes de formular a resposta.
+          3.  **Gere uma Resposta de Confirmação:** APÓS a ferramenta ser executada com sucesso, você DEVE retornar uma mensagem de confirmação amigável e curta. Por exemplo: "Tarefa criada!", "Evento agendado com sucesso!", "Adicionado à sua lista de compras!". Se a ferramenta for de consulta (getTransactions), resuma os dados de forma clara para o usuário.
           4.  **Responda a Perguntas Gerais:** Se o comando não for uma ação para uma ferramenta, responda à pergunta do usuário da melhor forma possível, usando seu conhecimento geral.
 
           **Importante:** Você DEVE passar o \`userId: "${input.userId}"\` para todas as chamadas de ferramenta.

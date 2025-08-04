@@ -125,10 +125,12 @@ export const createCalendarEvent = ai.defineTool(
         const calendar = google.calendar({ version: 'v3', auth: authClient });
         const eventStartTime = input.time ? parseISO(`${input.date}T${input.time}:00`) : parseISO(input.date);
         const eventEndTime = input.time ? new Date(eventStartTime.getTime() + 60 * 60 * 1000) : new Date(eventStartTime.getTime() + 24 * 60 * 60 * 1000); // 1 hour duration or all-day
+        
+        const description = `Categoria: ${input.category}\n\n${input.notes || ''}`;
 
         const event = {
           summary: input.title,
-          description: input.notes || '',
+          description: description,
           start: {
             dateTime: input.time ? eventStartTime.toISOString() : undefined,
             date: !input.time ? input.date : undefined,
@@ -189,7 +191,7 @@ export const updateGoogleCalendarEvent = ai.defineTool(
             date: z.string().describe('The updated date in YYYY-MM-DD format.'),
             time: z.string().optional().describe('The updated time in HH:MM format.'),
             notes: z.string().optional().describe('Updated notes for the event.'),
-            category: z.string().optional().describe('The category of the event, e.g., "Social", "Lazer", "Pessoal".'),
+            category: z.string().describe('The category of the event, e.g., "Social", "Lazer", "Pessoal".'),
         }),
         outputSchema: z.object({ success: z.boolean() }),
     },
@@ -200,7 +202,7 @@ export const updateGoogleCalendarEvent = ai.defineTool(
         const eventStartTime = time ? parseISO(`${date}T${time}:00`) : parseISO(date);
         const eventEndTime = time ? new Date(eventStartTime.getTime() + 60 * 60 * 1000) : new Date(eventStartTime.getTime() + 24 * 60 * 60 * 1000);
 
-        const description = `Categoria: ${category || 'Outros'}\n\n${notes || ''}`;
+        const description = `Categoria: ${category}\n\n${notes || ''}`;
 
         const event = {
             summary: title,
@@ -415,5 +417,65 @@ export const addItemToShoppingList = ai.defineTool(
               resolve({ success: true, listId: targetListId, itemId: newItemRef.key! });
           }, { onlyOnce: true }); // Important to prevent multiple triggers
       });
+  }
+);
+
+
+export const getTransactions = ai.defineTool(
+  {
+    name: 'getTransactions',
+    description: 'Retrieves a list of financial transactions based on specified filters like time period, account, or description.',
+    inputSchema: z.object({
+      userId: z.string().describe("The user's unique ID. This MUST be provided."),
+      month: z.number().optional().describe('The month to filter by (1-12).'),
+      year: z.number().optional().describe('The year to filter by (e.g., 2024).'),
+      accountName: z.string().optional().describe('The name of the account or credit card to filter by.'),
+      descriptionQuery: z.string().optional().describe('A keyword to search for in the transaction description (e.g., "iFood").'),
+    }),
+    outputSchema: z.array(z.object({
+        description: z.string(),
+        amount: z.number(),
+        date: z.string(),
+        category: z.string(),
+    })),
+  },
+  async ({ userId, month, year, accountName, descriptionQuery }) => {
+    if (!userId) {
+      console.warn("User ID is missing, cannot get transactions.");
+      return [];
+    }
+    const db = getDatabase(firebaseApp);
+    const transactionsRef = ref(db, `users/${userId}/transactions`);
+    
+    const snapshot = await get(transactionsRef);
+    if (!snapshot.exists()) {
+      return [];
+    }
+
+    const allTransactions = Object.values(snapshot.val() as Record<string, any>);
+
+    const filteredTransactions = allTransactions.filter(t => {
+      let matches = true;
+
+      if (year && month) {
+        const transactionDate = parseISO(t.date);
+        matches = matches && transactionDate.getFullYear() === year && transactionDate.getMonth() + 1 === month;
+      }
+      if (accountName) {
+        matches = matches && t.account === accountName;
+      }
+      if (descriptionQuery) {
+        matches = matches && t.description.toLowerCase().includes(descriptionQuery.toLowerCase());
+      }
+      
+      return matches;
+    });
+
+    return filteredTransactions.map(({ description, amount, date, category }) => ({
+        description,
+        amount,
+        date,
+        category,
+    }));
   }
 );
