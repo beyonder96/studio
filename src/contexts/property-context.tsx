@@ -6,6 +6,7 @@ import { getDatabase, ref, onValue, set, push, remove, update, child } from 'fir
 import { useAuth } from './auth-context';
 import { app as firebaseApp } from '@/lib/firebase';
 import { useToast } from '@/hooks/use-toast';
+import imageCompression from 'browser-image-compression';
 
 // --- Types ---
 export type PropertyType = 'house' | 'apartment' | 'construction';
@@ -34,6 +35,13 @@ export type ConstructionProgress = {
     payments?: ConstructionPayment[];
 };
 
+export type PropertyDocument = {
+    id: string;
+    name: string;
+    url: string; // data URI
+    uploadedAt: string;
+};
+
 export type Property = {
     id: string;
     name: string;
@@ -43,6 +51,7 @@ export type Property = {
     purchaseDate?: string;
     shoppingItems?: PropertyShoppingItem[];
     constructionProgress?: ConstructionProgress;
+    documents?: PropertyDocument[];
 };
 
 
@@ -67,6 +76,8 @@ type PropertyContextType = {
     addConstructionPayment: (propertyId: string, payment: Omit<ConstructionPayment, 'id' | 'paid'>) => void;
     toggleConstructionPayment: (propertyId: string, paymentId: string) => void;
     updateConstructionProgress: (propertyId: string, percentage: number, budget: number) => void;
+    addDocument: (propertyId: string, file: File) => Promise<void>;
+    deleteDocument: (propertyId: string, documentId: string) => void;
 };
 
 export const PropertyContext = createContext<PropertyContextType>({} as PropertyContextType);
@@ -112,6 +123,7 @@ export const PropertyProvider = ({ children }: { children: ReactNode }) => {
                     }
 
                     prop.shoppingItems = nestedToArray(prop.shoppingItems);
+                    prop.documents = nestedToArray(prop.documents);
                     
                     if (prop.constructionProgress) {
                         prop.constructionProgress.payments = nestedToArray(prop.constructionProgress.payments);
@@ -221,6 +233,50 @@ export const PropertyProvider = ({ children }: { children: ReactNode }) => {
             .catch((err) => toast({ variant: 'destructive', title: 'Erro', description: err.message }));
     }
 
+    const addDocument = async (propertyId: string, file: File) => {
+        if (!user) return;
+        toast({ title: 'Enviando arquivo...', description: 'Por favor, aguarde.' });
+
+        const options = {
+            maxSizeMB: 2, // Max size 2MB
+            maxWidthOrHeight: 1920,
+            useWebWorker: true,
+        };
+
+        try {
+            // Check if file is an image to compress, otherwise just read it
+            const fileToProcess = file.type.startsWith('image/') ? await imageCompression(file, options) : file;
+
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                const url = reader.result as string;
+                const newDocumentId = push(getDbRef(`properties/${propertyId}/documents`)).key;
+                if(newDocumentId) {
+                    const newDocument: Omit<PropertyDocument, 'id'> = {
+                        name: file.name,
+                        url,
+                        uploadedAt: new Date().toISOString()
+                    };
+                    const docRef = getDbRef(`properties/${propertyId}/documents/${newDocumentId}`);
+                    set(docRef, newDocument)
+                        .then(() => toast({ title: 'Documento Adicionado!', description: `"${file.name}" foi salvo com sucesso.` }))
+                        .catch((err) => toast({ variant: 'destructive', title: 'Erro ao Salvar', description: err.message }));
+                }
+            };
+            reader.readAsDataURL(fileToProcess);
+        } catch (error) {
+             toast({ variant: 'destructive', title: 'Erro no Upload', description: 'Não foi possível processar o arquivo.' });
+        }
+    };
+
+    const deleteDocument = (propertyId: string, documentId: string) => {
+        if (!user) return;
+        const docRef = getDbRef(`properties/${propertyId}/documents/${documentId}`);
+        remove(docRef)
+            .then(() => toast({ title: 'Documento Excluído!' }))
+            .catch((err) => toast({ variant: 'destructive', title: 'Erro ao Excluir', description: err.message }));
+    };
+
     const value = {
         properties,
         addProperty,
@@ -237,6 +293,8 @@ export const PropertyProvider = ({ children }: { children: ReactNode }) => {
         addConstructionPayment,
         toggleConstructionPayment,
         updateConstructionProgress,
+        addDocument,
+        deleteDocument,
     };
 
     return (

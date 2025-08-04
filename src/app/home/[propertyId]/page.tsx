@@ -12,6 +12,7 @@ import { AddPropertyDialog } from '@/components/home/add-property-dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { PropertyShoppingList } from '@/components/home/property-shopping-list';
 import { ConstructionProgress } from '@/components/home/construction-progress';
+import { PropertyDocuments } from '@/components/home/property-documents';
 
 const typeDetails = {
     house: { icon: <Home className="h-5 w-5 text-muted-foreground"/>, label: 'Casa (Residência)' },
@@ -117,14 +118,7 @@ function PropertyDetailPageContent() {
                     </CardHeader>
                     <CardContent className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                         <PropertyShoppingList property={property} />
-                        <Card className="bg-transparent">
-                            <CardHeader>
-                                <CardTitle className="flex items-center gap-2"><FileText /> Documentos</CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                                <p className="text-muted-foreground">Em breve: um local para guardar plantas, contratos e manuais.</p>
-                            </CardContent>
-                        </Card>
+                        <PropertyDocuments property={property} />
                          <Card className="bg-transparent">
                             <CardHeader>
                                 <CardTitle className="flex items-center gap-2"><Wrench /> Reformas</CardTitle>
