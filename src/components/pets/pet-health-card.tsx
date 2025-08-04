@@ -85,4 +85,3 @@ export function PetHealthCard({ pet, onAddRecord }: { pet: Pet; onAddRecord: () 
         </Card>
     );
 }
-

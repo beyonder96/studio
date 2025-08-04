@@ -1159,7 +1159,7 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
             description: `Compra: ${list.name}`,
             amount: -finalCost, // as an expense
             type: 'expense',
-            paid: true, // Purchase is immediately settled
+            paid: true,
             date: format(new Date(), 'yyyy-MM-dd'),
         };
         addTransaction(purchaseTransaction);
