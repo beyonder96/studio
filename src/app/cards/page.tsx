@@ -7,11 +7,11 @@ import { Carousel, CarouselContent, CarouselItem, type CarouselApi } from '@/com
 import { FinanceContext, Transaction, Card as CardType, Account } from '@/contexts/finance-context';
 import { cn } from '@/lib/utils';
 import { AnimatePresence, motion } from 'framer-motion';
-import { addDays, format, setDate } from 'date-fns';
+import { addDays, format, setDate, parseISO, subMonths } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { TransactionsTable } from '@/components/finance/transactions-table';
 import { Button } from '@/components/ui/button';
-import { PlusCircle, Info, CalendarClock, ShoppingBag, Edit, Trash2, CreditCard, Banknote, User } from 'lucide-react';
+import { PlusCircle, Info, CalendarClock, ShoppingBag, Edit, Trash2, CreditCard, Banknote, User, TrendingUp } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/auth-context';
 import { EditAccountCardDialog } from '@/components/settings/edit-account-card-dialog';
@@ -150,29 +150,67 @@ export default function CardsPage() {
   const isSelectedCard = selectedItem && 'limit' in selectedItem;
   const isSelectedVoucher = selectedItem && 'balance' in selectedItem;
 
-  const itemTransactions = useMemo(() => {
-    if (!selectedItem) return [];
-    return transactions.filter(t => t.account === selectedItem.name);
-  }, [selectedItem, transactions]);
-  
   const handleEditTransaction = (transaction: Transaction) => {
     router.push(`/finance?edit=${transaction.id}`);
   }
 
-  const getCardInfo = (dueDay: number) => {
+  const { cardInfo, currentBill, itemTransactions } = useMemo(() => {
+    if (!selectedItem || !isSelectedCard) return { cardInfo: null, currentBill: 0, itemTransactions: [] };
+
     const today = new Date();
-    const invoiceClosingDate = setDate(today, dueDay - 10);
+    const currentMonth = today.getMonth();
+    const currentYear = today.getFullYear();
+
+    const closingDay = selectedItem.closingDay;
+    const paymentDay = selectedItem.paymentDay;
+    
+    // Determine the invoice period
+    let invoiceClosingDate = new Date(currentYear, currentMonth, closingDay);
+    if (today.getDate() > closingDay) {
+        // We are in the next billing cycle
+        invoiceClosingDate = new Date(currentYear, currentMonth + 1, closingDay);
+    }
+    const invoiceStartDate = subMonths(invoiceClosingDate, 1);
     const bestPurchaseDate = addDays(invoiceClosingDate, 1);
-    const dueDate = setDate(today, dueDay);
+    
+    // Determine payment date for the current invoice
+    let invoicePaymentDate = new Date(currentYear, currentMonth, paymentDay);
+    if(closingDay > paymentDay) { // Invoice closes in one month and pays in the next
+        if(today.getDate() > closingDay) {
+            invoicePaymentDate = new Date(currentYear, currentMonth + 2, paymentDay);
+        } else {
+            invoicePaymentDate = new Date(currentYear, currentMonth + 1, paymentDay);
+        }
+    } else { // Invoice closes and pays in the same month
+         if(today.getDate() > closingDay) {
+            invoicePaymentDate = new Date(currentYear, currentMonth + 1, paymentDay);
+        }
+    }
+
+
+    const filteredTransactions = transactions.filter(t => {
+      const transactionDate = parseISO(t.date);
+      return t.account === selectedItem.name &&
+             t.type === 'expense' &&
+             transactionDate > invoiceStartDate &&
+             transactionDate <= invoiceClosingDate;
+    });
+
+    const totalBill = filteredTransactions.reduce((sum, t) => sum + Math.abs(t.amount), 0);
 
     return {
-      bestPurchaseDate: format(bestPurchaseDate, "dd 'de' MMMM", { locale: ptBR }),
-      dueDate: format(dueDate, "dd 'de' MMMM", { locale: ptBR }),
+        cardInfo: {
+            bestPurchaseDate: format(bestPurchaseDate, "dd 'de' MMMM", { locale: ptBR }),
+            closingDate: format(invoiceClosingDate, "dd 'de' MMMM", { locale: ptBR }),
+            paymentDate: format(invoicePaymentDate, "dd 'de' MMMM", { locale: ptBR }),
+        },
+        currentBill: totalBill,
+        itemTransactions: filteredTransactions
     };
-  };
-  
-  const cardInfo = (selectedItem && isSelectedCard) ? getCardInfo(selectedItem.dueDay) : null;
 
+  }, [selectedItem, isSelectedCard, transactions]);
+  
+  
   const openAddDialog = () => {
     setEditingItem(null);
     setIsAccountCardDialogOpen(true);
@@ -204,7 +242,7 @@ export default function CardsPage() {
   
   const handleSaveAccountCard = (data: any) => { 
     if (data.type === 'card') {
-      const cardData = { name: data.name, limit: data.limit, dueDay: data.dueDay, holder: data.holder, brand: data.brand };
+      const cardData = { name: data.name, limit: data.limit, closingDay: data.closingDay, paymentDay: data.paymentDay, holder: data.holder, brand: data.brand };
       if (editingItem && 'limit' in editingItem) {
         updateCard(editingItem.id, cardData);
       } else {
@@ -306,22 +344,37 @@ export default function CardsPage() {
                     </CardHeader>
                     <CardContent className="space-y-6">
                         {isSelectedCard && (
-                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-center">
-                                <Card className="bg-transparent p-4">
-                                    <CalendarClock className="h-8 w-8 mx-auto text-primary mb-2"/>
-                                    <p className="font-semibold">Vencimento da Fatura</p>
-                                    <p className="text-muted-foreground">{cardInfo?.dueDate}</p>
-                                </Card>
-                                <Card className="bg-transparent p-4">
-                                    <ShoppingBag className="h-8 w-8 mx-auto text-primary mb-2"/>
-                                    <p className="font-semibold">Melhor Dia de Compra</p>
-                                    <p className="text-muted-foreground">{cardInfo?.bestPurchaseDate}</p>
-                                </Card>
-                                <Button className="h-full" onClick={() => openPayBillDialog(selectedItem as CardType)}>
-                                    <CreditCard className="mr-2 h-4 w-4" />
-                                    Pagar Fatura
-                                </Button>
-                            </div>
+                            <>
+                            <Card className="bg-transparent p-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="space-y-4">
+                                    <div className="flex items-center gap-2">
+                                        <TrendingUp className="h-8 w-8 text-primary"/>
+                                        <div>
+                                            <p className="font-semibold text-muted-foreground">Fatura Atual</p>
+                                            <p className="text-2xl font-bold">{formatCurrency(currentBill, true)}</p>
+                                        </div>
+                                    </div>
+                                    <Button className="w-full" onClick={() => openPayBillDialog(selectedItem as CardType)}>
+                                        <CreditCard className="mr-2 h-4 w-4" />
+                                        Pagar Fatura
+                                    </Button>
+                                </div>
+                                <div className="space-y-2 text-sm">
+                                    <div className="flex justify-between">
+                                        <span className="text-muted-foreground">Fechamento:</span>
+                                        <span className="font-medium">{cardInfo?.closingDate}</span>
+                                    </div>
+                                     <div className="flex justify-between">
+                                        <span className="text-muted-foreground">Vencimento:</span>
+                                        <span className="font-medium">{cardInfo?.paymentDate}</span>
+                                    </div>
+                                     <div className="flex justify-between">
+                                        <span className="text-muted-foreground">Melhor dia de compra:</span>
+                                        <span className="font-medium">{cardInfo?.bestPurchaseDate}</span>
+                                    </div>
+                                </div>
+                            </Card>
+                            </>
                         )}
                         
                         <div>
@@ -354,6 +407,7 @@ export default function CardsPage() {
             onClose={() => setIsPayBillDialogOpen(false)}
             onSave={handlePayCardBill}
             card={cardToPay}
+            totalBill={currentBill}
         />
        )}
       <AlertDialog open={!!itemToDelete || !!transactionToDelete} onOpenChange={(open) => !open && (setItemToDelete(null), setTransactionToDelete(null))}>

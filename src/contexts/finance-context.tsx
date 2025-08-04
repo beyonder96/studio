@@ -17,7 +17,7 @@ const initialTransactions: Transaction[] = [
     { id: '2', description: 'Aluguel', amount: -1500, date: format(new Date(), 'yyyy-MM-10'), type: 'expense', category: 'Moradia', paid: false, isRecurring: true, frequency: 'monthly' },
 ];
 const initialAccounts: Account[] = [ { id: 'acc1', name: 'Conta Corrente', balance: 3500, type: 'checking', holder: 'Pessoa 1', bankName: 'nubank' } ];
-const initialCards = [ { id: 'card1', name: 'Cartão de Crédito', limit: 5000, dueDay: 10, holder: 'Pessoa 1', brand: 'visa' as const } ];
+const initialCards: Card[] = [ { id: 'card1', name: 'Cartão de Crédito', limit: 5000, closingDay: 28, paymentDay: 10, holder: 'Pessoa 1', brand: 'visa' as const } ];
 const initialIncomeCategories = ['Salário', 'Freelance', 'Investimentos', 'Transferência', 'Outros'];
 const initialExpenseCategories = ['Alimentação', 'Moradia', 'Transporte', 'Lazer', 'Saúde', 'Educação', 'Compras', 'Transferência', 'Investimento', 'Outros', 'Pagamento de Fatura'];
 const initialPantryCategories: PantryCategory[] = [ 'Laticínios', 'Carnes', 'Peixes', 'Frutas e Vegetais', 'Grãos e Cereais', 'Enlatados e Conservas', 'Bebidas', 'Higiene e Limpeza', 'Outros' ];
@@ -54,7 +54,15 @@ export type Account = {
     brand?: VoucherBrand;
     benefitDay?: number;
 }
-export type Card = { id: string; name: string; limit: number; dueDay: number; holder: string; brand: 'visa' | 'mastercard' | 'elo' | 'amex'; };
+export type Card = { 
+    id: string; 
+    name: string; 
+    limit: number; 
+    closingDay: number; 
+    paymentDay: number; 
+    holder: string; 
+    brand: 'visa' | 'mastercard' | 'elo' | 'amex'; 
+};
 export type Appointment = { id: string; title: string; date: string; time?: string; category: string; notes?: string; googleEventId?: string; accessToken?: string; isGoogleEvent?: boolean; };
 export type PantryCategory = string;
 export type PantryItem = { id: string; name: string; quantity: number; pantryCategory: PantryCategory; }

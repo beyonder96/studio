@@ -38,29 +38,31 @@ type PayBillDialogProps = {
   onClose: () => void;
   onSave: (card: CardType, amount: number, accountId: string) => void;
   card: CardType;
+  totalBill: number;
 };
 
-export function PayBillDialog({ isOpen, onClose, onSave, card }: PayBillDialogProps) {
+export function PayBillDialog({ isOpen, onClose, onSave, card, totalBill }: PayBillDialogProps) {
   const { formatCurrency, accounts } = useContext(FinanceContext);
 
   const {
     handleSubmit,
     control,
     reset,
+    setValue,
     formState: { errors },
   } = useForm<PayBillFormData>({
     resolver: zodResolver(payBillSchema),
     defaultValues: {
-      amount: 0,
+      amount: totalBill,
       accountId: '',
     },
   });
 
   useEffect(() => {
     if (isOpen) {
-      reset({ amount: 0, accountId: '' });
+      reset({ amount: totalBill > 0 ? totalBill : 0, accountId: '' });
     }
-  }, [isOpen, reset]);
+  }, [isOpen, reset, totalBill]);
 
   const onSubmit = (data: PayBillFormData) => {
     onSave(card, data.amount, data.accountId);
@@ -73,7 +75,7 @@ export function PayBillDialog({ isOpen, onClose, onSave, card }: PayBillDialogPr
         <DialogHeader>
           <DialogTitle>Pagar Fatura do Cartão</DialogTitle>
           <DialogDescription>
-            Insira o valor a ser pago para o cartão "{card.name}".
+            Fatura atual para o cartão "{card.name}" é de <span className="font-bold">{formatCurrency(totalBill, true)}</span>.
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit(onSubmit)}>
@@ -91,6 +93,9 @@ export function PayBillDialog({ isOpen, onClose, onSave, card }: PayBillDialogPr
                   />
                 )}
               />
+              <Button type="button" variant="link" size="sm" className="p-0 h-auto" onClick={() => setValue('amount', totalBill)}>
+                Pagar valor total
+              </Button>
               {errors.amount && <p className="text-red-500 text-xs mt-1">{errors.amount.message}</p>}
             </div>
              <div className="space-y-2">
@@ -127,5 +132,3 @@ export function PayBillDialog({ isOpen, onClose, onSave, card }: PayBillDialogPr
     </Dialog>
   );
 }
-
-    

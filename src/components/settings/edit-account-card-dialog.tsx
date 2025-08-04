@@ -41,7 +41,8 @@ const cardSchema = z.object({
   type: z.literal('card'),
   name: z.string().min(1, 'O nome é obrigatório'),
   limit: z.coerce.number().min(1, 'O limite deve ser maior que zero'),
-  dueDay: z.coerce.number().min(1, 'Dia inválido').max(31, 'Dia inválido'),
+  closingDay: z.coerce.number().min(1, 'Dia inválido').max(31, 'Dia inválido'),
+  paymentDay: z.coerce.number().min(1, 'Dia inválido').max(31, 'Dia inválido'),
   holder: z.string().min(1, 'O titular é obrigatório'),
   brand: z.enum(['visa', 'mastercard', 'elo', 'amex']),
 });
@@ -94,13 +95,13 @@ export function EditAccountCardDialog({ isOpen, onClose, onSave, item, coupleNam
              if ('balance' in item) {
                 reset({ type: 'account', name: item.name, balance: item.balance, holder: item.holder, brand: item.brand, benefitDay: item.benefitDay });
             } else {
-                reset({ type: 'card', name: item.name, limit: item.limit, dueDay: item.dueDay, holder: item.holder, brand: item.brand });
+                reset({ type: 'card', name: item.name, limit: item.limit, closingDay: item.closingDay, paymentDay: item.paymentDay, holder: item.holder, brand: item.brand });
             }
         } else {
              if (tab === 'account') {
                 reset({ type: 'account', name: '', balance: 0, holder: coupleNames[0] || '', brand: 'ticket' });
              } else {
-                reset({ type: 'card', name: '', limit: 1000, dueDay: 10, holder: coupleNames[0] || '', brand: 'visa' });
+                reset({ type: 'card', name: '', limit: 1000, closingDay: 28, paymentDay: 10, holder: coupleNames[0] || '', brand: 'visa' });
              }
         }
     }
@@ -266,34 +267,47 @@ export function EditAccountCardDialog({ isOpen, onClose, onSave, item, coupleNam
             </div>
         </div>
 
+        <div className="space-y-2">
+            <Label htmlFor="limit">Limite</Label>
+                <Controller
+                name="limit"
+                control={control}
+                rules={{ required: formType === 'card' }}
+                render={({ field }) => (
+                <CurrencyInput
+                    id="limit"
+                    value={field.value ?? 0}
+                    onValueChange={(value) => field.onChange(value)}
+                />
+                )}
+            />
+                {errors.type === 'card' && errors.limit && <p className="text-red-500 text-xs mt-1">{errors.limit.message}</p>}
+        </div>
+        
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="space-y-2">
-                <Label htmlFor="limit">Limite</Label>
+             <div className="space-y-2">
+                <Label htmlFor="closingDay">Dia do Fechamento</Label>
                  <Controller
-                    name="limit"
+                    name="closingDay"
                     control={control}
                     rules={{ required: formType === 'card' }}
                     render={({ field }) => (
-                    <CurrencyInput
-                        id="limit"
-                        value={field.value ?? 0}
-                        onValueChange={(value) => field.onChange(value)}
-                    />
+                        <Input id="closingDay" type="number" {...field} min="1" max="31" value={field.value ?? ''} />
                     )}
                 />
-                 {errors.type === 'card' && errors.limit && <p className="text-red-500 text-xs mt-1">{errors.limit.message}</p>}
+                {errors.type === 'card' && errors.closingDay && <p className="text-red-500 text-xs mt-1">{errors.closingDay.message}</p>}
             </div>
              <div className="space-y-2">
-                <Label htmlFor="dueDay">Dia do Vencimento</Label>
+                <Label htmlFor="paymentDay">Dia do Vencimento</Label>
                  <Controller
-                    name="dueDay"
+                    name="paymentDay"
                     control={control}
                     rules={{ required: formType === 'card' }}
                     render={({ field }) => (
-                        <Input id="dueDay" type="number" {...field} min="1" max="31" value={field.value ?? ''} />
+                        <Input id="paymentDay" type="number" {...field} min="1" max="31" value={field.value ?? ''} />
                     )}
                 />
-                {errors.type === 'card' && errors.dueDay && <p className="text-red-500 text-xs mt-1">{errors.dueDay.message}</p>}
+                {errors.type === 'card' && errors.paymentDay && <p className="text-red-500 text-xs mt-1">{errors.paymentDay.message}</p>}
             </div>
         </div>
     </div>
