@@ -5,8 +5,8 @@ import { useState, useContext, useEffect, useMemo } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { PlusCircle, ArrowUpCircle, ArrowDownCircle, Repeat, Edit, Trash2 } from 'lucide-react';
-import { TransactionsTable, Transaction } from '@/components/finance/transactions-table';
-import { AddTransactionDialog } from '@/components/finance/add-transaction-dialog';
+import { TransactionsTable } from '@/components/finance/transactions-table';
+import { AddTransactionDialog } from '@/components/finance/add-transaction-dialog'; 
 import {
   Card,
   CardContent,
@@ -16,7 +16,7 @@ import {
 } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { FinanceContext } from '@/contexts/finance-context';
+import { FinanceContext, Transaction } from '@/contexts/finance-context';
 import { motion } from 'framer-motion';
 import {
   AlertDialog,
@@ -27,7 +27,7 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "@/components/ui/alert-dialog"
+} from "@/components/ui/alert-dialog";
 import { cn } from '@/lib/utils';
 import { Checkbox } from '@/components/ui/checkbox';
 
@@ -64,19 +64,15 @@ export default function FinancePage() {
       const transactionToEdit = transactions.find(t => t.id === transactionToEditId);
       if (transactionToEdit) {
         openEditDialog(transactionToEdit);
-        // Clean up the URL
         router.replace('/finance', { scroll: false });
       }
     }
   }, [transactionToEditId, transactions, router]);
 
-
-  const handleSaveTransaction = (transaction: Omit<Transaction, 'id'> & { id?: string }, installments?: number) => {
+  const handleSaveTransaction = (transaction: Omit<Transaction, 'id'> & { id?: string; amount: number; fromAccount?: string | undefined; toAccount?: string | undefined; }, installments?: number) => {
     if (transaction.id) {
-      // Update existing transaction
       updateTransaction(transaction.id, transaction);
     } else {
-      // Add new transaction
       addTransaction(transaction, installments);
     }
   };

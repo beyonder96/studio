@@ -22,26 +22,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { useContext } from 'react';
-import { FinanceContext } from '@/contexts/finance-context';
+import { FinanceContext, Transaction } from '@/contexts/finance-context';
 
-
-export type Transaction = {
-  id: string;
-  description: string;
-  amount: number;
-  date: string;
-  type: 'income' | 'expense' | 'transfer';
-  category: string;
-  account?: string;
-  paid?: boolean;
-  isRecurring?: boolean;
-  frequency?: 'daily' | 'weekly' | 'monthly' | 'annual';
-  installmentGroupId?: string;
-  currentInstallment?: number;
-  totalInstallments?: number;
-  recurringSourceId?: string; // Link to the recurring template
-  linkedGoalId?: string;
-};
 
 type TransactionsTableProps = {
   transactions: Transaction[];

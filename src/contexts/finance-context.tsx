@@ -1,13 +1,30 @@
 'use client';
 
-import React, { createContext, useState, ReactNode, useEffect, useCallback, useMemo } from 'react';
+import React, { createContext, useState, ReactNode, useEffect, useCallback, useMemo, useContext } from 'react';
 import { getDatabase, ref, onValue, set, push, remove, update, child } from 'firebase/database';
-import type { Transaction } from '@/components/finance/transactions-table';
 import { addMonths, format, isSameMonth, startOfMonth, endOfMonth, addDays, isBefore, isAfter, startOfDay, parseISO } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from './auth-context';
 import { app as firebaseApp } from '@/lib/firebase';
 import { createCalendarEvent, deleteGoogleCalendarEvent, updateGoogleCalendarEvent, getCalendarEvents } from '@/ai/tools/app-tools';
+
+export type Transaction = {
+  id: string;
+  description: string;
+  amount: number;
+  date: string;
+  type: 'income' | 'expense' | 'transfer';
+  category: string;
+  account?: string;
+  paid?: boolean;
+  isRecurring?: boolean;
+  frequency?: 'daily' | 'weekly' | 'monthly' | 'annual';
+  installmentGroupId?: string;
+  currentInstallment?: number;
+  totalInstallments?: number;
+  recurringSourceId?: string; // Link to the recurring template
+  linkedGoalId?: string;
+};
 
 // --- Default Data for New Users ---
 const initialTransactions: Transaction[] = [
