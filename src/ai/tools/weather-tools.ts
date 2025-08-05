@@ -60,7 +60,7 @@ export const getCurrentWeather = ai.defineTool(
   async (input) => {
     try {
       // Step 1: Geocode the city name to get latitude and longitude
-      const geocodingUrl = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(input.city)}&count=1&language=pt&format=json`;
+      const geocodingUrl = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(input.city)}&count=1&format=json`;
       const geoResponse = await fetch(geocodingUrl);
       
       if(!geoResponse.ok) {
