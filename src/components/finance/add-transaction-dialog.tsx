@@ -8,7 +8,6 @@ import {
   DialogTitle,
   DialogFooter,
   DialogClose,
-  DialogDescription,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -24,57 +23,51 @@ import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { CurrencyInput } from './currency-input';
-import { useEffect, useContext, useMemo, useCallback } from 'react';
-import { FinanceContext, Account } from '@/contexts/finance-context';
-import { Transaction } from '@/contexts/schemas/transaction-schema';
+import { useEffect, useContext, useMemo } from 'react';
+import { FinanceContext, Account, Transaction } from '@/contexts/finance-context';
 import { Input } from '@/components/ui/input';
 import { addMonths, format } from 'date-fns';
 
-// Base schema for common fields, excluding the discriminator 'type'
-const baseSchema = z.object({
+// --- NOVA LÓGICA DE VALIDAÇÃO ---
+const transactionSchema = z.object({
   id: z.string().optional(),
-  amount: z.coerce.number().min(0.01, 'Valor deve ser maior que zero'),
-  date: z.string().min(1, 'Data é obrigatória'),
+  description: z.string().optional(), // Opcional na base
+  amount: z.coerce.number().min(0.01, 'O valor deve ser maior que zero'),
+  date: z.string().min(1, 'A data é obrigatória'),
+  type: z.enum(['income', 'expense', 'transfer']),
+  category: z.string().optional(), // Opcional na base
+  account: z.string().optional(), // Opcional na base
+  fromAccount: z.string().optional(),
+  toAccount: z.string().optional(),
   paid: z.boolean().optional(),
   isRecurring: z.boolean().optional(),
   frequency: z.enum(['daily', 'weekly', 'monthly', 'annual']).optional(),
-  description: z.string().min(1, 'Descrição é obrigatória'),
   installments: z.coerce.number().min(1).optional(),
   linkedGoalId: z.string().optional(),
-  category: z.string().min(1, 'Categoria é obrigatória'),
-  account: z.string().min(1, 'Conta/Cartão é obrigatório'),
+}).superRefine((data, ctx) => {
+    // Validação condicional que roda apenas na submissão
+    if (data.type === 'transfer') {
+        if (!data.fromAccount) {
+            ctx.addIssue({ code: z.ZodIssueCode.custom, message: "A conta de origem é obrigatória.", path: ["fromAccount"] });
+        }
+        if (!data.toAccount) {
+            ctx.addIssue({ code: z.ZodIssueCode.custom, message: "A conta de destino é obrigatória.", path: ["toAccount"] });
+        }
+        if (data.fromAccount && data.fromAccount === data.toAccount) {
+            ctx.addIssue({ code: z.ZodIssueCode.custom, message: "As contas de origem e destino devem ser diferentes.", path: ["toAccount"] });
+        }
+    } else { // Se for 'income' ou 'expense'
+        if (!data.description || data.description.trim() === '') {
+            ctx.addIssue({ code: z.ZodIssueCode.custom, message: "A descrição é obrigatória.", path: ["description"] });
+        }
+        if (!data.category) {
+            ctx.addIssue({ code: z.ZodIssueCode.custom, message: "A categoria é obrigatória.", path: ["category"] });
+        }
+        if (!data.account) {
+            ctx.addIssue({ code: z.ZodIssueCode.custom, message: "A conta/cartão é obrigatório.", path: ["account"] });
+        }
+    }
 });
-
-// Specific schemas for each type with a literal type field
-const incomeSchema = baseSchema.extend({
-  type: z.literal('income'),
-});
-
-const expenseSchema = baseSchema.extend({
-  type: z.literal('expense'),
-});
-
-const transferSchema = z.object({
-  type: z.literal('transfer'),
-  id: z.string().optional(),
-  amount: z.coerce.number().min(0.01, "Valor deve ser maior que zero"),
-  date: z.string().min(1, "Data é obrigatória"),
-  fromAccount: z.string().min(1, "Conta de origem é obrigatória"),
-  toAccount: z.string().min(1, "Conta de destino é obrigatória"),
-  paid: z.boolean().optional(),
-  isRecurring: z.boolean().optional(),
-  frequency: z.enum(['daily', 'weekly', 'monthly', 'annual']).optional(),
-}).refine(data => data.fromAccount !== data.toAccount, {
-  message: "Contas de origem e destino não podem ser iguais",
-  path: ["toAccount"],
-});
-
-// The discriminated union based on the 'type' literal in each schema
-const transactionSchema = z.discriminatedUnion('type', [
-  incomeSchema,
-  expenseSchema,
-  transferSchema,
-]);
 
 
 type TransactionFormData = z.infer<typeof transactionSchema>;
@@ -82,7 +75,7 @@ type TransactionFormData = z.infer<typeof transactionSchema>;
 type AddTransactionDialogProps = {
   isOpen: boolean;
   onClose: () => void;
-  onSaveTransaction: (transaction: Omit<Transaction, 'id' | 'amount' > & { id?: string; amount: number; fromAccount?: string; toAccount?: string; }, installments?: number) => void;
+  onSaveTransaction: (transaction: Omit<Transaction, 'id' > & { id?: string; fromAccount?: string; toAccount?: string; }, installments?: number) => void;
   transaction: Transaction | null;
 };
 
@@ -96,7 +89,7 @@ export function AddTransactionDialog({
   const { transactions, accounts, cards, incomeCategories, expenseCategories, goals, formatCurrency } = useContext(FinanceContext);
 
   const combinedAccounts = useMemo(() => [
-      ...accounts.map(a => ({...a, id: a.id, name: a.name, type: a.type, limit: undefined})),
+      ...accounts.map(a => ({...a, id: a.id, name: a.name, type: a.type, limit: undefined})), 
       ...cards.map(c => ({...c, id: c.id, name: c.name, type: 'card' as const, balance: undefined}))
     ], [accounts, cards]);
 
@@ -117,6 +110,8 @@ export function AddTransactionDialog({
       description: '',
       category: '',
       account: '',
+      fromAccount: '',
+      toAccount: '',
       paid: true,
       isRecurring: false,
       installments: 1,
@@ -124,63 +119,32 @@ export function AddTransactionDialog({
     },
   });
 
-  useEffect(() => {
-    if (isOpen) {
-      const defaultDate = new Date().toISOString().split('T')[0];
-      if (transaction) {
-         reset({
-            ...transaction,
-            date: transaction.date || defaultDate,
-            amount: Math.abs(transaction.amount), // Form expects positive number
-            installments: transaction.totalInstallments || 1,
-            linkedGoalId: transaction.linkedGoalId || '',
-          } as TransactionFormData); // Cast to avoid type issues with discriminated union
-      } else {
-         reset({
-            type: 'expense',
-            date: defaultDate,
-            amount: 0,
-            description: '',
-            category: '',
-            account: '',
-            paid: true,
-            isRecurring: false,
-            installments: 1,
-            linkedGoalId: '',
-          });
-      }
-    }
-  }, [transaction, isOpen, reset]);
-
-
   const transactionType = watch('type');
   const isRecurring = watch('isRecurring');
-
-  const selectedAccountName = transactionType !== 'transfer' ? watch('account') : undefined;
-
+  const selectedAccountId = watch('account');
   const amount = watch('amount');
-  const installments = transactionType !== 'transfer' ? watch('installments') : 1;
-
+  const installments = watch('installments');
+  
   const selectedAccount = useMemo(() => {
-    if (!selectedAccountName) return null;
-    return combinedAccounts.find(acc => acc.name === selectedAccountName);
-  }, [selectedAccountName, combinedAccounts]);
+    return combinedAccounts.find(acc => acc.name === selectedAccountId);
+  }, [selectedAccountId, combinedAccounts]);
 
   const isCreditCard = selectedAccount?.type === 'card';
   const isVoucher = selectedAccount?.type === 'voucher';
 
-  const getVoucherCurrentBalance = useCallback((voucher: Account) => {
-    const associatedTransactions = transactions.filter(t => t.account === voucher.name);
-    const balance = associatedTransactions.reduce((sum, t) => sum + t.amount, voucher.balance || 0);
-    return balance;
-  }, [transactions]);
-
+  
   const installmentValue = useMemo(() => {
     if (isCreditCard && amount && installments && installments > 1) {
       return amount / installments;
     }
     return null;
   }, [isCreditCard, amount, installments]);
+
+  const getVoucherCurrentBalance = (voucher: Account) => {
+    const associatedTransactions = transactions.filter(t => t.account === voucher.name);
+    const balance = associatedTransactions.reduce((sum, t) => sum + t.amount, voucher.balance);
+    return balance;
+  };
 
   const remainingBalanceText = useMemo(() => {
     if (!selectedAccount) return null;
@@ -194,9 +158,9 @@ export function AddTransactionDialog({
         </div>
       );
     }
-
+    
     if (isVoucher) {
-      const voucherAccount = accounts.find(acc => acc.name === selectedAccount.name) as Account | undefined;
+      const voucherAccount = accounts.find(acc => acc.id === selectedAccount.id) as Account | undefined;
       if (voucherAccount && voucherAccount.balance !== undefined) {
         const currentBalance = getVoucherCurrentBalance(voucherAccount);
         const remainingBalance = currentBalance - (transactionType === 'expense' ? amount : 0);
@@ -208,7 +172,7 @@ export function AddTransactionDialog({
         );
       }
     }
-
+    
     return null;
   }, [isCreditCard, isVoucher, selectedAccount, amount, transactionType, formatCurrency, accounts, getVoucherCurrentBalance]);
 
@@ -217,27 +181,32 @@ export function AddTransactionDialog({
 
 
   const onSubmit = (data: TransactionFormData) => {
-    const finalInstallments = (data.type === 'expense' && isCreditCard && (data.installments || 1) > 1) ? data.installments : undefined;
-
-    let finalData: Omit<Transaction, 'id' | 'amount'> & { id?: string; amount: number; fromAccount?: string; toAccount?: string; } = { ...data, amount: data.amount };
-
+    const transactionAmount = data.type === 'expense' ? -Math.abs(data.amount) : Math.abs(data.amount);
+    
+    const finalInstallments = (isCreditCard && (data.installments || 1) > 1) ? data.installments : undefined;
+    
+    const finalData = { ...data, amount: transactionAmount };
+    
     if (data.type !== 'transfer') {
         if (!finalData.isRecurring) {
             delete finalData.frequency;
         }
          if (!isCreditCard || (finalData.installments || 1) <= 1) {
-          delete (finalData as any).installments;
+          delete finalData.installments;
         }
+    } else {
+        finalData.description = `Transferência de ${data.fromAccount} para ${data.toAccount}`;
+        finalData.category = 'Transferência';
     }
 
-    if (finalData.type !== 'transfer' && (finalData.linkedGoalId === '' || finalData.linkedGoalId === 'none')) {
+    if (finalData.linkedGoalId === '' || finalData.linkedGoalId === 'none') {
         delete finalData.linkedGoalId;
     }
 
     onSaveTransaction(finalData, finalInstallments);
     onClose();
   };
-
+  
   const handleClose = () => {
     reset();
     onClose();
@@ -248,19 +217,16 @@ export function AddTransactionDialog({
       <DialogContent>
         <DialogHeader>
           <DialogTitle>{isEditing ? 'Editar Transação' : 'Adicionar Transação'}</DialogTitle>
-           <DialogDescription>
-            Insira os detalhes do seu lançamento financeiro.
-          </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit(onSubmit)}>
-          <div className="space-y-4 py-4 max-h-[70vh] overflow-y-auto pr-2">
+          <div className="space-y-4 py-4">
              <div className="space-y-2">
                 <Label htmlFor="type">Tipo</Label>
                 <Controller
                     name="type"
                     control={control}
                     render={({ field }) => (
-                        <Select onValueChange={(value) => field.onChange(value as TransactionFormData['type'])} value={field.value} disabled={isEditing}>
+                        <Select onValueChange={field.onChange} value={field.value} disabled={isEditing}>
                             <SelectTrigger>
                                 <SelectValue placeholder="Selecione o tipo" />
                             </SelectTrigger>
@@ -288,27 +254,19 @@ export function AddTransactionDialog({
               />
                {errors.amount && <p className="text-red-500 text-xs mt-1">{errors.amount.message}</p>}
             </div>
-
+            
             <div className="space-y-2">
               <Label htmlFor="date">Data</Label>
-              <Controller
-                  name="date"
-                  control={control}
-                  render={({ field }) => <Input id="date" type="date" {...field} />}
-                />
+              <Input id="date" type="date" {...register('date')} />
                {errors.date && <p className="text-red-500 text-xs mt-1">{errors.date.message}</p>}
             </div>
-
+            
             {(transactionType === 'income' || transactionType === 'expense') && (
               <>
                 <div className="space-y-2">
                     <Label htmlFor="description">Descrição</Label>
-                    <Controller
-                        name="description"
-                        control={control}
-                        render={({ field }) => <Input id="description" {...field} value={field.value || ''} />}
-                    />
-                    {errors.type !== 'transfer' && errors.description && <p className="text-red-500 text-xs mt-1">{errors.description.message}</p>}
+                    <Input id="description" {...register('description')} />
+                    {errors.description && <p className="text-red-500 text-xs mt-1">{errors.description.message}</p>}
                 </div>
                 <div className="space-y-2">
                     <Label htmlFor="category">Categoria</Label>
@@ -328,7 +286,7 @@ export function AddTransactionDialog({
                             </Select>
                         )}
                     />
-                    {errors.type !== 'transfer' && errors.category && <p className="text-red-500 text-xs mt-1">{errors.category.message}</p>}
+                    {errors.category && <p className="text-red-500 text-xs mt-1">{errors.category.message}</p>}
                 </div>
                 <div className="space-y-2">
                     <Label htmlFor="account">Conta/Cartão</Label>
@@ -348,20 +306,14 @@ export function AddTransactionDialog({
                             </Select>
                         )}
                     />
-                    {errors.type !== 'transfer' && errors.account && <p className="text-red-500 text-xs mt-1">{errors.account.message}</p>}
+                    {errors.account && <p className="text-red-500 text-xs mt-1">{errors.account.message}</p>}
                     {remainingBalanceText}
                 </div>
-
+                
                  {isCreditCard && transactionType === 'expense' && !isEditing && (
                    <div className="space-y-2">
                         <Label htmlFor="installments">Parcelas</Label>
-                           <Controller
-                            name="installments"
-                            control={control}
-                            render={({ field }) => (
-                               <Input id="installments" type="number" {...field} min="1" value={field.value ?? 1} />
-                            )}
-                            />
+                           <Input id="installments" type="number" {...register('installments')} min="1" />
                            {installmentValue !== null && (
                                 <p className="text-xs text-muted-foreground mt-1 text-right">
                                     {installments}x de {formatCurrency(installmentValue, true)}
@@ -369,7 +321,7 @@ export function AddTransactionDialog({
                            )}
                    </div>
                  )}
-
+                 
                 {transactionType === 'expense' && pendingGoals.length > 0 && (
                     <div className="space-y-2">
                         <Label htmlFor="linkedGoalId">Vincular a uma Meta (Opcional)</Label>
@@ -469,14 +421,14 @@ export function AddTransactionDialog({
                                     <SelectValue placeholder="Selecione a conta de origem" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    {accounts.filter(a => a.type !== 'voucher').map(acc => (
+                                    {accounts.map(acc => (
                                         <SelectItem key={acc.id} value={acc.name}>{acc.name}</SelectItem>
                                     ))}
                                 </SelectContent>
                             </Select>
                         )}
                     />
-                    {errors.type === 'transfer' && errors.fromAccount && <p className="text-red-500 text-xs mt-1">{errors.fromAccount.message}</p>}
+                    {errors.fromAccount && <p className="text-red-500 text-xs mt-1">{errors.fromAccount.message}</p>}
                 </div>
                 <div className="space-y-2">
                     <Label htmlFor="toAccount">Para Conta</Label>
@@ -489,20 +441,19 @@ export function AddTransactionDialog({
                                     <SelectValue placeholder="Selecione a conta de destino" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    {accounts.filter(a => a.type !== 'voucher').map(acc => (
+                                    {accounts.map(acc => (
                                         <SelectItem key={acc.id} value={acc.name}>{acc.name}</SelectItem>
                                     ))}
                                 </SelectContent>
                             </Select>
                         )}
                     />
-                    {errors.type === 'transfer' && errors.toAccount && <p className="text-red-500 text-xs mt-1">{errors.toAccount.message}</p>}
+                    {errors.toAccount && <p className="text-red-500 text-xs mt-1">{errors.toAccount.message}</p>}
                 </div>
               </>
             )}
-
           </div>
-          <DialogFooter className="pt-6">
+          <DialogFooter>
             <DialogClose asChild>
               <Button type="button" variant="secondary" onClick={handleClose}>
                 Cancelar
@@ -515,5 +466,3 @@ export function AddTransactionDialog({
     </Dialog>
   );
 }
-
-    
