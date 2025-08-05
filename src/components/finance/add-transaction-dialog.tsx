@@ -57,6 +57,9 @@ const expenseSchema = baseSchema.extend({
 
 const transferSchema = baseSchema.extend({
   type: z.literal('transfer'),
+  description: z.string().optional(), // Description is not needed for transfers
+  category: z.string().optional(),
+  account: z.string().optional(),
   fromAccount: z.string().min(1, "Conta de origem é obrigatória"),
   toAccount: z.string().min(1, "Conta de destino é obrigatória"),
 }).refine(data => data.fromAccount !== data.toAccount, {
@@ -512,5 +515,3 @@ export function AddTransactionDialog({
     </Dialog>
   );
 }
-
-    
