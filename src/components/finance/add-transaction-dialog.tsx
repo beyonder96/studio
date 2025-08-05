@@ -28,6 +28,7 @@ import { FinanceContext, Account, Transaction } from '@/contexts/finance-context
 import { Input } from '@/components/ui/input';
 import { addMonths, format } from 'date-fns';
 
+// Base schema for common fields, EXCLUDING the 'type' field
 const baseSchema = z.object({
   id: z.string().optional(),
   amount: z.coerce.number().min(0.01, 'Valor deve ser maior que zero'),
@@ -38,20 +39,20 @@ const baseSchema = z.object({
   description: z.string().min(1, 'Descrição é obrigatória'),
   installments: z.coerce.number().min(1).optional(),
   linkedGoalId: z.string().optional(),
-});
-
-const incomeSchema = baseSchema.extend({
-  type: z.literal('income'),
   category: z.string().min(1, 'Categoria é obrigatória'),
   account: z.string().min(1, 'Conta/Cartão é obrigatório'),
+});
+
+// Specific schemas for each type
+const incomeSchema = baseSchema.extend({
+  type: z.literal('income'),
 });
 
 const expenseSchema = baseSchema.extend({
   type: z.literal('expense'),
-  category: z.string().min(1, 'Categoria é obrigatória'),
-  account: z.string().min(1, 'Conta/Cartão é obrigatório'),
 });
 
+// Transfer schema is different and remains separate
 const transferSchema = z.object({
   type: z.literal('transfer'),
   id: z.string().optional(),
@@ -67,7 +68,7 @@ const transferSchema = z.object({
   path: ["toAccount"],
 });
 
-
+// The discriminated union based on the 'type' literal in each schema
 const transactionSchema = z.discriminatedUnion('type', [
   incomeSchema,
   expenseSchema,
@@ -94,7 +95,7 @@ export function AddTransactionDialog({
   const { transactions, accounts, cards, incomeCategories, expenseCategories, goals, formatCurrency } = useContext(FinanceContext);
 
   const combinedAccounts = useMemo(() => [
-      ...accounts.map(a => ({...a, id: a.id, name: a.name, type: a.type, limit: undefined})), 
+      ...accounts.map(a => ({...a, id: a.id, name: a.name, type: a.type, limit: undefined})),
       ...cards.map(c => ({...c, id: c.id, name: c.name, type: 'card' as const, balance: undefined}))
     ], [accounts, cards]);
 
@@ -153,12 +154,12 @@ export function AddTransactionDialog({
 
   const transactionType = watch('type');
   const isRecurring = watch('isRecurring');
-  
+
   const selectedAccountName = transactionType !== 'transfer' ? watch('account') : undefined;
-  
+
   const amount = watch('amount');
   const installments = transactionType !== 'transfer' ? watch('installments') : 1;
-  
+
   const selectedAccount = useMemo(() => {
     if (!selectedAccountName) return null;
     return combinedAccounts.find(acc => acc.name === selectedAccountName);
@@ -172,7 +173,7 @@ export function AddTransactionDialog({
     const balance = associatedTransactions.reduce((sum, t) => sum + t.amount, voucher.balance || 0);
     return balance;
   }, [transactions]);
-  
+
   const installmentValue = useMemo(() => {
     if (isCreditCard && amount && installments && installments > 1) {
       return amount / installments;
@@ -192,7 +193,7 @@ export function AddTransactionDialog({
         </div>
       );
     }
-    
+
     if (isVoucher) {
       const voucherAccount = accounts.find(acc => acc.name === selectedAccount.name) as Account | undefined;
       if (voucherAccount && voucherAccount.balance !== undefined) {
@@ -206,7 +207,7 @@ export function AddTransactionDialog({
         );
       }
     }
-    
+
     return null;
   }, [isCreditCard, isVoucher, selectedAccount, amount, transactionType, formatCurrency, accounts, getVoucherCurrentBalance]);
 
@@ -216,9 +217,9 @@ export function AddTransactionDialog({
 
   const onSubmit = (data: TransactionFormData) => {
     const finalInstallments = (data.type === 'expense' && isCreditCard && (data.installments || 1) > 1) ? data.installments : undefined;
-    
+
     let finalData: Omit<Transaction, 'id' | 'amount'> & { id?: string; amount: number; fromAccount?: string; toAccount?: string; } = { ...data, amount: data.amount };
-    
+
     if (data.type !== 'transfer') {
         if (!finalData.isRecurring) {
             delete finalData.frequency;
@@ -235,7 +236,7 @@ export function AddTransactionDialog({
     onSaveTransaction(finalData, finalInstallments);
     onClose();
   };
-  
+
   const handleClose = () => {
     reset();
     onClose();
@@ -286,7 +287,7 @@ export function AddTransactionDialog({
               />
                {errors.amount && <p className="text-red-500 text-xs mt-1">{errors.amount.message}</p>}
             </div>
-            
+
             <div className="space-y-2">
               <Label htmlFor="date">Data</Label>
               <Controller
@@ -296,7 +297,7 @@ export function AddTransactionDialog({
                 />
                {errors.date && <p className="text-red-500 text-xs mt-1">{errors.date.message}</p>}
             </div>
-            
+
             {(transactionType === 'income' || transactionType === 'expense') && (
               <>
                 <div className="space-y-2">
@@ -349,7 +350,7 @@ export function AddTransactionDialog({
                     {errors.type !== 'transfer' && errors.account && <p className="text-red-500 text-xs mt-1">{errors.account.message}</p>}
                     {remainingBalanceText}
                 </div>
-                
+
                  {isCreditCard && transactionType === 'expense' && !isEditing && (
                    <div className="space-y-2">
                         <Label htmlFor="installments">Parcelas</Label>
@@ -367,7 +368,7 @@ export function AddTransactionDialog({
                            )}
                    </div>
                  )}
-                 
+
                 {transactionType === 'expense' && pendingGoals.length > 0 && (
                     <div className="space-y-2">
                         <Label htmlFor="linkedGoalId">Vincular a uma Meta (Opcional)</Label>
@@ -498,7 +499,7 @@ export function AddTransactionDialog({
                 </div>
               </>
             )}
-            
+
           </div>
           <DialogFooter className="pt-6">
             <DialogClose asChild>
@@ -513,5 +514,3 @@ export function AddTransactionDialog({
     </Dialog>
   );
 }
-
-    
