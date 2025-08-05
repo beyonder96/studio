@@ -19,3 +19,5 @@ export type Transaction = {
     recurringSourceId?: string; // Link to the recurring template
     linkedGoalId?: string;
 };
+
+    

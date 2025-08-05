@@ -8,25 +8,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useAuth } from './auth-context';
 import { app as firebaseApp } from '@/lib/firebase';
 import { createCalendarEvent, deleteGoogleCalendarEvent, updateGoogleCalendarEvent, getCalendarEvents } from '@/ai/tools/app-tools';
-
-// --- 1. TIPO TRANSACTION MOVIDO PARA AQUI ---
-export type Transaction = {
-  id: string;
-  description: string;
-  amount: number;
-  date: string;
-  type: 'income' | 'expense' | 'transfer';
-  category: string;
-  account?: string;
-  paid?: boolean;
-  isRecurring?: boolean;
-  frequency?: 'daily' | 'weekly' | 'monthly' | 'annual';
-  installmentGroupId?: string;
-  currentInstallment?: number;
-  totalInstallments?: number;
-  recurringSourceId?: string; // Link to the recurring template
-  linkedGoalId?: string;
-};
+import type { Transaction } from './schemas/transaction-schema';
 
 
 // --- Default Data for New Users ---
