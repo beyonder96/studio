@@ -28,8 +28,7 @@ import { FinanceContext, Account, Transaction } from '@/contexts/finance-context
 import { Input } from '@/components/ui/input';
 import { addMonths, format } from 'date-fns';
 
-const incomeSchema = z.object({
-  type: z.literal('income'),
+const baseSchema = z.object({
   id: z.string().optional(),
   amount: z.coerce.number().min(0.01, 'Valor deve ser maior que zero'),
   date: z.string().min(1, 'Data é obrigatória'),
@@ -37,25 +36,20 @@ const incomeSchema = z.object({
   isRecurring: z.boolean().optional(),
   frequency: z.enum(['daily', 'weekly', 'monthly', 'annual']).optional(),
   description: z.string().min(1, 'Descrição é obrigatória'),
-  category: z.string().min(1, 'Categoria é obrigatória'),
-  account: z.string().min(1, 'Conta/Cartão é obrigatório'),
   installments: z.coerce.number().min(1).optional(),
   linkedGoalId: z.string().optional(),
 });
 
-const expenseSchema = z.object({
-  type: z.literal('expense'),
-  id: z.string().optional(),
-  amount: z.coerce.number().min(0.01, 'Valor deve ser maior que zero'),
-  date: z.string().min(1, 'Data é obrigatória'),
-  paid: z.boolean().optional(),
-  isRecurring: z.boolean().optional(),
-  frequency: z.enum(['daily', 'weekly', 'monthly', 'annual']).optional(),
-  description: z.string().min(1, 'Descrição é obrigatória'),
+const incomeSchema = baseSchema.extend({
+  type: z.literal('income'),
   category: z.string().min(1, 'Categoria é obrigatória'),
   account: z.string().min(1, 'Conta/Cartão é obrigatório'),
-  installments: z.coerce.number().min(1).optional(),
-  linkedGoalId: z.string().optional(),
+});
+
+const expenseSchema = baseSchema.extend({
+  type: z.literal('expense'),
+  category: z.string().min(1, 'Categoria é obrigatória'),
+  account: z.string().min(1, 'Conta/Cartão é obrigatório'),
 });
 
 const transferSchema = z.object({
@@ -68,15 +62,11 @@ const transferSchema = z.object({
   paid: z.boolean().optional(),
   isRecurring: z.boolean().optional(),
   frequency: z.enum(['daily', 'weekly', 'monthly', 'annual']).optional(),
-  description: z.string().optional(),
-  category: z.string().optional(),
-  account: z.string().optional(),
-  installments: z.coerce.number().min(1).optional(),
-  linkedGoalId: z.string().optional(),
 }).refine(data => data.fromAccount !== data.toAccount, {
   message: "Contas de origem e destino não podem ser iguais",
   path: ["toAccount"],
 });
+
 
 const transactionSchema = z.discriminatedUnion('type', [
   incomeSchema,
@@ -238,7 +228,7 @@ export function AddTransactionDialog({
         }
     }
 
-    if (finalData.linkedGoalId === '' || finalData.linkedGoalId === 'none') {
+    if (finalData.type !== 'transfer' && (finalData.linkedGoalId === '' || finalData.linkedGoalId === 'none')) {
         delete finalData.linkedGoalId;
     }
 
@@ -316,8 +306,7 @@ export function AddTransactionDialog({
                         control={control}
                         render={({ field }) => <Input id="description" {...field} value={field.value || ''} />}
                     />
-                    {errors.type === 'income' && errors.description && <p className="text-red-500 text-xs mt-1">{errors.description.message}</p>}
-                    {errors.type === 'expense' && errors.description && <p className="text-red-500 text-xs mt-1">{errors.description.message}</p>}
+                    {errors.type !== 'transfer' && errors.description && <p className="text-red-500 text-xs mt-1">{errors.description.message}</p>}
                 </div>
                 <div className="space-y-2">
                     <Label htmlFor="category">Categoria</Label>
@@ -337,8 +326,7 @@ export function AddTransactionDialog({
                             </Select>
                         )}
                     />
-                    {errors.type === 'income' && errors.category && <p className="text-red-500 text-xs mt-1">{errors.category.message}</p>}
-                    {errors.type === 'expense' && errors.category && <p className="text-red-500 text-xs mt-1">{errors.category.message}</p>}
+                    {errors.type !== 'transfer' && errors.category && <p className="text-red-500 text-xs mt-1">{errors.category.message}</p>}
                 </div>
                 <div className="space-y-2">
                     <Label htmlFor="account">Conta/Cartão</Label>
@@ -358,8 +346,7 @@ export function AddTransactionDialog({
                             </Select>
                         )}
                     />
-                    {errors.type === 'income' && errors.account && <p className="text-red-500 text-xs mt-1">{errors.account.message}</p>}
-                    {errors.type === 'expense' && errors.account && <p className="text-red-500 text-xs mt-1">{errors.account.message}</p>}
+                    {errors.type !== 'transfer' && errors.account && <p className="text-red-500 text-xs mt-1">{errors.account.message}</p>}
                     {remainingBalanceText}
                 </div>
                 
@@ -370,7 +357,7 @@ export function AddTransactionDialog({
                             name="installments"
                             control={control}
                             render={({ field }) => (
-                               <Input id="installments" type="number" {...field} min="1" />
+                               <Input id="installments" type="number" {...field} min="1" value={field.value ?? 1} />
                             )}
                             />
                            {installmentValue !== null && (
@@ -526,3 +513,5 @@ export function AddTransactionDialog({
     </Dialog>
   );
 }
+
+    
