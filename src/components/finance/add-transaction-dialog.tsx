@@ -1,4 +1,3 @@
-
 'use client';
 
 import {
@@ -29,38 +28,51 @@ import { FinanceContext, Account, Transaction } from '@/contexts/finance-context
 import { Input } from '@/components/ui/input';
 import { addMonths, format } from 'date-fns';
 
-const baseSchema = z.object({
+const incomeSchema = z.object({
+  type: z.literal('income'),
   id: z.string().optional(),
   amount: z.coerce.number().min(0.01, 'Valor deve ser maior que zero'),
   date: z.string().min(1, 'Data é obrigatória'),
   paid: z.boolean().optional(),
   isRecurring: z.boolean().optional(),
   frequency: z.enum(['daily', 'weekly', 'monthly', 'annual']).optional(),
+  description: z.string().min(1, 'Descrição é obrigatória'),
+  category: z.string().min(1, 'Categoria é obrigatória'),
+  account: z.string().min(1, 'Conta/Cartão é obrigatório'),
   installments: z.coerce.number().min(1).optional(),
   linkedGoalId: z.string().optional(),
 });
 
-const incomeSchema = baseSchema.extend({
-  type: z.literal('income'),
-  description: z.string().min(1, 'Descrição é obrigatória'),
-  category: z.string().min(1, 'Categoria é obrigatória'),
-  account: z.string().min(1, 'Conta/Cartão é obrigatório'),
-});
-
-const expenseSchema = baseSchema.extend({
+const expenseSchema = z.object({
   type: z.literal('expense'),
+  id: z.string().optional(),
+  amount: z.coerce.number().min(0.01, 'Valor deve ser maior que zero'),
+  date: z.string().min(1, 'Data é obrigatória'),
+  paid: z.boolean().optional(),
+  isRecurring: z.boolean().optional(),
+  frequency: z.enum(['daily', 'weekly', 'monthly', 'annual']).optional(),
   description: z.string().min(1, 'Descrição é obrigatória'),
   category: z.string().min(1, 'Categoria é obrigatória'),
   account: z.string().min(1, 'Conta/Cartão é obrigatório'),
+  installments: z.coerce.number().min(1).optional(),
+  linkedGoalId: z.string().optional(),
 });
 
-const transferSchema = baseSchema.extend({
+const transferSchema = z.object({
   type: z.literal('transfer'),
-  description: z.string().optional(), // Description is not needed for transfers
-  category: z.string().optional(),
-  account: z.string().optional(),
+  id: z.string().optional(),
+  amount: z.coerce.number().min(0.01, "Valor deve ser maior que zero"),
+  date: z.string().min(1, "Data é obrigatória"),
   fromAccount: z.string().min(1, "Conta de origem é obrigatória"),
   toAccount: z.string().min(1, "Conta de destino é obrigatória"),
+  paid: z.boolean().optional(),
+  isRecurring: z.boolean().optional(),
+  frequency: z.enum(['daily', 'weekly', 'monthly', 'annual']).optional(),
+  description: z.string().optional(),
+  category: z.string().optional(),
+  account: z.string().optional(),
+  installments: z.coerce.number().min(1).optional(),
+  linkedGoalId: z.string().optional(),
 }).refine(data => data.fromAccount !== data.toAccount, {
   message: "Contas de origem e destino não podem ser iguais",
   path: ["toAccount"],
