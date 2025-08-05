@@ -24,11 +24,12 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { CurrencyInput } from './currency-input';
 import { useEffect, useContext, useMemo, useCallback } from 'react';
-import { FinanceContext, Account, Transaction } from '@/contexts/finance-context';
+import { FinanceContext, Account } from '@/contexts/finance-context';
+import { Transaction } from '@/contexts/schemas/transaction-schema';
 import { Input } from '@/components/ui/input';
 import { addMonths, format } from 'date-fns';
 
-// Base schema for common fields, EXCLUDING the 'type' field
+// Base schema for common fields
 const baseSchema = z.object({
   id: z.string().optional(),
   amount: z.coerce.number().min(0.01, 'Valor deve ser maior que zero'),
@@ -52,7 +53,6 @@ const expenseSchema = baseSchema.extend({
   type: z.literal('expense'),
 });
 
-// Transfer schema is different and remains separate
 const transferSchema = z.object({
   type: z.literal('transfer'),
   id: z.string().optional(),
@@ -68,7 +68,6 @@ const transferSchema = z.object({
   path: ["toAccount"],
 });
 
-// The discriminated union based on the 'type' literal in each schema
 const transactionSchema = z.discriminatedUnion('type', [
   incomeSchema,
   expenseSchema,
