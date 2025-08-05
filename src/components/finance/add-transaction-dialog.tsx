@@ -1,3 +1,4 @@
+
 'use client';
 
 import {
@@ -29,7 +30,7 @@ import { Transaction } from '@/contexts/schemas/transaction-schema';
 import { Input } from '@/components/ui/input';
 import { addMonths, format } from 'date-fns';
 
-// Base schema for common fields
+// Base schema for common fields, excluding the discriminator 'type'
 const baseSchema = z.object({
   id: z.string().optional(),
   amount: z.coerce.number().min(0.01, 'Valor deve ser maior que zero'),
@@ -44,7 +45,7 @@ const baseSchema = z.object({
   account: z.string().min(1, 'Conta/Cartão é obrigatório'),
 });
 
-// Specific schemas for each type
+// Specific schemas for each type with a literal type field
 const incomeSchema = baseSchema.extend({
   type: z.literal('income'),
 });
@@ -68,6 +69,7 @@ const transferSchema = z.object({
   path: ["toAccount"],
 });
 
+// The discriminated union based on the 'type' literal in each schema
 const transactionSchema = z.discriminatedUnion('type', [
   incomeSchema,
   expenseSchema,
