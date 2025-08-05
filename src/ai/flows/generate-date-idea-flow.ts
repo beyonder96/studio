@@ -48,6 +48,7 @@ export async function generateDateIdea(input: GenerateDateIdeaInput): Promise<Ge
 
 const prompt = ai.definePrompt({
   name: 'generateDateIdeaPrompt',
+  model: 'googleai/gemini-1.5-flash-latest',
   input: { schema: GenerateDateIdeaInputSchema },
   output: { schema: GenerateDateIdeaOutputSchema },
   tools: [getReviewsForPlace, createCalendarEvent, createTask],
@@ -102,5 +103,3 @@ const generateDateIdeaFlow = ai.defineFlow(
     return output!;
   }
 );
-
-    

@@ -35,6 +35,7 @@ export async function generateRecipeSuggestion(input: GenerateRecipeInput): Prom
 
 const prompt = ai.definePrompt({
   name: 'generateRecipePrompt',
+  model: 'googleai/gemini-1.5-flash-latest',
   input: { schema: GenerateRecipeInputSchema },
   output: { schema: GenerateRecipeOutputSchema },
   prompt: `Você é um chef criativo que ajuda casais a decidir o que cozinhar.

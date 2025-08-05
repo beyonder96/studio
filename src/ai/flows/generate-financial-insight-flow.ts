@@ -17,6 +17,7 @@ export async function generateFinancialInsight(input: GenerateFinancialInsightIn
 
 const prompt = ai.definePrompt({
   name: 'generateFinancialInsightPrompt',
+  model: 'googleai/gemini-1.5-flash-latest',
   input: { schema: GenerateFinancialInsightInputSchema },
   output: { schema: GenerateFinancialInsightOutputSchema },
   tools: [recordSpendingFeedback],

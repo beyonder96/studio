@@ -32,6 +32,7 @@ export async function generateShoppingList(input: GenerateShoppingListInput): Pr
 
 const prompt = ai.definePrompt({
   name: 'generateShoppingListPrompt',
+  model: 'googleai/gemini-1.5-flash-latest',
   input: { schema: GenerateShoppingListInputSchema },
   output: { schema: GenerateShoppingListOutputSchema },
   prompt: `You are an expert at parsing unstructured text and converting it into a structured shopping list.
