@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useState, useContext, useEffect, useMemo } from 'react';
@@ -38,7 +37,6 @@ const frequencyMap = {
   monthly: 'Mensal',
   annual: 'Anual',
 };
-
 
 export default function FinancePage() {
   const { 

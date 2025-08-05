@@ -1,5 +1,3 @@
-
-
 'use client';
 
 import React, { createContext, useState, ReactNode, useEffect, useCallback, useMemo } from 'react';
@@ -268,23 +266,19 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
     recurringTemplates.forEach(template => {
         if (!template.frequency) return;
         
-        // This is a simplified logic. A more robust solution would handle the last created instance date.
         let nextDate = startOfDay(parseISO(template.date));
         
-        // Fast-forward to a date that is either in the future or the current month.
         while (isBefore(nextDate, startOfMonth(today))) {
             switch(template.frequency) {
                 case 'monthly':
                     nextDate = addMonths(nextDate, 1);
                     break;
-                // TODO: Add weekly, daily, annual logic
             }
         }
         
-        // Check if an instance from this template already exists for the calculated next due date
         const instanceExists = allTransactions.some(t => 
             t.recurringSourceId === template.id &&
-            isSameMonth(parseISO(t.date), nextDate) // Simple check for monthly, needs refinement for other frequencies
+            isSameMonth(parseISO(t.date), nextDate)
         );
         
         if (!instanceExists && (isAfter(nextDate, today) || isSameMonth(nextDate, today))) {
@@ -341,7 +335,6 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
   
   useEffect(() => {
     if (user) {
-        // Load events from localStorage first
         if (typeof window !== 'undefined') {
             const savedEvents = sessionStorage.getItem('google_events');
             if (savedEvents) {
@@ -427,7 +420,6 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
         });
         return () => unsubscribe();
     } else {
-        // Reset state when user logs out
         setTransactions([]);
         setAccounts([]);
         setCards([]);
@@ -476,7 +468,6 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
         if (fromAccount && toAccount) {
             const transferAmount = Math.abs(amount);
 
-            // 1. Create debit transaction from origin
             const debitTransId = push(child(rootRef, 'transactions')).key!;
             const debitTransaction = {
                 description: `Transferência para ${toAccount.name}`,
@@ -489,7 +480,6 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
             };
             updates[`transactions/${debitTransId}`] = debitTransaction;
             
-            // 2. Create credit transaction to destination
             const creditTransId = push(child(rootRef, 'transactions')).key!;
             const creditTransaction = {
                 description: `Transferência de ${fromAccount.name}`,
@@ -502,12 +492,10 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
             };
             updates[`transactions/${creditTransId}`] = creditTransaction;
 
-            // 3. Update balances
             updates[`accounts/${fromAccount.id}/balance`] = fromAccount.balance - transferAmount;
             updates[`accounts/${toAccount.id}/balance`] = toAccount.balance + transferAmount;
         }
     } else {
-        // Handle regular expense/income
         const finalAmount = transaction.type === 'expense' ? -Math.abs(transaction.amount) : Math.abs(transaction.amount);
 
         if (transaction.paid) {
@@ -777,7 +765,6 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
   };
 
 
-  // Task Management
   const addTask = (text: string) => {
     if (!user) return;
     const newId = push(getDbRef('tasks')).key!;
@@ -798,7 +785,6 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
     remove(getDbRef(`tasks/${id}`));
   };
   
-  // Goal Management
   const addGoal = (goal: Omit<Goal, 'id' | 'completed'>, milestones: Omit<Milestone, 'id' | 'completed'>[]) => {
     if (!user) return;
     const newId = push(getDbRef('goals')).key!;
@@ -820,24 +806,20 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
       
       const goalToUpdate = { ...goals.find(g => g.id === id)!, ...updatedGoal };
 
-      // Atomically update each field of the goal object
       Object.keys(updatedGoal).forEach(key => {
         const goalKey = key as keyof typeof updatedGoal;
         updates[`goals/${id}/${goalKey}`] = updatedGoal[goalKey];
       });
       
-      // Handle milestones
       const existingMilestoneIds = goalToUpdate.milestones?.map(ms => ms.id) || [];
       const updatedMilestoneIds = milestones.map(ms => 'id' in ms ? ms.id : undefined).filter(Boolean);
 
-      // Delete removed milestones
       existingMilestoneIds.forEach(existingId => {
           if (!updatedMilestoneIds.includes(existingId)) {
               updates[`goals/${id}/milestones/${existingId}`] = null;
           }
       });
       
-      // Add or update milestones
       milestones.forEach(ms => {
           const msId = 'id' in ms ? ms.id : push(child(getDbRef('goals'), `${id}/milestones`)).key!;
           updates[`goals/${id}/milestones/${msId}`] = { name: ms.name, cost: ms.cost, completed: ms.completed || false };
@@ -874,13 +856,12 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
             type: 'expense',
             category: 'Investimento',
             account: account.name,
-            paid: true, // This transaction is immediately settled
+            paid: true,
           };
           
           const newTransactionId = push(getDbRef('transactions')).key!;
           updates[`transactions/${newTransactionId}`] = newTransaction;
 
-          // Also update the account balance
           updates[`accounts/${accountId}/balance`] = account.balance - amount;
           
           update(getDbRef(''), updates);
@@ -908,7 +889,6 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  // Wish Management
   const addWish = (wish: Omit<Wish, 'id' | 'purchased'>) => {
     if (!user) return;
     const newId = push(getDbRef('wishes')).key!;
@@ -936,7 +916,6 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
   
   const [appointmentCategories] = useState<string[]>(['Trabalho', 'Saúde', 'Social', 'Pessoal', 'Google', 'Outros']);
 
-  // Appointment Management
   const addAppointment = (appointment: Omit<Appointment, 'id'>) => {
     if (!user) return;
 
@@ -945,7 +924,7 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
         if (result.success && result.googleEventId) {
             newAppointmentData.googleEventId = result.googleEventId;
         }
-        delete newAppointmentData.accessToken; // Remove token before saving to DB
+        delete newAppointmentData.accessToken;
         
         const newId = push(getDbRef('appointments')).key!;
         set(getDbRef(`appointments/${newId}`), newAppointmentData);
@@ -972,7 +951,6 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
             toast({ variant: 'destructive', title: 'Erro de Sincronização', description: 'Não foi possível atualizar o evento no Google Calendar.' });
             return;
         }
-        // As we don't have a local copy of google events, we just refetch them
         const events = await getCalendarEvents({ accessToken });
         setGoogleEvents(events);
     }
@@ -998,12 +976,10 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
             toast({ variant: 'destructive', title: 'Erro de Sincronização', description: 'Não foi possível excluir o evento no Google Calendar.' });
             return;
         }
-        // Refetch events after deletion
         const events = await getCalendarEvents({ accessToken });
         setGoogleEvents(events);
     }
     
-    // Also delete from our DB if it exists there
     const localAppointment = appointments.find(a => a.googleEventId === id || a.id === id);
     if (localAppointment) {
         remove(getDbRef(`appointments/${localAppointment.id}`));
@@ -1031,7 +1007,6 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
     const updates: { [key: string]: null } = {};
     updates[`accounts/${id}`] = null;
   
-    // Using account name is fragile, but it's what we have. A better approach would be an accountId on transactions.
     const transactionsToDelete = transactions.filter(t => t.account === accountToDelete.name);
     transactionsToDelete.forEach(t => {
         updates[`transactions/${t.id}`] = null;
@@ -1059,7 +1034,6 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
     const updates: { [key: string]: null } = {};
     updates[`cards/${id}`] = null;
   
-    // Using card name is fragile
     const transactionsToDelete = transactions.filter(t => t.account === cardToDelete.name);
     transactionsToDelete.forEach(t => {
         updates[`transactions/${t.id}`] = null;
@@ -1069,7 +1043,6 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
   };
 
 
-  // Shopping List Management
   const getListRef = useCallback((listId: string, path?: string) => {
     let fullPath = `shoppingLists/${listId}`;
     if (path) {
@@ -1158,7 +1131,7 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
         const purchaseTransaction: Omit<Transaction, 'id' | 'amount'> & {amount: number} = {
             ...transactionDetails,
             description: `Compra: ${list.name}`,
-            amount: -totalCost, // as an expense
+            amount: -totalCost,
             type: 'expense',
             paid: true,
             date: format(new Date(), 'yyyy-MM-dd'),
@@ -1188,11 +1161,9 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
     
     const updates: { [key: string]: any } = {};
 
-    // 1. Debit from bank account
     const newBalance = account.balance - amount;
     updates[`accounts/${accountId}/balance`] = newBalance;
     
-    // 2. Create debit transaction for bank account
     const debitTransaction: Omit<Transaction, 'id' | 'amount'> & {amount: number} = {
         description: `Pagamento Fatura ${card.name}`,
         amount: -amount,
@@ -1205,7 +1176,6 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
     const debitTransId = push(getDbRef('transactions')).key!;
     updates[`transactions/${debitTransId}`] = debitTransaction;
     
-    // 3. Create credit transaction for the card
     const creditTransaction: Omit<Transaction, 'id' | 'amount'> & {amount: number} = {
         description: `Pagamento Recebido`,
         amount: amount,
@@ -1223,14 +1193,12 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
 
   }, [user, accounts, getDbRef, toast, formatCurrency]);
 
-  // Memory Management
   const addMemory = (memory: Omit<Memory, 'id'>) => {
     if (!user) return;
     const newId = push(getDbRef('memories')).key!;
     set(getDbRef(`memories/${newId}`), memory);
   };
   
-  // Pet Management
   const addPet = (pet: Omit<Pet, 'id'>) => {
       if(!user) return;
       const newId = push(getDbRef('pets')).key!;
@@ -1250,7 +1218,6 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
     const newRecordId = push(recordsRef).key;
     if (newRecordId) {
         const finalRecord: any = { ...record };
-        // Remove undefined fields before saving
         if (finalRecord.notes === undefined || finalRecord.notes === '') delete finalRecord.notes;
         if (finalRecord.nextDueDate === undefined || finalRecord.nextDueDate === '') delete finalRecord.nextDueDate;
         set(child(recordsRef, newRecordId), finalRecord);
@@ -1273,7 +1240,6 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
     remove(recordRef);
   };
 
-  // Health Management
     const addMedication = (personKey: 'healthInfo1' | 'healthInfo2', medication: Omit<Medication, 'id'>) => {
         if (!user) return;
         const medicationsRef = getDbRef(`profile/${personKey}/medications`);
