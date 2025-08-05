@@ -6,7 +6,7 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { PlusCircle, ArrowUpCircle, ArrowDownCircle, Repeat, Edit, Trash2 } from 'lucide-react';
 import { TransactionsTable } from '@/components/finance/transactions-table';
-import { AddTransactionDialog } from '@/components/finance/add-transaction-dialog'; 
+import { AddTransactionDialog } from '@/components/finance/add-transaction-dialog';
 import {
   Card,
   CardContent,
@@ -69,7 +69,7 @@ export default function FinancePage() {
     }
   }, [transactionToEditId, transactions, router]);
 
-  const handleSaveTransaction = (transaction: Omit<Transaction, 'id'> & { id?: string; amount: number; fromAccount?: string | undefined; toAccount?: string | undefined; }, installments?: number) => {
+  const handleSaveTransaction = (transaction: Omit<Transaction, 'id' | 'amount' > & { id?: string; amount: number; fromAccount?: string; toAccount?: string; }, installments?: number) => {
     if (transaction.id) {
       updateTransaction(transaction.id, transaction);
     } else {
