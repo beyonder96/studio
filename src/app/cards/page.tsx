@@ -8,7 +8,7 @@ import { Carousel, CarouselContent, CarouselItem, type CarouselApi } from '@/com
 import { FinanceContext, Transaction, Card as CardType, Account } from '@/contexts/finance-context';
 import { cn } from '@/lib/utils';
 import { AnimatePresence, motion } from 'framer-motion';
-import { addDays, format, parseISO, isAfter, startOfDay } from 'date-fns';
+import { addDays, format, parseISO, isAfter, startOfDay, isValid } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { TransactionsTable } from '@/components/finance/transactions-table';
 import { Button } from '@/components/ui/button';
@@ -163,51 +163,70 @@ export default function CardsPage() {
     if (!selectedItem || !isSelectedCard) {
       return { cardInfo: null, currentBill: 0, itemTransactions: [] };
     }
-
+  
     const today = new Date();
+    const todayDay = today.getDate();
+    const todayMonth = today.getMonth();
+    const todayYear = today.getFullYear();
+  
     const closingDay = selectedItem.closingDay;
     const paymentDay = selectedItem.paymentDay;
-
-    // Determine the current invoice's closing date
-    let closingDate = new Date(today.getFullYear(), today.getMonth(), closingDay);
-    if (today.getDate() > closingDay) {
-        // If current day is past the closing day, the open invoice closes next month
-        closingDate = new Date(today.getFullYear(), today.getMonth() + 1, closingDay);
+  
+    // Determine current invoice's closing date
+    let closingYear = todayYear;
+    let closingMonth = todayDay > closingDay ? todayMonth + 1 : todayMonth;
+    if (closingMonth > 11) { // Handle year change
+      closingMonth = 0;
+      closingYear += 1;
     }
-
-    // Determine the previous closing date
-    const previousClosingDate = new Date(closingDate.getFullYear(), closingDate.getMonth() - 1, closingDay);
-    
-    // Determine the payment date for the current invoice
-    let paymentDate = new Date(closingDate.getFullYear(), closingDate.getMonth(), paymentDay);
-    if (paymentDay <= closingDay) {
-        // if payment day is on or before closing day, it's in the next month
-        paymentDate = new Date(closingDate.getFullYear(), closingDate.getMonth() + 1, paymentDay);
+    const closingDate = new Date(closingYear, closingMonth, closingDay);
+  
+    // Determine previous invoice's closing date
+    let prevClosingYear = closingYear;
+    let prevClosingMonth = closingMonth - 1;
+    if (prevClosingMonth < 0) {
+      prevClosingMonth = 11;
+      prevClosingYear -= 1;
     }
-    
-    const bestPurchaseDate = addDays(new Date(closingDate), 1);
-    
+    const previousClosingDate = new Date(prevClosingYear, prevClosingMonth, closingDay);
+  
+    // Determine payment date for the current open invoice
+    let paymentYear = closingYear;
+    let paymentMonth = paymentDay > closingDay ? closingMonth : closingMonth + 1;
+    if (paymentMonth > 11) {
+      paymentMonth = 0;
+      paymentYear += 1;
+    }
+    const paymentDate = new Date(paymentYear, paymentMonth, paymentDay);
+  
+    const bestPurchaseDate = addDays(closingDate, 1);
+  
     const filteredTransactions = transactions.filter(t => {
-        if (t.account !== selectedItem.name || t.type !== 'expense') {
-            return false;
-        }
-        const transactionDate = startOfDay(parseISO(t.date));
-        // Transaction is after the previous closing date AND on or before the current closing date.
-        return isAfter(transactionDate, startOfDay(previousClosingDate)) && !isAfter(transactionDate, startOfDay(closingDate));
+      if (t.account !== selectedItem.name || t.type !== 'expense') {
+        return false;
+      }
+      const transactionDate = startOfDay(parseISO(t.date));
+      // Transaction is after the previous closing date AND on or before the current closing date.
+      return isAfter(transactionDate, startOfDay(previousClosingDate)) && !isAfter(transactionDate, startOfDay(closingDate));
     });
-
+  
     const totalBill = filteredTransactions.reduce((sum, t) => sum + Math.abs(t.amount), 0);
-    
-    return {
-        cardInfo: {
-            bestPurchaseDate: format(new Date(bestPurchaseDate), "dd 'de' MMMM", { locale: ptBR }),
-            closingDate: format(new Date(closingDate), "dd 'de' MMMM", { locale: ptBR }),
-            paymentDate: format(new Date(paymentDate), "dd 'de' MMMM", { locale: ptBR }),
-        },
-        currentBill: totalBill,
-        itemTransactions: filteredTransactions
-    };
+  
+    const formatDateSafe = (date?: Date) => {
+        if (!date || !isValid(date)) return 'Data indisponível';
+        return format(date, "dd 'de' MMMM", { locale: ptBR });
+    }
 
+    return {
+      cardInfo: {
+        bestPurchaseDate: formatDateSafe(bestPurchaseDate),
+        closingDate: formatDateSafe(closingDate),
+        paymentDate: formatDateSafe(paymentDate),
+      },
+      currentBill: totalBill,
+      itemTransactions: filteredTransactions
+    };
+  
   }, [selectedItem, isSelectedCard, transactions]);
   
   
@@ -444,5 +463,3 @@ export default function CardsPage() {
     </div>
   );
 }
-
-    
