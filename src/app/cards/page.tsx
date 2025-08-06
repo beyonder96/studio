@@ -165,41 +165,38 @@ export default function CardsPage() {
     }
 
     const { closingDay, paymentDay } = selectedItem;
-    const today = startOfDay(new Date());
-    
-    let currentMonth = getMonth(today);
-    let currentYear = getYear(today);
+    const today = new Date();
+    const currentYear = today.getFullYear();
+    const currentMonth = today.getMonth();
 
-    // --- Lógica de cálculo da fatura ---
-    // 1. Determina a data de fechamento da fatura ATUAL
+    // Determine the closing date for the current cycle
     let closingDate = new Date(currentYear, currentMonth, closingDay);
-    if (isAfter(today, closingDate)) {
+    if (today.getDate() > closingDay) {
+        // We are past this month's closing day, so the active invoice closes next month
         closingDate = addMonths(closingDate, 1);
     }
     
-    // 2. O início da fatura atual é 1 mês antes do fechamento
-    const startDate = subMonths(closingDate, 1);
+    // The start date of the current invoice is the closing day of the *previous* month
+    const startDate = subMonths(new Date(closingDate), 1);
 
-    // 3. Determina a data de vencimento da fatura
+    // Determine the payment date for the current invoice
     let paymentDate = new Date(closingDate.getFullYear(), closingDate.getMonth(), paymentDay);
-    // Se o dia de pagamento for MENOR que o dia de fechamento, o vencimento é no mês seguinte ao fechamento.
     if (paymentDay < closingDay) {
-        paymentDate = addMonths(paymentDate, 1);
+      // If payment day is before closing day, it's in the month after closing
+      paymentDate = addMonths(paymentDate, 1);
     }
 
-    // 4. O melhor dia de compra é o dia seguinte ao fechamento
-    const bestPurchaseDate = addDays(closingDate, 1);
-
     const filteredTransactions = transactions.filter(t => {
-        if (t.account !== selectedItem.name || t.type !== 'expense') {
-            return false;
-        }
-        const transactionDate = startOfDay(parseISO(t.date));
-        // A transação entra na fatura se for > que o início da fatura anterior E <= a data de fechamento da fatura atual
-        return isAfter(transactionDate, startDate) && (isBefore(transactionDate, closingDate) || transactionDate.getTime() === closingDate.getTime());
+      if (t.account !== selectedItem.name || t.type !== 'expense') {
+        return false;
+      }
+      const transactionDate = startOfDay(parseISO(t.date));
+      // A transaction is in the current bill if it's after the start date and on or before the closing date.
+      return isAfter(transactionDate, startDate) && (isBefore(transactionDate, closingDate) || transactionDate.getTime() === closingDate.getTime());
     });
 
     const totalBill = filteredTransactions.reduce((sum, t) => sum + Math.abs(t.amount), 0);
+    const bestPurchaseDate = addDays(closingDate, 1);
     
     return {
         cardInfo: {
@@ -447,3 +444,5 @@ export default function CardsPage() {
     </div>
   );
 }
+
+    
