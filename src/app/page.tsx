@@ -19,7 +19,6 @@ import { format } from 'date-fns';
 import { useRouter } from 'next/navigation';
 import { Loader2, Eye, EyeOff, Moon, Sun, HeartPulse } from 'lucide-react';
 import { useAuth } from '@/contexts/auth-context';
-import { WeatherOverview } from '@/components/dashboard/weather-overview';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
@@ -155,7 +154,6 @@ export default function Home() {
              <ShoppingListOverview />
              <HealthCard />
              <DateDisplay />
-             <WeatherOverview />
           </div>
 
           {/* Right Column */}
