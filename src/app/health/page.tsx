@@ -138,7 +138,7 @@ export default function HealthPage() {
                     <div className="space-y-2">
                         <Label>Tipo Sanguíneo</Label>
                         {isEditing ? (
-                            <Input value={tempData.healthInfo1?.bloodType} onChange={e => handleHealthInfoChange('healthInfo1', 'bloodType', e.target.value)} placeholder="Ex: A+" />
+                            <Input value={tempData.healthInfo1?.bloodType || ''} onChange={e => handleHealthInfoChange('healthInfo1', 'bloodType', e.target.value)} placeholder="Ex: A+" />
                         ) : (
                             <p className="text-muted-foreground">{profileData.healthInfo1?.bloodType || 'Não informado'}</p>
                         )}
@@ -146,7 +146,7 @@ export default function HealthPage() {
                     <div className="space-y-2">
                         <Label>Alergias</Label>
                         {isEditing ? (
-                            <Input value={tempData.healthInfo1?.allergies} onChange={e => handleHealthInfoChange('healthInfo1', 'allergies', e.target.value)} placeholder="Ex: Poeira, Lactose" />
+                            <Input value={tempData.healthInfo1?.allergies || ''} onChange={e => handleHealthInfoChange('healthInfo1', 'allergies', e.target.value)} placeholder="Ex: Poeira, Lactose" />
                         ) : (
                             <p className="text-muted-foreground">{profileData.healthInfo1?.allergies || 'Nenhuma'}</p>
                         )}
@@ -154,7 +154,7 @@ export default function HealthPage() {
                     <div className="space-y-2">
                         <Label>Plano de Saúde</Label>
                         {isEditing ? (
-                            <Input value={tempData.healthInfo1?.healthPlan} onChange={e => handleHealthInfoChange('healthInfo1', 'healthPlan', e.target.value)} placeholder="Ex: Plano Top (123456)" />
+                            <Input value={tempData.healthInfo1?.healthPlan || ''} onChange={e => handleHealthInfoChange('healthInfo1', 'healthPlan', e.target.value)} placeholder="Ex: Plano Top (123456)" />
                         ) : (
                             <p className="text-muted-foreground">{profileData.healthInfo1?.healthPlan || 'Não informado'}</p>
                         )}
@@ -162,7 +162,7 @@ export default function HealthPage() {
                     <div className="space-y-2">
                         <Label>Contato de Emergência</Label>
                         {isEditing ? (
-                            <Input value={tempData.healthInfo1?.emergencyContact} onChange={e => handleHealthInfoChange('healthInfo1', 'emergencyContact', e.target.value)} placeholder="Ex: Mãe (11 99999-8888)" />
+                            <Input value={tempData.healthInfo1?.emergencyContact || ''} onChange={e => handleHealthInfoChange('healthInfo1', 'emergencyContact', e.target.value)} placeholder="Ex: Mãe (11 99999-8888)" />
                         ) : (
                             <p className="text-muted-foreground">{profileData.healthInfo1?.emergencyContact || 'Não informado'}</p>
                         )}
@@ -181,7 +181,7 @@ export default function HealthPage() {
                     <div className="space-y-2">
                         <Label>Tipo Sanguíneo</Label>
                         {isEditing ? (
-                            <Input value={tempData.healthInfo2?.bloodType} onChange={e => handleHealthInfoChange('healthInfo2', 'bloodType', e.target.value)} placeholder="Ex: O-" />
+                            <Input value={tempData.healthInfo2?.bloodType || ''} onChange={e => handleHealthInfoChange('healthInfo2', 'bloodType', e.target.value)} placeholder="Ex: O-" />
                         ) : (
                             <p className="text-muted-foreground">{profileData.healthInfo2?.bloodType || 'Não informado'}</p>
                         )}
@@ -189,7 +189,7 @@ export default function HealthPage() {
                     <div className="space-y-2">
                         <Label>Alergias</Label>
                         {isEditing ? (
-                            <Input value={tempData.healthInfo2?.allergies} onChange={e => handleHealthInfoChange('healthInfo2', 'allergies', e.target.value)} placeholder="Ex: Glúten" />
+                            <Input value={tempData.healthInfo2?.allergies || ''} onChange={e => handleHealthInfoChange('healthInfo2', 'allergies', e.target.value)} placeholder="Ex: Glúten" />
                         ) : (
                             <p className="text-muted-foreground">{profileData.healthInfo2?.allergies || 'Nenhuma'}</p>
                         )}
@@ -197,7 +197,7 @@ export default function HealthPage() {
                     <div className="space-y-2">
                         <Label>Plano de Saúde</Label>
                         {isEditing ? (
-                            <Input value={tempData.healthInfo2?.healthPlan} onChange={e => handleHealthInfoChange('healthInfo2', 'healthPlan', e.target.value)} placeholder="Ex: Plano Master (654321)" />
+                            <Input value={tempData.healthInfo2?.healthPlan || ''} onChange={e => handleHealthInfoChange('healthInfo2', 'healthPlan', e.target.value)} placeholder="Ex: Plano Master (654321)" />
                         ) : (
                             <p className="text-muted-foreground">{profileData.healthInfo2?.healthPlan || 'Não informado'}</p>
                         )}
@@ -205,7 +205,7 @@ export default function HealthPage() {
                     <div className="space-y-2">
                         <Label>Contato de Emergência</Label>
                         {isEditing ? (
-                            <Input value={tempData.healthInfo2?.emergencyContact} onChange={e => handleHealthInfoChange('healthInfo2', 'emergencyContact', e.target.value)} placeholder="Ex: Pai (11 98888-7777)" />
+                            <Input value={tempData.healthInfo2?.emergencyContact || ''} onChange={e => handleHealthInfoChange('healthInfo2', 'emergencyContact', e.target.value)} placeholder="Ex: Pai (11 98888-7777)" />
                         ) : (
                             <p className="text-muted-foreground">{profileData.healthInfo2?.emergencyContact || 'Não informado'}</p>
                         )}
