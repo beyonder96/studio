@@ -32,6 +32,7 @@ import { Label } from '@/components/ui/label';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { cn } from '@/lib/utils';
 import { AddGoalProgressDialog } from '@/components/goals/add-goal-progress-dialog';
+import Loading from '../finance/loading';
 
 const GoalCard = ({ goal, onEdit, onToggleCompleted, onDelete, onToggleMilestone, onAddProgress }: { 
     goal: Goal,
@@ -161,7 +162,7 @@ const GoalCard = ({ goal, onEdit, onToggleCompleted, onDelete, onToggleMilestone
 
 
 export default function GoalsPage() {
-  const { goals, addGoal, updateGoal, deleteGoal, formatCurrency, toggleGoalCompleted, toggleMilestoneCompleted, addGoalProgress } = useContext(FinanceContext);
+  const { isLoading, goals, addGoal, updateGoal, deleteGoal, formatCurrency, toggleGoalCompleted, toggleMilestoneCompleted, addGoalProgress } = useContext(FinanceContext);
   const [isAddGoalDialogOpen, setIsAddGoalDialogOpen] = useState(false);
   const [isAddProgressDialogOpen, setIsAddProgressDialogOpen] = useState(false);
 
@@ -233,6 +234,10 @@ export default function GoalsPage() {
   
   const pendingGoals = useMemo(() => goals.filter(g => !g.completed).sort((a,b) => b.targetAmount - a.targetAmount), [goals]);
   const completedGoals = useMemo(() => goals.filter(g => g.completed).sort((a,b) => b.targetAmount - a.targetAmount), [goals]);
+
+  if (isLoading) {
+    return <Loading />;
+  }
 
   return (
     <>

@@ -25,6 +25,7 @@ import {
 import { getDatabase, ref, onValue } from 'firebase/database';
 import { app as firebaseApp } from '@/lib/firebase';
 import { BankLogo } from '@/components/accounts/bank-logo';
+import Loading from '../finance/loading';
 
 const AccountDisplayCard = ({ account }: { account: Account }) => {
   const { formatCurrency, isSensitiveDataVisible } = useContext(FinanceContext);
@@ -48,6 +49,7 @@ const AccountDisplayCard = ({ account }: { account: Account }) => {
 
 export default function AccountsPage() {
   const { 
+    isLoading,
     accounts,
     deleteAccount,
     addAccount,
@@ -137,6 +139,10 @@ export default function AccountsPage() {
     setEditingItem(null);
     setIsAccountDialogOpen(false);
   };
+
+  if (isLoading) {
+    return <Loading />;
+  }
   
   if (bankAccounts.length === 0) {
       return (

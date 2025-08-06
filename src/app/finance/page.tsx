@@ -30,6 +30,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { cn } from '@/lib/utils';
 import { Checkbox } from '@/components/ui/checkbox';
+import Loading from './loading';
 
 const frequencyMap = {
   daily: 'Diária',
@@ -40,6 +41,7 @@ const frequencyMap = {
 
 export default function FinancePage() {
   const { 
+    isLoading,
     transactions, 
     addTransaction,
     updateTransaction,
@@ -115,6 +117,9 @@ export default function FinancePage() {
     return new Intl.DateTimeFormat('pt-BR').format(date);
   };
 
+  if (isLoading) {
+    return <Loading />;
+  }
 
   return (
     <>

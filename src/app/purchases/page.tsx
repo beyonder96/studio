@@ -53,11 +53,13 @@ import {
 } from "@/components/ui/alert-dialog"
 import { useToast } from '@/hooks/use-toast';
 import { FinanceContext, ShoppingList, ShoppingListItem } from '@/contexts/finance-context';
-import type { Transaction } from '@/components/finance/transactions-table';
+import type { Transaction } from '@/contexts/schemas/transaction-schema';
+import Loading from '../finance/loading';
 
 
 export default function PurchasesPage() {
   const { 
+    isLoading,
     shoppingLists,
     setSelectedListId,
     selectedList,
@@ -208,6 +210,10 @@ export default function PurchasesPage() {
         description: `A despesa foi registrada e os itens adicionados à despensa.`
     })
   }, [handleFinishList, toast]);
+
+  if (isLoading) {
+    return <Loading />;
+  }
 
   return (
     <Card className="bg-white/10 dark:bg-black/10 backdrop-blur-3xl border-white/20 dark:border-black/20 rounded-3xl shadow-2xl">

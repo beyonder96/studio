@@ -30,6 +30,7 @@ import { getDatabase, ref, onValue } from 'firebase/database';
 import { app as firebaseApp } from '@/lib/firebase';
 import { CardBrandLogo, VoucherBrandLogo } from '@/components/cards/card-brand-logo';
 import { PayBillDialog } from '@/components/cards/pay-bill-dialog';
+import Loading from '../finance/loading';
 
 type DisplayableItem = CardType | Account;
 
@@ -74,6 +75,7 @@ const VoucherCard = ({ voucher, balance }: { voucher: Account, balance: number }
 
 export default function CardsPage() {
   const { 
+    isLoading,
     cards, 
     accounts,
     transactions, 
@@ -274,6 +276,9 @@ export default function CardsPage() {
     setIsAccountCardDialogOpen(false);
   };
   
+  if (isLoading) {
+    return <Loading />;
+  }
   
   if (displayableItems.length === 0) {
       return (

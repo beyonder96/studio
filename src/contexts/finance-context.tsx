@@ -122,6 +122,7 @@ const mapShoppingItemToPantryCategory = (itemName: string): PantryCategory => {
 }
 
 type FinanceContextType = {
+  isLoading: boolean;
   transactions: Transaction[];
   addTransaction: (transaction: Omit<Transaction, 'id' | 'amount' > & { id?: string; amount: number; fromAccount?: string; toAccount?: string; }, installments?: number) => void;
   updateTransaction: (id: string, transaction: Partial<Omit<Transaction, 'id'>>) => void;
@@ -215,7 +216,8 @@ export const FinanceContext = createContext<FinanceContextType>({} as FinanceCon
 
 export const FinanceProvider = ({ children }: { children: ReactNode }) => {
   const { toast } = useToast();
-  const { user, googleAccessToken } = useAuth();
+  const { user, loading: authLoading } = useAuth();
+  const [isLoading, setIsLoading] = useState(true);
   
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [accounts, setAccounts] = useState<Account[]>([]);
@@ -336,7 +338,12 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
   }, [goals, memories, checkForAchievements]);
   
   useEffect(() => {
+    if (authLoading) {
+      setIsLoading(true);
+      return;
+    }
     if (user) {
+        setIsLoading(true);
         if (typeof window !== 'undefined') {
             const savedEvents = sessionStorage.getItem('google_events');
             if (savedEvents) {
@@ -419,6 +426,7 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
                 };
                 set(userRef, initialData);
             }
+            setIsLoading(false);
         });
         return () => unsubscribe();
     } else {
@@ -440,8 +448,9 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
         setSelectedListId(null);
         setGoogleEvents([]);
         if(typeof window !== 'undefined') sessionStorage.removeItem('google_events');
+        setIsLoading(false);
     }
-}, [user, selectedListId, setGoogleEvents, processRecurringTransactions]);
+}, [user, selectedListId, setGoogleEvents, processRecurringTransactions, authLoading]);
 
   useEffect(() => {
     if (shoppingLists.length > 0 && !shoppingLists.find(l => l.id === selectedListId)) {
@@ -1263,6 +1272,7 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
 
 
   const value = {
+    isLoading,
     transactions, addTransaction, updateTransaction, deleteTransaction, toggleTransactionPaid, deleteRecurringTransaction,
     accounts, addAccount, updateAccount, deleteAccount, 
     cards, addCard, updateCard, deleteCard, 
@@ -1295,5 +1305,3 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
     </FinanceContext.Provider>
   );
 };
-
-    
