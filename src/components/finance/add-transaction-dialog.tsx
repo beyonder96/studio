@@ -132,6 +132,31 @@ export function AddTransactionDialog({
   const isCreditCard = selectedAccount?.type === 'card';
   const isVoucher = selectedAccount?.type === 'voucher';
 
+  useEffect(() => {
+    if (isOpen) {
+      if (transaction) {
+        reset({
+          ...transaction,
+          amount: Math.abs(transaction.amount),
+        });
+      } else {
+        reset({
+          type: 'expense',
+          date: new Date().toISOString().split('T')[0],
+          amount: 0,
+          description: '',
+          category: '',
+          account: '',
+          fromAccount: '',
+          toAccount: '',
+          paid: true,
+          isRecurring: false,
+          installments: 1,
+          linkedGoalId: '',
+        });
+      }
+    }
+  }, [isOpen, transaction, reset]);
   
   const installmentValue = useMemo(() => {
     if (isCreditCard && amount && installments && installments > 1) {
