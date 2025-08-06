@@ -8,7 +8,7 @@ import { Carousel, CarouselContent, CarouselItem, type CarouselApi } from '@/com
 import { FinanceContext, Transaction, Card as CardType, Account } from '@/contexts/finance-context';
 import { cn } from '@/lib/utils';
 import { AnimatePresence, motion } from 'framer-motion';
-import { addDays, format, parseISO, isAfter, startOfDay, getYear, getDate, getMonth, isBefore } from 'date-fns';
+import { addDays, format, parseISO, isAfter, startOfDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { TransactionsTable } from '@/components/finance/transactions-table';
 import { Button } from '@/components/ui/button';
@@ -163,47 +163,50 @@ export default function CardsPage() {
     if (!selectedItem || !isSelectedCard) {
       return { cardInfo: null, currentBill: 0, itemTransactions: [] };
     }
-    
+
     const today = new Date();
     const currentDay = today.getDate();
-    let currentMonth = today.getMonth();
-    let currentYear = today.getFullYear();
-
+    const currentMonth = today.getMonth(); // 0-11
+    const currentYear = today.getFullYear();
+    const closingDay = selectedItem.closingDay;
+    const paymentDay = selectedItem.paymentDay;
+    
     let closingDate: Date;
     let previousClosingDate: Date;
-
-    if (currentDay > selectedItem.closingDay) {
-        // Invoice for the current month has already closed.
-        // We are looking at the next month's invoice.
-        const nextMonth = currentMonth + 1;
-        closingDate = new Date(currentYear, nextMonth, selectedItem.closingDay);
-        previousClosingDate = new Date(currentYear, currentMonth, selectedItem.closingDay);
+    
+    // Determine the current invoice's closing date
+    if (currentDay > closingDay) {
+      // The invoice for this calendar month has already closed.
+      // The current open invoice will close next month.
+      closingDate = new Date(currentYear, currentMonth + 1, closingDay);
     } else {
-        // Invoice for the current month is still open.
-        closingDate = new Date(currentYear, currentMonth, selectedItem.closingDay);
-        // Previous closing date was last month.
-        const prevMonth = currentMonth -1;
-        previousClosingDate = new Date(currentYear, prevMonth, selectedItem.closingDay);
+      // The invoice is still open for this calendar month.
+      closingDate = new Date(currentYear, currentMonth, closingDay);
     }
 
+    // Determine the previous closing date
+    // This is simply one month before the current closingDate
+    previousClosingDate = new Date(closingDate.getFullYear(), closingDate.getMonth() - 1, closingDate.getDate());
+
+    // Determine the payment date for the current invoice
     let paymentDate: Date;
-    if (selectedItem.paymentDay > selectedItem.closingDay) {
-        // Payment in the same month as closing.
-        paymentDate = new Date(closingDate.getFullYear(), closingDate.getMonth(), selectedItem.paymentDay);
+    if (paymentDay > closingDay) {
+      // Payment happens in the same month as closing
+      paymentDate = new Date(closingDate.getFullYear(), closingDate.getMonth(), paymentDay);
     } else {
-        // Payment in the month after closing.
-        paymentDate = new Date(closingDate.getFullYear(), closingDate.getMonth() + 1, selectedItem.paymentDay);
+      // Payment happens in the month after closing
+      paymentDate = new Date(closingDate.getFullYear(), closingDate.getMonth() + 1, paymentDay);
     }
 
     const bestPurchaseDate = addDays(closingDate, 1);
-
+    
     const filteredTransactions = transactions.filter(t => {
-      if (t.account !== selectedItem.name || t.type !== 'expense') {
-        return false;
-      }
-      const transactionDate = startOfDay(parseISO(t.date));
-      // Transaction is after the previous closing date AND not after the current closing date.
-      return isAfter(transactionDate, startOfDay(previousClosingDate)) && !isAfter(transactionDate, startOfDay(closingDate));
+        if (t.account !== selectedItem.name || t.type !== 'expense') {
+            return false;
+        }
+        const transactionDate = startOfDay(parseISO(t.date));
+        // Transaction is after the previous closing date AND on or before the current closing date.
+        return isAfter(transactionDate, startOfDay(previousClosingDate)) && !isAfter(transactionDate, startOfDay(closingDate));
     });
 
     const totalBill = filteredTransactions.reduce((sum, t) => sum + Math.abs(t.amount), 0);
@@ -454,3 +457,5 @@ export default function CardsPage() {
     </div>
   );
 }
+
+    
