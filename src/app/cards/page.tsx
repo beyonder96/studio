@@ -8,7 +8,7 @@ import { Carousel, CarouselContent, CarouselItem, type CarouselApi } from '@/com
 import { FinanceContext, Transaction, Card as CardType, Account } from '@/contexts/finance-context';
 import { cn } from '@/lib/utils';
 import { AnimatePresence, motion } from 'framer-motion';
-import { addDays, format, setDate, parseISO, subMonths, isAfter, isBefore } from 'date-fns';
+import { addDays, format, setDate, parseISO, subMonths, isAfter, isBefore, getMonth, getYear, addMonths, startOfDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { TransactionsTable } from '@/components/finance/transactions-table';
 import { Button } from '@/components/ui/button';
@@ -164,37 +164,38 @@ export default function CardsPage() {
       return { cardInfo: null, currentBill: 0, itemTransactions: [] };
     }
 
-    const today = new Date();
     const { closingDay, paymentDay } = selectedItem;
+    const today = startOfDay(new Date());
+    
+    let currentMonth = getMonth(today);
+    let currentYear = getYear(today);
 
     // --- Lógica de cálculo da fatura ---
-    // 1. Determina a data de fechamento da fatura atual
-    let closingDate = setDate(today, closingDay);
+    // 1. Determina a data de fechamento da fatura ATUAL
+    let closingDate = new Date(currentYear, currentMonth, closingDay);
     if (isAfter(today, closingDate)) {
-      // Se a data de hoje já passou o dia de fechamento, a fatura é do próximo mês.
-      closingDate = addMonths(closingDate, 1);
+        closingDate = addMonths(closingDate, 1);
     }
-
-    // 2. A fatura começa um mês antes do fechamento
+    
+    // 2. O início da fatura atual é 1 mês antes do fechamento
     const startDate = subMonths(closingDate, 1);
 
     // 3. Determina a data de vencimento da fatura
-    let paymentDate = setDate(closingDate, paymentDay);
+    let paymentDate = new Date(closingDate.getFullYear(), closingDate.getMonth(), paymentDay);
+    // Se o dia de pagamento for MENOR que o dia de fechamento, o vencimento é no mês seguinte ao fechamento.
     if (paymentDay < closingDay) {
-        // Se o dia do pagamento for menor que o do fechamento (ex: fecha dia 20, paga dia 1), o pagamento é no mês seguinte ao fechamento.
         paymentDate = addMonths(paymentDate, 1);
     }
-    
+
     // 4. O melhor dia de compra é o dia seguinte ao fechamento
     const bestPurchaseDate = addDays(closingDate, 1);
-    
+
     const filteredTransactions = transactions.filter(t => {
         if (t.account !== selectedItem.name || t.type !== 'expense') {
             return false;
         }
-        const transactionDate = parseISO(t.date);
-        // A transação entra na fatura se estiver DEPOIS do início da fatura anterior
-        // e ANTES OU NO DIA do fechamento da fatura atual.
+        const transactionDate = startOfDay(parseISO(t.date));
+        // A transação entra na fatura se for > que o início da fatura anterior E <= a data de fechamento da fatura atual
         return isAfter(transactionDate, startDate) && (isBefore(transactionDate, closingDate) || transactionDate.getTime() === closingDate.getTime());
     });
 
