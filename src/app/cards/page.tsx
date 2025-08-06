@@ -165,35 +165,36 @@ export default function CardsPage() {
     }
     
     const today = new Date();
-    const currentDay = getDate(today);
-    const currentMonth = getMonth(today);
-    const currentYear = getYear(today);
-    const { closingDay, paymentDay } = selectedItem;
+    const currentDay = today.getDate();
+    let currentMonth = today.getMonth();
+    let currentYear = today.getFullYear();
 
     let closingDate: Date;
     let previousClosingDate: Date;
-    let paymentDate: Date;
-    
-    if (currentDay > closingDay) {
-        // Invoice for the current month has closed, we are in the next cycle.
-        // Closing date is for next month.
-        closingDate = new Date(currentYear, currentMonth + 1, closingDay);
-        previousClosingDate = new Date(currentYear, currentMonth, closingDay);
+
+    if (currentDay > selectedItem.closingDay) {
+        // Invoice for the current month has already closed.
+        // We are looking at the next month's invoice.
+        const nextMonth = currentMonth + 1;
+        closingDate = new Date(currentYear, nextMonth, selectedItem.closingDay);
+        previousClosingDate = new Date(currentYear, currentMonth, selectedItem.closingDay);
     } else {
         // Invoice for the current month is still open.
-        // Closing date is for this month.
-        closingDate = new Date(currentYear, currentMonth, closingDay);
-        previousClosingDate = new Date(currentYear, currentMonth - 1, closingDay);
+        closingDate = new Date(currentYear, currentMonth, selectedItem.closingDay);
+        // Previous closing date was last month.
+        const prevMonth = currentMonth -1;
+        previousClosingDate = new Date(currentYear, prevMonth, selectedItem.closingDay);
     }
-    
-    if (paymentDay > closingDay) {
+
+    let paymentDate: Date;
+    if (selectedItem.paymentDay > selectedItem.closingDay) {
         // Payment in the same month as closing.
-        paymentDate = new Date(getYear(closingDate), getMonth(closingDate), paymentDay);
+        paymentDate = new Date(closingDate.getFullYear(), closingDate.getMonth(), selectedItem.paymentDay);
     } else {
         // Payment in the month after closing.
-        paymentDate = new Date(getYear(closingDate), getMonth(closingDate) + 1, paymentDay);
+        paymentDate = new Date(closingDate.getFullYear(), closingDate.getMonth() + 1, selectedItem.paymentDay);
     }
-    
+
     const bestPurchaseDate = addDays(closingDate, 1);
 
     const filteredTransactions = transactions.filter(t => {
@@ -202,11 +203,11 @@ export default function CardsPage() {
       }
       const transactionDate = startOfDay(parseISO(t.date));
       // Transaction is after the previous closing date AND not after the current closing date.
-      return isAfter(transactionDate, previousClosingDate) && !isAfter(transactionDate, closingDate);
+      return isAfter(transactionDate, startOfDay(previousClosingDate)) && !isAfter(transactionDate, startOfDay(closingDate));
     });
 
     const totalBill = filteredTransactions.reduce((sum, t) => sum + Math.abs(t.amount), 0);
-
+    
     return {
         cardInfo: {
             bestPurchaseDate: format(bestPurchaseDate, "dd 'de' MMMM", { locale: ptBR }),
@@ -365,7 +366,7 @@ export default function CardsPage() {
                         </div>
                     </CardHeader>
                     <CardContent className="space-y-6">
-                        {isSelectedCard && (
+                        {isSelectedCard && cardInfo && (
                             <>
                             <Card className="bg-transparent p-4 grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div className="space-y-4">
@@ -384,15 +385,15 @@ export default function CardsPage() {
                                 <div className="space-y-2 text-sm">
                                     <div className="flex justify-between">
                                         <span className="text-muted-foreground">Fechamento:</span>
-                                        <span className="font-medium">{cardInfo?.closingDate}</span>
+                                        <span className="font-medium">{cardInfo.closingDate}</span>
                                     </div>
                                      <div className="flex justify-between">
                                         <span className="text-muted-foreground">Vencimento:</span>
-                                        <span className="font-medium">{cardInfo?.paymentDate}</span>
+                                        <span className="font-medium">{cardInfo.paymentDate}</span>
                                     </div>
                                      <div className="flex justify-between">
                                         <span className="text-muted-foreground">Melhor dia de compra:</span>
-                                        <span className="font-medium">{cardInfo?.bestPurchaseDate}</span>
+                                        <span className="font-medium">{cardInfo.bestPurchaseDate}</span>
                                     </div>
                                 </div>
                             </Card>
@@ -453,5 +454,3 @@ export default function CardsPage() {
     </div>
   );
 }
-
-    
