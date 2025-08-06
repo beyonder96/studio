@@ -8,11 +8,11 @@ import { Carousel, CarouselContent, CarouselItem, type CarouselApi } from '@/com
 import { FinanceContext, Transaction, Card as CardType, Account } from '@/contexts/finance-context';
 import { cn } from '@/lib/utils';
 import { AnimatePresence, motion } from 'framer-motion';
-import { addDays, format, setDate, parseISO, subMonths, isAfter, isBefore, getMonth, getYear, addMonths, startOfDay } from 'date-fns';
+import { addDays, format, parseISO, isAfter, startOfDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { TransactionsTable } from '@/components/finance/transactions-table';
 import { Button } from '@/components/ui/button';
-import { PlusCircle, Info, CalendarClock, ShoppingBag, Edit, Trash2, CreditCard, Banknote, User, TrendingUp } from 'lucide-react';
+import { PlusCircle, Info, TrendingUp, CreditCard, Edit, Trash2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/auth-context';
 import { EditAccountCardDialog, AccountCardFormData } from '@/components/settings/edit-account-card-dialog';
@@ -166,44 +166,40 @@ export default function CardsPage() {
 
     const today = new Date();
     const currentYear = today.getFullYear();
-    const currentMonth = today.getMonth();
+    const currentMonth = today.getMonth(); // 0-11
     const { closingDay, paymentDay } = selectedItem;
 
-    // Determine the current bill cycle's closing date
     let closingDate: Date;
     if (today.getDate() > closingDay) {
-        // The bill for this month has already closed. We are in the next cycle.
+        // Bill for this month has closed, we're in the next cycle.
         closingDate = new Date(currentYear, currentMonth + 1, closingDay);
     } else {
-        // The bill for this month is still open.
+        // Bill for this month is still open.
         closingDate = new Date(currentYear, currentMonth, closingDay);
     }
 
-    // Determine the previous closing date to define the start of the bill cycle
     const previousClosingDate = new Date(closingDate.getFullYear(), closingDate.getMonth() - 1, closingDay);
-    
-    // Determine the payment date for the current open bill
+
     let paymentDate: Date;
     if (paymentDay > closingDay) {
-        // Payment is in the same month it closes
+        // Payment in the same month as closing.
         paymentDate = new Date(closingDate.getFullYear(), closingDate.getMonth(), paymentDay);
     } else {
-        // Payment is in the month after it closes
+        // Payment in the month after closing.
         paymentDate = new Date(closingDate.getFullYear(), closingDate.getMonth() + 1, paymentDay);
     }
-    
+
+    const bestPurchaseDate = addDays(closingDate, 1);
+
     const filteredTransactions = transactions.filter(t => {
       if (t.account !== selectedItem.name || t.type !== 'expense') {
         return false;
       }
       const transactionDate = startOfDay(parseISO(t.date));
-      // A transaction is in the current bill if it's after the previous closing date 
-      // and on or before the current closing date.
       return isAfter(transactionDate, previousClosingDate) && !isAfter(transactionDate, closingDate);
     });
-    
+
     const totalBill = filteredTransactions.reduce((sum, t) => sum + Math.abs(t.amount), 0);
-    const bestPurchaseDate = addDays(closingDate, 1);
 
     return {
         cardInfo: {
@@ -451,5 +447,3 @@ export default function CardsPage() {
     </div>
   );
 }
-
-    
