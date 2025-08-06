@@ -166,24 +166,27 @@ export default function CardsPage() {
 
     const { closingDay, paymentDay } = selectedItem;
     const today = new Date();
-    const currentYear = today.getFullYear();
-    const currentMonth = today.getMonth();
-
-    // Determine the closing date for the current cycle
-    let closingDate = new Date(currentYear, currentMonth, closingDay);
-    if (today.getDate() > closingDay) {
-        // We are past this month's closing day, so the active invoice closes next month
-        closingDate = addMonths(closingDate, 1);
-    }
     
-    // The start date of the current invoice is the closing day of the *previous* month
-    const startDate = subMonths(new Date(closingDate), 1);
+    let closingDate: Date;
+    let paymentDate: Date;
+    let previousClosingDate: Date;
 
-    // Determine the payment date for the current invoice
-    let paymentDate = new Date(closingDate.getFullYear(), closingDate.getMonth(), paymentDay);
-    if (paymentDay < closingDay) {
-      // If payment day is before closing day, it's in the month after closing
-      paymentDate = addMonths(paymentDate, 1);
+    if (today.getDate() > closingDay) {
+      // The bill for this month has already closed. We are in the next cycle.
+      // The currently open bill will close next month.
+      closingDate = new Date(today.getFullYear(), today.getMonth() + 1, closingDay);
+      previousClosingDate = new Date(today.getFullYear(), today.getMonth(), closingDay);
+    } else {
+      // The bill for this month is still open.
+      closingDate = new Date(today.getFullYear(), today.getMonth(), closingDay);
+      previousClosingDate = new Date(today.getFullYear(), today.getMonth() - 1, closingDay);
+    }
+
+    // Determine the payment date based on the closing date.
+    paymentDate = new Date(closingDate.getFullYear(), closingDate.getMonth(), paymentDay);
+    if (paymentDay <= closingDay) {
+        // If payment day is on or before closing day, it must be in the next month.
+        paymentDate = addMonths(paymentDate, 1);
     }
 
     const filteredTransactions = transactions.filter(t => {
@@ -191,13 +194,14 @@ export default function CardsPage() {
         return false;
       }
       const transactionDate = startOfDay(parseISO(t.date));
-      // A transaction is in the current bill if it's after the start date and on or before the closing date.
-      return isAfter(transactionDate, startDate) && (isBefore(transactionDate, closingDate) || transactionDate.getTime() === closingDate.getTime());
+      // A transaction is in the current bill if it's after the previous closing date 
+      // and on or before the current closing date.
+      return isAfter(transactionDate, previousClosingDate) && (isBefore(transactionDate, closingDate) || transactionDate.getTime() === closingDate.getTime());
     });
-
+    
     const totalBill = filteredTransactions.reduce((sum, t) => sum + Math.abs(t.amount), 0);
     const bestPurchaseDate = addDays(closingDate, 1);
-    
+
     return {
         cardInfo: {
             bestPurchaseDate: format(bestPurchaseDate, "dd 'de' MMMM", { locale: ptBR }),
@@ -444,5 +448,3 @@ export default function CardsPage() {
     </div>
   );
 }
-
-    
