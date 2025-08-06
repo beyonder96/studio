@@ -216,7 +216,7 @@ export const FinanceContext = createContext<FinanceContextType>({} as FinanceCon
 
 export const FinanceProvider = ({ children }: { children: ReactNode }) => {
   const { toast } = useToast();
-  const { user, loading: authLoading } = useAuth();
+  const { user, loading: authLoading, googleAccessToken } = useAuth();
   const [isLoading, setIsLoading] = useState(true);
   
   const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -339,18 +339,11 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
   
   useEffect(() => {
     if (authLoading) {
-      setIsLoading(true);
-      return;
-    }
-    if (user) {
         setIsLoading(true);
-        if (typeof window !== 'undefined') {
-            const savedEvents = sessionStorage.getItem('google_events');
-            if (savedEvents) {
-                setGoogleEventsState(JSON.parse(savedEvents));
-            }
-        }
+        return;
+    }
 
+    if (user) {
         const db = getDatabase(firebaseApp);
         const userRef = ref(db, `users/${user.uid}`);
         
@@ -426,10 +419,11 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
                 };
                 set(userRef, initialData);
             }
-            setIsLoading(false);
+            setIsLoading(false); // Data is loaded or initialized
         });
         return () => unsubscribe();
     } else {
+        // No user, reset all state
         setTransactions([]);
         setAccounts([]);
         setCards([]);
@@ -448,9 +442,9 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
         setSelectedListId(null);
         setGoogleEvents([]);
         if(typeof window !== 'undefined') sessionStorage.removeItem('google_events');
-        setIsLoading(false);
+        setIsLoading(false); // No user, so not loading
     }
-}, [user, selectedListId, setGoogleEvents, processRecurringTransactions, authLoading]);
+  }, [user, authLoading, selectedListId, setGoogleEvents, processRecurringTransactions]);
 
   useEffect(() => {
     if (shoppingLists.length > 0 && !shoppingLists.find(l => l.id === selectedListId)) {
