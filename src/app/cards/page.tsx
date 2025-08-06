@@ -165,40 +165,27 @@ export default function CardsPage() {
     }
 
     const today = new Date();
-    const currentDay = today.getDate();
-    const currentMonth = today.getMonth(); // 0-11
-    const currentYear = today.getFullYear();
     const closingDay = selectedItem.closingDay;
     const paymentDay = selectedItem.paymentDay;
-    
-    let closingDate: Date;
-    let previousClosingDate: Date;
-    
+
     // Determine the current invoice's closing date
-    if (currentDay > closingDay) {
-      // The invoice for this calendar month has already closed.
-      // The current open invoice will close next month.
-      closingDate = new Date(currentYear, currentMonth + 1, closingDay);
-    } else {
-      // The invoice is still open for this calendar month.
-      closingDate = new Date(currentYear, currentMonth, closingDay);
+    let closingDate = new Date(today.getFullYear(), today.getMonth(), closingDay);
+    if (today.getDate() > closingDay) {
+        // If current day is past the closing day, the open invoice closes next month
+        closingDate = new Date(today.getFullYear(), today.getMonth() + 1, closingDay);
     }
 
     // Determine the previous closing date
-    // This is simply one month before the current closingDate
-    previousClosingDate = new Date(closingDate.getFullYear(), closingDate.getMonth() - 1, closingDate.getDate());
-
+    const previousClosingDate = new Date(closingDate.getFullYear(), closingDate.getMonth() - 1, closingDay);
+    
     // Determine the payment date for the current invoice
-    let paymentDate: Date;
-    if (paymentDay > closingDay) {
-      // Payment happens in the same month as closing
-      paymentDate = new Date(closingDate.getFullYear(), closingDate.getMonth(), paymentDay);
-    } else {
-      // Payment happens in the month after closing
-      paymentDate = new Date(closingDate.getFullYear(), closingDate.getMonth() + 1, paymentDay);
+    let paymentDate = new Date(closingDate.getFullYear(), closingDate.getMonth(), paymentDay);
+    if (paymentDay <= closingDay) {
+        // if payment day is on or before closing day, it's in the next month
+        paymentDate = new Date(closingDate.getFullYear(), closingDate.getMonth() + 1, paymentDay);
     }
-
-    const bestPurchaseDate = addDays(closingDate, 1);
+    
+    const bestPurchaseDate = addDays(new Date(closingDate), 1);
     
     const filteredTransactions = transactions.filter(t => {
         if (t.account !== selectedItem.name || t.type !== 'expense') {
@@ -213,9 +200,9 @@ export default function CardsPage() {
     
     return {
         cardInfo: {
-            bestPurchaseDate: format(bestPurchaseDate, "dd 'de' MMMM", { locale: ptBR }),
-            closingDate: format(closingDate, "dd 'de' MMMM", { locale: ptBR }),
-            paymentDate: format(paymentDate, "dd 'de' MMMM", { locale: ptBR }),
+            bestPurchaseDate: format(new Date(bestPurchaseDate), "dd 'de' MMMM", { locale: ptBR }),
+            closingDate: format(new Date(closingDate), "dd 'de' MMMM", { locale: ptBR }),
+            paymentDate: format(new Date(paymentDate), "dd 'de' MMMM", { locale: ptBR }),
         },
         currentBill: totalBill,
         itemTransactions: filteredTransactions
