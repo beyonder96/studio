@@ -28,6 +28,8 @@ const auth: Auth = getAuth(app);
 const googleProvider = new GoogleAuthProvider();
 // Request access to the user's calendars
 googleProvider.addScope('https://www.googleapis.com/auth/calendar');
+// Request access to user's fitness data
+googleProvider.addScope('https://www.googleapis.com/auth/fitness.body.read');
 
 
 let messaging: Messaging | null = null;

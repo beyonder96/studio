@@ -21,6 +21,54 @@ function getGoogleAuthClient(accessToken: string): OAuth2Client {
     return oauth2Client;
 }
 
+export const getWeightHistory = ai.defineTool(
+  {
+    name: 'getWeightHistory',
+    description: 'Busca o histórico de peso do usuário no Google Fit.',
+    inputSchema: z.object({
+      accessToken: z.string().describe("Token de acesso OAuth2 do usuário."),
+    }),
+    outputSchema: z.array(z.object({
+      date: z.string(),
+      weight: z.number(),
+    })),
+  },
+  async ({ accessToken }) => {
+    const authClient = getGoogleAuthClient(accessToken);
+    const fitness = google.fitness({ version: 'v1', auth: authClient });
+
+    try {
+      // A API do Google Fit requer um timestamp em nanossegundos
+      const startTime = new Date();
+      startTime.setFullYear(startTime.getFullYear() - 1); // Get data for the last year
+      const startTimeNs = startTime.getTime() * 1000000;
+      const endTimeNs = Date.now() * 1000000;
+
+      const response = await fitness.users.dataSources.datasets.get({
+        userId: 'me',
+        dataSourceId: 'derived:com.google.weight:com.google.android.gms:merge_weight',
+        datasetId: `${startTimeNs}-${endTimeNs}`,
+      });
+
+      const points = response.data.point;
+      if (!points || points.length === 0) {
+        return [];
+      }
+
+      // Mapeia os dados para o formato que nosso app entende
+      return points.map(point => ({
+        date: new Date(Number(point.startTimeNanos) / 1000000).toISOString(),
+        weight: point.value?.[0].fpVal || 0,
+      })).filter(p => p.weight > 0);
+
+    } catch (error) {
+      console.error("Falha ao buscar dados do Google Fit:", error);
+      return [];
+    }
+  }
+);
+
+
 export const getCalendarEvents = ai.defineTool(
     {
         name: 'getCalendarEvents',
@@ -478,4 +526,3 @@ export const getTransactions = ai.defineTool(
     }));
   }
 );
-
