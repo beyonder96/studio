@@ -34,7 +34,7 @@ const processChatFlow = ai.defineFlow(
   async (input) => {
     
     const llmResponse = await ai.generate({
-        model: 'googleai/gemini-1.5-pro-latest',
+        model: 'googleai/gemini-2.5-pro-latest',
         tools: [addTransaction, createTask, createCalendarEvent, addItemToShoppingList, getTransactions],
         toolChoice: 'auto',
         prompt: `Você é o "Copilot Vida a 2", um assistente financeiro ultra-eficiente para um casal. Seu objetivo é tornar o registro de transações o mais rápido e natural possível, exigindo o mínimo de esforço do usuário.
