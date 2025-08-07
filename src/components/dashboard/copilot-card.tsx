@@ -100,7 +100,7 @@ export function CopilotCard() {
                     link: '/discover',
                     buttonText: 'Planejar comemoração',
                     source: 'celebration',
-                    data: { dateType: specialDate.type, personName: specialDate.name }
+                    data: { dateType: specialDate.type, personName: specialDate.type === 'Aniversário' ? specialDate.name.replace('de ', '') : undefined }
                 });
             }
         }
@@ -219,6 +219,7 @@ export function CopilotCard() {
   }
   
   const getButtonText = () => {
+      if (isLoading && !currentInsight) return "Analisando...";
       if (isLoading) return "Gerando...";
       if (celebrationPlan || financialInsight) return "Ver Sugestão Completa";
       return currentInsight?.buttonText || "Saber mais";
@@ -232,11 +233,25 @@ export function CopilotCard() {
 
 
   if (!currentInsight && !isLoading) {
-    return null; // Or a fallback card
+    return (
+        <Card className="bg-white/10 dark:bg-black/10 border-none shadow-none flex flex-col min-h-[180px]">
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <Sparkles className="h-6 w-6 text-primary" />
+              <CardTitle className="text-base font-semibold text-primary">
+                Copilot
+              </CardTitle>
+            </div>
+          </CardHeader>
+          <CardContent className="flex-grow flex items-center justify-center">
+            <p className="text-muted-foreground text-sm text-center">Nenhuma sugestão no momento. Continue usando o app para receber insights!</p>
+          </CardContent>
+        </Card>
+    )
   }
 
   return (
-    <Card className="bg-white/10 dark:bg-black/10 border-none shadow-none flex flex-col">
+    <Card className="bg-white/10 dark:bg-black/10 border-none shadow-none flex flex-col min-h-[180px]">
       <CardHeader>
         <div className="flex items-center gap-2">
           <Sparkles className="h-6 w-6 text-primary" />
@@ -245,7 +260,7 @@ export function CopilotCard() {
           </CardTitle>
         </div>
       </CardHeader>
-      <CardContent className="flex-grow flex items-center">
+      <CardContent className="flex-grow flex items-center justify-center text-center">
         {renderContent()}
       </CardContent>
       <CardFooter>

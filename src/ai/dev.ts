@@ -14,5 +14,3 @@ import './flows/process-chat-flow';
 // Tools will be imported for their side effects in this file.
 import './tools/location-tools';
 import './tools/app-tools';
-
-    

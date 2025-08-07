@@ -144,6 +144,7 @@ export default function Home() {
           
           {/* Left Column */}
           <div className="flex flex-col gap-6 lg:col-span-1">
+            <CopilotCard />
             <TransactionsOverview />
           </div>
 
@@ -152,7 +153,6 @@ export default function Home() {
              <JourneyCard />
              <GoalsOverview />
              <ShoppingListOverview />
-             <HealthCard />
              <DateDisplay />
           </div>
 
@@ -160,7 +160,7 @@ export default function Home() {
            <div className="flex flex-col gap-6 lg:col-span-1">
               <TasksOverview />
               <MonthOverview />
-              <CopilotCard />
+              <HealthCard />
           </div>
 
         </div>

@@ -40,10 +40,11 @@ Para te ajudar, aqui estão algumas informações sobre o casal:
 **Sua Tarefa:**
 
 1.  **Crie um Título Cativante:** Pense em um nome criativo para este plano de comemoração.
-2.  **Sugira Ideias de Presente:**
+2.  **Escreva uma Descrição Curta:** Uma frase ou duas que resumam a vibe da comemoração.
+3.  **Sugira Ideias de Presente:**
     - **Priorize a Lista de Desejos.** Se a lista de desejos tiver itens, sugira um ou dois deles como as principais opções de presente. Explique brevemente por que seria um bom presente.
     - Se a lista estiver vazia ou se quiser dar mais opções, sugira 1-2 outras ideias criativas que combinem com um casal.
-3.  **Sugira Ideias de Comemoração:**
+4.  **Sugira Ideias de Comemoração:**
     - Crie 1-2 ideias de como comemorar a data. Pode ser um jantar, um passeio, uma atividade diferente, etc.
     - Use as preferências do casal (comida, lugar) como inspiração, mas sinta-se à vontade para ser criativo.
     - Para cada ideia, explique por que seria uma boa comemoração.
