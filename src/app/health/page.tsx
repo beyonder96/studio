@@ -107,6 +107,11 @@ export default function HealthPage() {
   const person1Name = name1 || 'Pessoa 1';
   const person2Name = name2 || 'Pessoa 2';
 
+  // ADICIONE ESTAS LINHAS AQUI PARA VER OS DADOS
+  console.log("Medicamentos Pessoa 1:", profileData.healthInfo1?.medications);
+  console.log("Medicamentos Pessoa 2:", profileData.healthInfo2?.medications);
+
+
   return (
     <Card className="bg-white/10 dark:bg-black/10 backdrop-blur-3xl border-white/20 dark:border-black/20 rounded-3xl shadow-2xl">
         <CardHeader>
