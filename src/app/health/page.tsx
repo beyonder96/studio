@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useEffect, useContext } from 'react';
+import { useState, useEffect, useContext, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -13,6 +13,9 @@ import { getDatabase, ref, onValue, update } from 'firebase/database';
 import { app as firebaseApp } from '@/lib/firebase';
 import { HealthInfo } from '@/contexts/finance-context';
 import { MedicationCard } from '@/components/health/medication-card';
+import { GoogleFitCard } from '@/components/health/google-fit-card';
+import { getGoogleFitData } from '@/ai/tools/health-tools';
+import { format, startOfToday, endOfToday } from 'date-fns';
 
 type ProfileData = {
   names?: string;
@@ -30,10 +33,14 @@ const defaultHealthInfo: HealthInfo = {
 
 export default function HealthPage() {
   const { toast } = useToast();
-  const { user } = useAuth();
+  const { user, getAccessToken } = useAuth();
   const [profileData, setProfileData] = useState<ProfileData>({});
   const [tempData, setTempData] = useState<ProfileData>({});
   const [isEditing, setIsEditing] = useState(false);
+
+  // Novos estados para o Google Fit
+  const [fitData, setFitData] = useState(null);
+  const [isSyncingFit, setIsSyncingFit] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -56,6 +63,35 @@ export default function HealthPage() {
       return () => unsubscribe();
     }
   }, [user]);
+
+  // Função para sincronizar com o Google Fit
+  const handleSyncFitData = useCallback(async () => {
+    setIsSyncingFit(true);
+    const accessToken = await getAccessToken();
+
+    if (!accessToken) {
+        toast({ variant: "destructive", title: "Autenticação Necessária", description: "Faça login com o Google para sincronizar." });
+        setIsSyncingFit(false);
+        return;
+    }
+
+    try {
+        const today = new Date();
+        const result = await getGoogleFitData({
+            accessToken,
+            startDate: format(startOfToday(), 'yyyy-MM-dd'),
+            endDate: format(endOfToday(), 'yyyy-MM-dd'),
+        });
+        setFitData(result as any);
+        toast({ title: "Sincronização Concluída!", description: "Seus dados de hoje foram atualizados." });
+    } catch (error) {
+        console.error("Erro ao sincronizar com Google Fit:", error);
+        toast({ variant: "destructive", title: "Erro na Sincronização", description: "Não foi possível buscar os dados do Google Fit." });
+    } finally {
+        setIsSyncingFit(false);
+    }
+  }, [getAccessToken, toast]);
+
 
   const handleEditClick = () => {
     setTempData(profileData);
@@ -107,10 +143,6 @@ export default function HealthPage() {
   const person1Name = name1 || 'Pessoa 1';
   const person2Name = name2 || 'Pessoa 2';
 
-  // ADICIONE ESTAS LINHAS AQUI PARA VER OS DADOS
-  console.log("Medicamentos Pessoa 1:", profileData.healthInfo1?.medications);
-  console.log("Medicamentos Pessoa 2:", profileData.healthInfo2?.medications);
-
 
   return (
     <Card className="bg-white/10 dark:bg-black/10 backdrop-blur-3xl border-white/20 dark:border-black/20 rounded-3xl shadow-2xl">
@@ -136,6 +168,12 @@ export default function HealthPage() {
              </div>
         </CardHeader>
         <CardContent className="space-y-10 pt-6">
+            <GoogleFitCard
+                onSync={handleSyncFitData}
+                isLoading={isSyncingFit}
+                data={fitData}
+            />
+
             {/* Person 1 Section */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
                 <div className="space-y-6">
@@ -173,11 +211,13 @@ export default function HealthPage() {
                         )}
                     </div>
                 </div>
-                <MedicationCard
-                    title="Medicamentos de Uso Contínuo"
-                    personKey="healthInfo1"
-                    medications={profileData.healthInfo1?.medications || []}
-                />
+                 <div className="space-y-6">
+                    <MedicationCard
+                        title={`Medicamentos de ${person1Name}`}
+                        personKey="healthInfo1"
+                        medications={profileData.healthInfo1?.medications || []}
+                    />
+                 </div>
             </div>
             {/* Person 2 Section */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
@@ -216,11 +256,13 @@ export default function HealthPage() {
                         )}
                     </div>
                 </div>
-                 <MedicationCard
-                    title="Medicamentos de Uso Contínuo"
-                    personKey="healthInfo2"
-                    medications={profileData.healthInfo2?.medications || []}
-                />
+                 <div className="space-y-6">
+                     <MedicationCard
+                        title={`Medicamentos de ${person2Name}`}
+                        personKey="healthInfo2"
+                        medications={profileData.healthInfo2?.medications || []}
+                    />
+                 </div>
             </div>
         </CardContent>
     </Card>
