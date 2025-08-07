@@ -1,4 +1,3 @@
-
 // Flows will be imported for their side effects in this file.
 import './flows/generate-shopping-list-flow';
 import './flows/generate-recipe-flow';
@@ -14,3 +13,4 @@ import './flows/process-chat-flow';
 // Tools will be imported for their side effects in this file.
 import './tools/location-tools';
 import './tools/app-tools';
+import './tools/health-tools';

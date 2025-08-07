@@ -1,4 +1,3 @@
-
 // Import the functions you need from the SDKs you need
 import { initializeApp, getApps, getApp, FirebaseApp } from "firebase/app";
 import { getAuth, Auth, GoogleAuthProvider } from "firebase/auth";
@@ -30,6 +29,9 @@ const googleProvider = new GoogleAuthProvider();
 googleProvider.addScope('https://www.googleapis.com/auth/calendar');
 // Request access to user's fitness data
 googleProvider.addScope('https://www.googleapis.com/auth/fitness.body.read');
+googleProvider.addScope('https://www.googleapis.com/auth/fitness.activity.read');
+googleProvider.addScope('https://www.googleapis.com/auth/fitness.sleep.read');
+googleProvider.addScope('https://www.googleapis.com/auth/fitness.nutrition.read');
 
 
 let messaging: Messaging | null = null;
