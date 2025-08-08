@@ -9,9 +9,9 @@ import { Label } from '@/components/ui/label';
 import { Edit, Save, HeartPulse } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/auth-context';
-import { getDatabase, ref, onValue, update } from 'firebase/database';
+import { getDatabase, ref, get, update, push, set } from 'firebase/database';
 import { app as firebaseApp } from '@/lib/firebase';
-import { HealthInfo, FinanceContext } from '@/contexts/finance-context';
+import { HealthInfo, WeightRecord, FinanceContext } from '@/contexts/finance-context';
 import { MedicationCard } from '@/components/health/medication-card';
 import { WeightTrackerCard } from '@/components/health/weight-tracker-card';
 import { GoogleFitCard } from '@/components/health/google-fit-card'; 
@@ -38,7 +38,7 @@ const defaultHealthInfo: HealthInfo = {
 export default function HealthPage() {
   const { toast } = useToast();
   const { user, getAccessToken } = useAuth();
-  const { addWeightRecord } = useContext(FinanceContext);
+  const { addWeightRecord: contextAddWeightRecord } = useContext(FinanceContext);
   const [profileData, setProfileData] = useState<ProfileData>({});
   const [tempData, setTempData] = useState<ProfileData>({});
   const [isEditing, setIsEditing] = useState(false);
@@ -46,19 +46,19 @@ export default function HealthPage() {
   const [fitData, setFitData] = useState(null);
   const [isSyncingFit, setIsSyncingFit] = useState(false);
 
-  useEffect(() => {
+  const fetchProfileData = useCallback(async () => {
     if (user) {
       const db = getDatabase(firebaseApp);
       const profileRef = ref(db, `users/${user.uid}/profile`);
-      
-      const unsubscribe = onValue(profileRef, (snapshot) => {
-        const data = snapshot.val() || {};
+      const snapshot = await get(profileRef);
+      if (snapshot.exists()) {
+        const data = snapshot.val();
         
         const processHealthInfo = (info: any) => ({
             ...defaultHealthInfo,
             ...info,
             medications: info?.medications ? Object.values(info.medications) : [],
-            weightRecords: info?.weightRecords ? Object.values(info.weightRecords) : [],
+            weightRecords: info?.weightRecords ? Object.keys(info.weightRecords).map(key => ({ id: key, ...info.weightRecords[key]})) : [],
         });
 
         const fetchedData = {
@@ -68,11 +68,13 @@ export default function HealthPage() {
         };
         setProfileData(fetchedData);
         setTempData(fetchedData);
-      });
-
-      return () => unsubscribe();
+      }
     }
   }, [user]);
+
+  useEffect(() => {
+    fetchProfileData();
+  }, [fetchProfileData]);
 
   const handleSyncFitData = useCallback(async () => {
     setIsSyncingFit(true);
@@ -103,7 +105,8 @@ export default function HealthPage() {
             // This is a simple assumption, a better approach might ask the user which person to assign the weight to.
             // For now, let's assume it's for person 1 if not already set.
             if (!person1TodaysRecord && !person2TodaysRecord) {
-                 addWeightRecord('healthInfo1', { date: todayStr, weight: result.weight });
+                 contextAddWeightRecord('healthInfo1', { date: todayStr, weight: result.weight });
+                 await fetchProfileData();
                  toast({ title: "Peso Sincronizado!", description: `Peso de ${result.weight.toFixed(1)} kg registrado para hoje.` });
             }
         } else {
@@ -115,7 +118,7 @@ export default function HealthPage() {
     } finally {
         setIsSyncingFit(false);
     }
-  }, [getAccessToken, toast, addWeightRecord, profileData]);
+  }, [getAccessToken, toast, contextAddWeightRecord, profileData, fetchProfileData]);
 
 
   const handleEditClick = () => {
@@ -152,6 +155,7 @@ export default function HealthPage() {
           title: 'Informações de Saúde Atualizadas!',
           description: 'Seus dados foram salvos com sucesso.',
         });
+        fetchProfileData();
     });
   }
 
@@ -163,6 +167,13 @@ export default function HealthPage() {
             [field]: value,
         }
     }))
+  };
+  
+  const handleAddWeight = async (personKey: 'healthInfo1' | 'healthInfo2', weightData: Omit<WeightRecord, 'id'>) => {
+    if (!user) return;
+    await contextAddWeightRecord(personKey, weightData);
+    toast({ title: "Peso registrado com sucesso!"});
+    await fetchProfileData(); // Re-busca os dados para atualizar a UI
   };
 
   const [name1, name2] = (profileData.names || 'Pessoa 1 & Pessoa 2').split(' & ').map(name => name.trim());
@@ -259,6 +270,7 @@ export default function HealthPage() {
                         title={`Peso de ${person1Name}`}
                         personKey="healthInfo1"
                         weightRecords={profileData.healthInfo1?.weightRecords || []}
+                        onAddWeight={(data) => handleAddWeight('healthInfo1', data)}
                     />
                  </div>
             </div>
@@ -321,6 +333,7 @@ export default function HealthPage() {
                         title={`Peso de ${person2Name}`}
                         personKey="healthInfo2"
                         weightRecords={profileData.healthInfo2?.weightRecords || []}
+                        onAddWeight={(data) => handleAddWeight('healthInfo2', data)}
                     />
                  </div>
             </div>

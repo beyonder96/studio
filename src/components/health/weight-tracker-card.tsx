@@ -16,14 +16,15 @@ type WeightTrackerCardProps = {
   title: string;
   personKey: 'healthInfo1' | 'healthInfo2';
   weightRecords: WeightRecord[];
+  onAddWeight: (data: { date: string, weight: number }) => void;
 };
 
-export function WeightTrackerCard({ title, personKey, weightRecords }: WeightTrackerCardProps) {
-  const { addWeightRecord, deleteWeightRecord } = useContext(FinanceContext);
+export function WeightTrackerCard({ title, personKey, weightRecords, onAddWeight }: WeightTrackerCardProps) {
+  const { deleteWeightRecord } = useContext(FinanceContext);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
 
-  const handleSave = (record: Omit<WeightRecord, 'id'>) => {
-    addWeightRecord(personKey, record);
+  const handleSave = (data: { date: string, weight: number }) => {
+    onAddWeight(data);
     setIsDialogOpen(false);
   };
   
