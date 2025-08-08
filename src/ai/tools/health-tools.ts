@@ -18,12 +18,13 @@ const HealthDataSchema = z.object({
   steps: z.number().optional().describe('Total de passos no período.'),
   calories: z.number().optional().describe('Total de calorias ativas gastas no período.'),
   sleepSeconds: z.number().optional().describe('Total de segundos dormidos no período.'),
+  weight: z.number().optional().describe('Peso mais recente em kg no período.'),
 });
 
 export const getGoogleFitData = ai.defineTool(
   {
     name: 'getGoogleFitData',
-    description: 'Busca dados de saúde e atividade (passos, calorias, sono) do Google Fit para um período específico.',
+    description: 'Busca dados de saúde e atividade (passos, calorias, sono, peso) do Google Fit para um período específico.',
     inputSchema: z.object({
       accessToken: z.string().describe("Token de acesso OAuth2 do usuário."),
       startDate: z.string().describe("Data de início no formato YYYY-MM-DD"),
@@ -58,9 +59,14 @@ export const getGoogleFitData = ai.defineTool(
             {
               dataTypeName: 'com.google.sleep.segment',
               dataSourceId: 'derived:com.google.sleep.segment:com.google.android.gms:merged',
+            },
+             // Agregação para peso
+            {
+              dataTypeName: 'com.google.weight',
+              dataSourceId: 'derived:com.google.weight:com.google.android.gms:merge_weight'
             }
           ],
-          bucketByTime: { durationMillis: 86400000 }, // Agrupar por dia
+          bucketByTime: { durationMillis: endTimeNs - startTimeNs }, // Um único bucket para todo o período
           startTimeMillis: String(startTimeNs / 1000000),
           endTimeMillis: String(endTimeNs / 1000000),
         },
@@ -70,6 +76,7 @@ export const getGoogleFitData = ai.defineTool(
       let totalSteps = 0;
       let totalCalories = 0;
       let totalSleepSeconds = 0;
+      let latestWeight: number | undefined = undefined;
 
       for (const bucket of buckets) {
         for (const dataset of bucket.dataset || []) {
@@ -81,21 +88,28 @@ export const getGoogleFitData = ai.defineTool(
               totalCalories += point.value?.[0].fpVal || 0;
             }
             if (point.dataTypeName?.includes('sleep.segment')) {
-              // O valor do sono é um código (1=acordado, 2=leve, etc.). A duração é a diferença de tempo.
               const start = Number(point.startTimeNanos);
               const end = Number(point.endTimeNanos);
-              if (point.value?.[0].intVal && point.value[0].intVal > 1) { // Ignora tempo acordado
+              if (point.value?.[0].intVal && point.value[0].intVal > 1) { 
                  totalSleepSeconds += (end - start) / 1e9;
               }
+            }
+            if (point.dataTypeName?.includes('weight')) {
+                // Pegamos o último valor de peso registrado no período
+                const weightValue = point.value?.[0].fpVal;
+                if(weightValue) {
+                    latestWeight = weightValue;
+                }
             }
           }
         }
       }
 
       return {
-        steps: totalSteps,
-        calories: Math.round(totalCalories),
-        sleepSeconds: Math.round(totalSleepSeconds),
+        steps: totalSteps > 0 ? totalSteps : undefined,
+        calories: totalCalories > 0 ? Math.round(totalCalories) : undefined,
+        sleepSeconds: totalSleepSeconds > 0 ? Math.round(totalSleepSeconds) : undefined,
+        weight: latestWeight,
       };
 
     } catch (error) {

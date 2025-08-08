@@ -75,6 +75,11 @@ export type ShoppingList = { id: string; name: string; items: ShoppingListItem[]
 export type Memory = { id: string; title: string; description: string; date: string; imageUrl?: string; };
 export type Achievement = { id: string; name: string; description: string; icon: string; };
 
+export type WeightRecord = {
+    id: string;
+    date: string; // YYYY-MM-DD
+    weight: number; // in kg
+}
 export type Medication = {
     id: string;
     name: string;
@@ -87,6 +92,7 @@ export type HealthInfo = {
     healthPlan?: string;
     emergencyContact?: string;
     medications?: Medication[];
+    weightRecords?: WeightRecord[];
 };
 
 export type HealthRecordType = 'vaccine' | 'dewormer' | 'flea_tick' | 'consultation' | 'other';
@@ -210,6 +216,8 @@ type FinanceContextType = {
   addMedication: (personKey: 'healthInfo1' | 'healthInfo2', medication: Omit<Medication, 'id'>) => void;
   updateMedication: (personKey: 'healthInfo1' | 'healthInfo2', medication: Medication) => void;
   deleteMedication: (personKey: 'healthInfo1' | 'healthInfo2', medicationId: string) => void;
+  addWeightRecord: (personKey: 'healthInfo1' | 'healthInfo2', record: Omit<WeightRecord, 'id'>) => void;
+  deleteWeightRecord: (personKey: 'healthInfo1' | 'healthInfo2', recordId: string) => void;
 };
 
 export const FinanceContext = createContext<FinanceContextType>({} as FinanceContextType);
@@ -366,12 +374,14 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
                 const transformHealthInfo = (profileData: any) => {
                   if (!profileData) return {};
                   const newProfile = {...profileData};
-                  if(newProfile.healthInfo1?.medications) {
-                    newProfile.healthInfo1.medications = Object.keys(newProfile.healthInfo1.medications).map(key => ({ id: key, ...newProfile.healthInfo1.medications[key]}));
-                  }
-                   if(newProfile.healthInfo2?.medications) {
-                    newProfile.healthInfo2.medications = Object.keys(newProfile.healthInfo2.medications).map(key => ({ id: key, ...newProfile.healthInfo2.medications[key]}));
-                  }
+                  ['healthInfo1', 'healthInfo2'].forEach(key => {
+                      if (newProfile[key]?.medications) {
+                          newProfile[key].medications = Object.keys(newProfile[key].medications).map(medKey => ({ id: medKey, ...newProfile[key].medications[medKey]}));
+                      }
+                      if (newProfile[key]?.weightRecords) {
+                          newProfile[key].weightRecords = Object.keys(newProfile[key].weightRecords).map(recKey => ({ id: recKey, ...newProfile[key].weightRecords[recKey]}));
+                      }
+                  });
                   return newProfile;
                 }
 
@@ -1264,6 +1274,19 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
         remove(medicationRef);
     };
 
+    const addWeightRecord = (personKey: 'healthInfo1' | 'healthInfo2', record: Omit<WeightRecord, 'id'>) => {
+        if (!user) return;
+        const recordsRef = getDbRef(`profile/${personKey}/weightRecords`);
+        const newId = push(recordsRef).key!;
+        set(child(recordsRef, newId), record);
+    };
+    
+    const deleteWeightRecord = (personKey: 'healthInfo1' | 'healthInfo2', recordId: string) => {
+        if (!user) return;
+        const recordRef = getDbRef(`profile/${personKey}/weightRecords/${recordId}`);
+        remove(recordRef);
+    };
+
 
   const value = {
     isLoading,
@@ -1291,6 +1314,7 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
     googleEvents, setGoogleEvents,
     pets, addPet, updatePet, deletePet, addHealthRecord, updateHealthRecord, deleteHealthRecord,
     addMedication, updateMedication, deleteMedication,
+    addWeightRecord, deleteWeightRecord,
   };
 
   return (

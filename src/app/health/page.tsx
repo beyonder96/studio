@@ -11,11 +11,12 @@ import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/auth-context';
 import { getDatabase, ref, onValue, update } from 'firebase/database';
 import { app as firebaseApp } from '@/lib/firebase';
-import { HealthInfo } from '@/contexts/finance-context';
+import { HealthInfo, FinanceContext } from '@/contexts/finance-context';
 import { MedicationCard } from '@/components/health/medication-card';
-import { GoogleFitCard } from '@/components/health/google-fit-card';
+import { WeightTrackerCard } from '@/components/health/weight-tracker-card';
+import { GoogleFitCard } from '@/components/health/google-fit-card'; 
 import { getGoogleFitData } from '@/ai/tools/health-tools';
-import { format, startOfToday, endOfToday } from 'date-fns';
+import { format, startOfToday, endOfToday, parseISO } from 'date-fns';
 
 type ProfileData = {
   names?: string;
@@ -29,16 +30,17 @@ const defaultHealthInfo: HealthInfo = {
     healthPlan: '',
     emergencyContact: '',
     medications: [],
+    weightRecords: [],
 };
 
 export default function HealthPage() {
   const { toast } = useToast();
   const { user, getAccessToken } = useAuth();
+  const { addWeightRecord } = useContext(FinanceContext);
   const [profileData, setProfileData] = useState<ProfileData>({});
   const [tempData, setTempData] = useState<ProfileData>({});
   const [isEditing, setIsEditing] = useState(false);
-
-  // Novos estados para o Google Fit
+  
   const [fitData, setFitData] = useState(null);
   const [isSyncingFit, setIsSyncingFit] = useState(false);
 
@@ -48,23 +50,28 @@ export default function HealthPage() {
       const profileRef = ref(db, `users/${user.uid}/profile`);
       
       const unsubscribe = onValue(profileRef, (snapshot) => {
-        const data = snapshot.val();
-        if (data) {
-          const fetchedData = {
-              ...data,
-              healthInfo1: { ...defaultHealthInfo, ...data.healthInfo1, medications: data.healthInfo1?.medications ? Object.values(data.healthInfo1.medications) : [] },
-              healthInfo2: { ...defaultHealthInfo, ...data.healthInfo2, medications: data.healthInfo2?.medications ? Object.values(data.healthInfo2.medications) : [] },
-          };
-          setProfileData(fetchedData);
-          setTempData(fetchedData);
-        }
+        const data = snapshot.val() || {};
+        
+        const processHealthInfo = (info: any) => ({
+            ...defaultHealthInfo,
+            ...info,
+            medications: info?.medications ? Object.values(info.medications) : [],
+            weightRecords: info?.weightRecords ? Object.values(info.weightRecords) : [],
+        });
+
+        const fetchedData = {
+            ...data,
+            healthInfo1: processHealthInfo(data.healthInfo1),
+            healthInfo2: processHealthInfo(data.healthInfo2),
+        };
+        setProfileData(fetchedData);
+        setTempData(fetchedData);
       });
 
       return () => unsubscribe();
     }
   }, [user]);
 
-  // Função para sincronizar com o Google Fit
   const handleSyncFitData = useCallback(async () => {
     setIsSyncingFit(true);
     const accessToken = await getAccessToken();
@@ -82,15 +89,31 @@ export default function HealthPage() {
             startDate: format(startOfToday(), 'yyyy-MM-dd'),
             endDate: format(endOfToday(), 'yyyy-MM-dd'),
         });
+        
         setFitData(result as any);
-        toast({ title: "Sincronização Concluída!", description: "Seus dados de hoje foram atualizados." });
+
+        if (result.weight) {
+            const todayStr = format(today, 'yyyy-MM-dd');
+            // Check if there's already a weight record for today from Google Fit
+            const person1TodaysRecord = profileData.healthInfo1?.weightRecords?.find(r => r.date === todayStr);
+            const person2TodaysRecord = profileData.healthInfo2?.weightRecords?.find(r => r.date === todayStr);
+            
+            // This is a simple assumption, a better approach might ask the user which person to assign the weight to.
+            // For now, let's assume it's for person 1 if not already set.
+            if (!person1TodaysRecord && !person2TodaysRecord) {
+                 addWeightRecord('healthInfo1', { date: todayStr, weight: result.weight });
+                 toast({ title: "Peso Sincronizado!", description: `Peso de ${result.weight.toFixed(1)} kg registrado para hoje.` });
+            }
+        } else {
+            toast({ title: "Sincronização Concluída!", description: "Seus dados de hoje foram atualizados." });
+        }
     } catch (error) {
         console.error("Erro ao sincronizar com Google Fit:", error);
         toast({ variant: "destructive", title: "Erro na Sincronização", description: "Não foi possível buscar os dados do Google Fit." });
     } finally {
         setIsSyncingFit(false);
     }
-  }, [getAccessToken, toast]);
+  }, [getAccessToken, toast, addWeightRecord, profileData]);
 
 
   const handleEditClick = () => {
@@ -108,7 +131,6 @@ export default function HealthPage() {
     const db = getDatabase(firebaseApp);
     const profileRef = ref(db, `users/${user.uid}/profile`);
 
-    // We only want to save the fields that are editable here.
     const updateData = {
         'healthInfo1/bloodType': tempData.healthInfo1?.bloodType || '',
         'healthInfo1/allergies': tempData.healthInfo1?.allergies || '',
@@ -129,7 +151,7 @@ export default function HealthPage() {
     });
   }
 
-  const handleHealthInfoChange = (person: 'healthInfo1' | 'healthInfo2', field: keyof Omit<HealthInfo, 'medications'>, value: string) => {
+  const handleHealthInfoChange = (person: 'healthInfo1' | 'healthInfo2', field: keyof Omit<HealthInfo, 'medications' | 'weightRecords'>, value: string) => {
     setTempData(prev => ({
         ...prev,
         [person]: {
@@ -176,7 +198,7 @@ export default function HealthPage() {
 
             {/* Person 1 Section */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
-                <div className="space-y-6">
+                 <div className="space-y-6">
                     <h3 className="text-xl font-semibold text-center md:text-left">{person1Name}</h3>
                     <div className="space-y-2">
                         <Label>Tipo Sanguíneo</Label>
@@ -210,12 +232,17 @@ export default function HealthPage() {
                             <p className="text-muted-foreground">{profileData.healthInfo1?.emergencyContact || 'Não informado'}</p>
                         )}
                     </div>
-                </div>
+                 </div>
                  <div className="space-y-6">
                     <MedicationCard
                         title={`Medicamentos de ${person1Name}`}
                         personKey="healthInfo1"
                         medications={profileData.healthInfo1?.medications || []}
+                    />
+                    <WeightTrackerCard
+                        title={`Peso de ${person1Name}`}
+                        personKey="healthInfo1"
+                        weightRecords={profileData.healthInfo1?.weightRecords || []}
                     />
                  </div>
             </div>
@@ -261,6 +288,11 @@ export default function HealthPage() {
                         title={`Medicamentos de ${person2Name}`}
                         personKey="healthInfo2"
                         medications={profileData.healthInfo2?.medications || []}
+                    />
+                    <WeightTrackerCard
+                        title={`Peso de ${person2Name}`}
+                        personKey="healthInfo2"
+                        weightRecords={profileData.healthInfo2?.weightRecords || []}
                     />
                  </div>
             </div>
