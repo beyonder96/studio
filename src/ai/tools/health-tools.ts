@@ -36,9 +36,10 @@ export const getGoogleFitData = ai.defineTool(
     const authClient = getGoogleAuthClient(accessToken);
     const fitness = google.fitness({ version: 'v1', auth: authClient });
 
-    // A API do Google Fit requer timestamps em nanosegundos
-    const startTimeNs = new Date(startDate).getTime() * 1000000;
-    const endTimeNs = new Date(endDate).getTime() * 1000000;
+    // A API do Google Fit requer timestamps em milissegundos para o corpo da requisição
+    const startTimeMillis = new Date(startDate).getTime();
+    const endTimeMillis = new Date(endDate).getTime();
+    const durationMillis = endTimeMillis - startTimeMillis;
 
     try {
       const response = await fitness.users.dataset.aggregate({
@@ -66,9 +67,10 @@ export const getGoogleFitData = ai.defineTool(
               dataSourceId: 'derived:com.google.weight:com.google.android.gms:merge_weight'
             }
           ],
-          bucketByTime: { durationMillis: endTimeNs - startTimeNs }, // Um único bucket para todo o período
-          startTimeMillis: String(startTimeNs / 1000000),
-          endTimeMillis: String(endTimeNs / 1000000),
+          // Correção: Usar um único bucket para todo o período solicitado
+          bucketByTime: { durationMillis: durationMillis.toString() }, 
+          startTimeMillis: startTimeMillis.toString(),
+          endTimeMillis: endTimeMillis.toString(),
         },
       });
 
