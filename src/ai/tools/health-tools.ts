@@ -46,17 +46,17 @@ export const getGoogleFitData = ai.defineTool(
         userId: 'me',
         requestBody: {
           aggregateBy: [
-            // Agregação para passos
+            // CORREÇÃO: Usando a fonte de dados mesclada para passos
             {
               dataTypeName: 'com.google.step_count.delta',
-              dataSourceId: 'derived:com.google.step_count.delta:com.google.android.gms:estimated_steps',
+              dataSourceId: 'derived:com.google.step_count.delta:com.google.android.gms:merge_step_deltas',
             },
-            // Agregação para calorias
+            // CORREÇÃO: Usando a fonte de dados mesclada para calorias
             {
               dataTypeName: 'com.google.calories.expended',
               dataSourceId: 'derived:com.google.calories.expended:com.google.android.gms:merge_calories_expended',
             },
-            // Agregação para sono
+            // CORREÇÃO: Usando a fonte de dados mesclada para sono
             {
               dataTypeName: 'com.google.sleep.segment',
               dataSourceId: 'derived:com.google.sleep.segment:com.google.android.gms:merged',
@@ -92,6 +92,7 @@ export const getGoogleFitData = ai.defineTool(
             if (point.dataTypeName?.includes('sleep.segment')) {
               const start = Number(point.startTimeNanos);
               const end = Number(point.endTimeNanos);
+              // Códigos de sono: 2=sono leve, 4=sono profundo, 5=REM. Ignoramos 1=acordado.
               if (point.value?.[0].intVal && point.value[0].intVal > 1) { 
                  totalSleepSeconds += (end - start) / 1e9;
               }
