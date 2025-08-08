@@ -32,7 +32,7 @@ import {
 import { cn } from '@/lib/utils';
 import { Checkbox } from '@/components/ui/checkbox';
 import Loading from './loading';
-import { format } from 'date-fns';
+import { format, parseISO } from 'date-fns';
 
 const frequencyMap = {
   daily: 'Diária',
