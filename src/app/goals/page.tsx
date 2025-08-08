@@ -33,6 +33,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { cn } from '@/lib/utils';
 import { AddGoalProgressDialog } from '@/components/goals/add-goal-progress-dialog';
 import Loading from '../finance/loading';
+import { motion } from 'framer-motion';
 
 const GoalCard = ({ goal, onEdit, onToggleCompleted, onDelete, onToggleMilestone, onAddProgress }: { 
     goal: Goal,
@@ -65,98 +66,100 @@ const GoalCard = ({ goal, onEdit, onToggleCompleted, onDelete, onToggleMilestone
     const milestoneProgress = getMilestoneProgress(goal);
 
     return (
-        <Card className="flex flex-col card-hover-effect bg-transparent">
-            <CardHeader className="relative p-0">
-                <Image
-                    src={goal.imageUrl || "https://placehold.co/600x400.png"}
-                    alt={goal.name}
-                    width={600}
-                    height={400}
-                    className="w-full h-48 object-cover rounded-t-lg"
-                    data-ai-hint="travel goal"
-                />
-                <div className="absolute top-2 right-2">
-                    <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                            <Button variant="secondary" size="icon" className="h-8 w-8 rounded-full bg-black/30 hover:bg-black/50 text-white">
-                                <MoreVertical className="h-4 w-4" />
-                            </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => onEdit(goal)}>
-                                <Edit className="mr-2 h-4 w-4" />
-                                Editar
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => onToggleCompleted(goal)}>
-                                <CheckCircle2 className="mr-2 h-4 w-4" />
-                                Marcar como concluída
-                            </DropdownMenuItem>
-                            <DropdownMenuItem className="text-destructive" onClick={() => onDelete(goal)}>
-                                <Trash2 className="mr-2 h-4 w-4" />
-                                Excluir
-                            </DropdownMenuItem>
-                        </DropdownMenuContent>
-                    </DropdownMenu>
-                </div>
-            </CardHeader>
-            <CardContent className="p-4 flex-grow flex flex-col">
-                <CardTitle className="text-lg mb-2">{goal.name}</CardTitle>
-                <div className="flex-grow space-y-4">
-                    <div>
-                        <div className="flex justify-between items-center mb-1">
-                            <span className="text-xs font-medium text-muted-foreground">Progresso Financeiro</span>
-                             <Badge variant="secondary" className="font-normal">
-                                {Math.round(progress)}%
-                            </Badge>
-                        </div>
-                        <Progress value={progress} />
-                        <div className="flex justify-between text-sm text-muted-foreground mt-1">
-                            <span>{formatCurrency(goal.currentAmount)}</span>
-                            <span className="font-semibold">{formatCurrency(goal.targetAmount)}</span>
-                        </div>
+        <motion.div whileHover={{ y: -5 }} transition={{ type: 'spring', stiffness: 400, damping: 10 }}>
+            <Card className="flex flex-col bg-transparent h-full">
+                <CardHeader className="relative p-0">
+                    <Image
+                        src={goal.imageUrl || "https://placehold.co/600x400.png"}
+                        alt={goal.name}
+                        width={600}
+                        height={400}
+                        className="w-full h-48 object-cover rounded-t-lg"
+                        data-ai-hint="travel goal"
+                    />
+                    <div className="absolute top-2 right-2">
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <Button variant="secondary" size="icon" className="h-8 w-8 rounded-full bg-black/30 hover:bg-black/50 text-white">
+                                    <MoreVertical className="h-4 w-4" />
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                                <DropdownMenuItem onClick={() => onEdit(goal)}>
+                                    <Edit className="mr-2 h-4 w-4" />
+                                    Editar
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => onToggleCompleted(goal)}>
+                                    <CheckCircle2 className="mr-2 h-4 w-4" />
+                                    Marcar como concluída
+                                </DropdownMenuItem>
+                                <DropdownMenuItem className="text-destructive" onClick={() => onDelete(goal)}>
+                                    <Trash2 className="mr-2 h-4 w-4" />
+                                    Excluir
+                                </DropdownMenuItem>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
                     </div>
-                     {goal.milestones && goal.milestones.length > 0 && (
+                </CardHeader>
+                <CardContent className="p-4 flex-grow flex flex-col">
+                    <CardTitle className="text-lg mb-2">{goal.name}</CardTitle>
+                    <div className="flex-grow space-y-4">
                         <div>
                             <div className="flex justify-between items-center mb-1">
-                                <span className="text-xs font-medium text-muted-foreground">Checklist</span>
-                                <Badge variant="outline" className="font-normal">
-                                    {milestoneProgress.text}
+                                <span className="text-xs font-medium text-muted-foreground">Progresso Financeiro</span>
+                                <Badge variant="secondary" className="font-normal">
+                                    {Math.round(progress)}%
                                 </Badge>
                             </div>
-                            <Progress value={milestoneProgress.percent} className="h-2" />
+                            <Progress value={progress} />
+                            <div className="flex justify-between text-sm text-muted-foreground mt-1">
+                                <span>{formatCurrency(goal.currentAmount)}</span>
+                                <span className="font-semibold">{formatCurrency(goal.targetAmount)}</span>
+                            </div>
                         </div>
+                        {goal.milestones && goal.milestones.length > 0 && (
+                            <div>
+                                <div className="flex justify-between items-center mb-1">
+                                    <span className="text-xs font-medium text-muted-foreground">Checklist</span>
+                                    <Badge variant="outline" className="font-normal">
+                                        {milestoneProgress.text}
+                                    </Badge>
+                                </div>
+                                <Progress value={milestoneProgress.percent} className="h-2" />
+                            </div>
+                        )}
+                    </div>
+                </CardContent>
+                <CardFooter className="flex flex-col items-stretch gap-2">
+                    <Button variant="outline" onClick={() => onAddProgress(goal)}>
+                        <Plus className="mr-2 h-4 w-4"/>
+                        Adicionar Progresso
+                    </Button>
+                    {goal.milestones && goal.milestones.length > 0 && (
+                        <Collapsible open={isChecklistOpen} onOpenChange={setIsChecklistOpen}>
+                            <CollapsibleTrigger asChild>
+                                <Button variant="ghost" className="w-full">
+                                    <ListChecks className="mr-2 h-4 w-4" />
+                                    Ver Checklist
+                                    {isChecklistOpen ? <ChevronUp className="ml-2 h-4 w-4"/> : <ChevronDown className="ml-2 h-4 w-4"/>}
+                                </Button>
+                            </CollapsibleTrigger>
+                            <CollapsibleContent className="mt-4 space-y-2">
+                            {goal.milestones.map((milestone) => (
+                                <div key={milestone.id} className="flex items-center justify-between p-2 rounded-md bg-muted/50">
+                                    <div className="flex items-center gap-3">
+                                        <Checkbox id={`ms-${milestone.id}`} checked={milestone.completed} onCheckedChange={() => onToggleMilestone(goal.id, milestone.id)}/>
+                                        <Label htmlFor={`ms-${milestone.id}`} className={cn(milestone.completed && 'line-through text-muted-foreground')}>{milestone.name}</Label>
+                                    </div>
+                                    {milestone.cost > 0 && <Badge variant="outline">{formatCurrency(milestone.cost)}</Badge>}
+                                </div>
+                            ))}
+                            </CollapsibleContent>
+                        </Collapsible>
                     )}
-                </div>
-            </CardContent>
-            <CardFooter className="flex flex-col items-stretch gap-2">
-                 <Button variant="outline" onClick={() => onAddProgress(goal)}>
-                    <Plus className="mr-2 h-4 w-4"/>
-                    Adicionar Progresso
-                </Button>
-                {goal.milestones && goal.milestones.length > 0 && (
-                    <Collapsible open={isChecklistOpen} onOpenChange={setIsChecklistOpen}>
-                        <CollapsibleTrigger asChild>
-                             <Button variant="ghost" className="w-full">
-                                <ListChecks className="mr-2 h-4 w-4" />
-                                Ver Checklist
-                                {isChecklistOpen ? <ChevronUp className="ml-2 h-4 w-4"/> : <ChevronDown className="ml-2 h-4 w-4"/>}
-                            </Button>
-                        </CollapsibleTrigger>
-                        <CollapsibleContent className="mt-4 space-y-2">
-                           {goal.milestones.map((milestone) => (
-                               <div key={milestone.id} className="flex items-center justify-between p-2 rounded-md bg-muted/50">
-                                   <div className="flex items-center gap-3">
-                                       <Checkbox id={`ms-${milestone.id}`} checked={milestone.completed} onCheckedChange={() => onToggleMilestone(goal.id, milestone.id)}/>
-                                       <Label htmlFor={`ms-${milestone.id}`} className={cn(milestone.completed && 'line-through text-muted-foreground')}>{milestone.name}</Label>
-                                   </div>
-                                   {milestone.cost > 0 && <Badge variant="outline">{formatCurrency(milestone.cost)}</Badge>}
-                               </div>
-                           ))}
-                        </CollapsibleContent>
-                    </Collapsible>
-                )}
-            </CardFooter>
-        </Card>
+                </CardFooter>
+            </Card>
+        </motion.div>
     )
 }
 

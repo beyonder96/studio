@@ -15,6 +15,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Badge } from '../ui/badge';
+import { motion } from 'framer-motion';
 
 const getPetAge = (birthDate: string): string => {
     const now = new Date();
@@ -37,56 +38,58 @@ const getPetIcon = (species: 'cat' | 'dog' | 'other') => {
 export function PetProfileCard({ pet, onEdit }: { pet: Pet, onEdit: () => void }) {
   
   return (
-    <Card className="flex flex-col card-hover-effect bg-transparent">
-      <CardHeader className="p-0 relative">
-        <div className="relative w-full h-48">
-            <Image
-                src={pet.imageUrl || "https://placehold.co/600x400.png"}
-                alt={pet.name}
-                fill
-                className="object-cover rounded-t-lg"
-                data-ai-hint="cat dog pet"
-            />
-        </div>
-        <div className="absolute top-2 right-2">
-            <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                    <Button variant="secondary" size="icon" className="h-8 w-8 rounded-full bg-black/30 hover:bg-black/50 text-white">
-                        <MoreVertical className="h-4 w-4" />
-                    </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                    <DropdownMenuItem onClick={onEdit}>
-                        <Pencil className="mr-2 h-4 w-4" />
-                        Editar
-                    </DropdownMenuItem>
-                    <DropdownMenuItem className="text-destructive" disabled>
-                        <Trash2 className="mr-2 h-4 w-4" />
-                        Excluir
-                    </DropdownMenuItem>
-                </DropdownMenuContent>
-            </DropdownMenu>
-        </div>
-      </CardHeader>
-      <CardContent className="p-4 flex-grow">
-        <CardTitle className="text-xl mb-2">{pet.name}</CardTitle>
-        <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
-            <Badge variant="outline" className="flex items-center gap-1.5 py-1">
-                {getPetIcon(pet.species)}
-                <span>{pet.breed || 'SRD'}</span>
-            </Badge>
-            <Badge variant="outline" className="flex items-center gap-1.5 py-1">
-                <Cake className="h-4 w-4"/>
-                <span>{getPetAge(pet.birthDate)}</span>
-            </Badge>
-            {pet.neutered && (
-                <Badge variant="outline" className="flex items-center gap-1.5 py-1 text-blue-500 border-blue-500/20">
-                    <ShieldCheck className="h-4 w-4"/>
-                    <span>Castrado</span>
+    <motion.div whileHover={{ y: -5 }} transition={{ type: 'spring', stiffness: 400, damping: 10 }}>
+        <Card className="flex flex-col bg-transparent">
+        <CardHeader className="p-0 relative">
+            <div className="relative w-full h-48">
+                <Image
+                    src={pet.imageUrl || "https://placehold.co/600x400.png"}
+                    alt={pet.name}
+                    fill
+                    className="object-cover rounded-t-lg"
+                    data-ai-hint="cat dog pet"
+                />
+            </div>
+            <div className="absolute top-2 right-2">
+                <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                        <Button variant="secondary" size="icon" className="h-8 w-8 rounded-full bg-black/30 hover:bg-black/50 text-white">
+                            <MoreVertical className="h-4 w-4" />
+                        </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={onEdit}>
+                            <Pencil className="mr-2 h-4 w-4" />
+                            Editar
+                        </DropdownMenuItem>
+                        <DropdownMenuItem className="text-destructive" disabled>
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            Excluir
+                        </DropdownMenuItem>
+                    </DropdownMenuContent>
+                </DropdownMenu>
+            </div>
+        </CardHeader>
+        <CardContent className="p-4 flex-grow">
+            <CardTitle className="text-xl mb-2">{pet.name}</CardTitle>
+            <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+                <Badge variant="outline" className="flex items-center gap-1.5 py-1">
+                    {getPetIcon(pet.species)}
+                    <span>{pet.breed || 'SRD'}</span>
                 </Badge>
-            )}
-        </div>
-      </CardContent>
-    </Card>
+                <Badge variant="outline" className="flex items-center gap-1.5 py-1">
+                    <Cake className="h-4 w-4"/>
+                    <span>{getPetAge(pet.birthDate)}</span>
+                </Badge>
+                {pet.neutered && (
+                    <Badge variant="outline" className="flex items-center gap-1.5 py-1 text-blue-500 border-blue-500/20">
+                        <ShieldCheck className="h-4 w-4"/>
+                        <span>Castrado</span>
+                    </Badge>
+                )}
+            </div>
+        </CardContent>
+        </Card>
+    </motion.div>
   );
 }

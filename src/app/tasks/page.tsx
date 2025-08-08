@@ -103,11 +103,11 @@ export default function TasksPage() {
               <div className="space-y-3">
                   <AnimatePresence>
                   {tasks.length > 0 ? (
-                  tasks.map(task => (
+                  tasks.map((task, index) => (
                       <motion.div
                           key={task.id}
                           initial={{ opacity: 0, y: -10 }}
-                          animate={{ opacity: 1, y: 0 }}
+                          animate={{ opacity: 1, y: 0, transition: { delay: index * 0.07 } }}
                           exit={{ opacity: 0, x: -20, transition: { duration: 0.2 } }}
                           layout
                       >

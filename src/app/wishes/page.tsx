@@ -26,6 +26,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
+import { motion } from 'framer-motion';
 
 
 export default function WishesPage() {
@@ -87,56 +88,58 @@ export default function WishesPage() {
                 {pendingWishes.length > 0 ? (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {pendingWishes.map(wish => (
-                        <Card key={wish.id} className="flex flex-col card-hover-effect bg-transparent">
-                            <CardHeader className="relative p-0">
-                                <Image
-                                    src={wish.imageUrl || "https://placehold.co/600x400.png"}
-                                    alt={wish.name}
-                                    width={600}
-                                    height={400}
-                                    className="w-full h-48 object-cover rounded-t-lg"
-                                    data-ai-hint="product gift"
-                                />
-                                <div className="absolute top-2 right-2">
-                                    <DropdownMenu>
-                                        <DropdownMenuTrigger asChild>
-                                            <Button variant="secondary" size="icon" className="h-8 w-8 rounded-full bg-black/30 hover:bg-black/50 text-white">
-                                                <MoreVertical className="h-4 w-4" />
-                                            </Button>
-                                        </DropdownMenuTrigger>
-                                        <DropdownMenuContent align="end">
-                                            <DropdownMenuItem onClick={() => openEditDialog(wish)}>
-                                                <Edit className="mr-2 h-4 w-4" />
-                                                Editar
-                                            </DropdownMenuItem>
-                                            <DropdownMenuItem onClick={() => toggleWishPurchased(wish.id)}>
-                                                <CheckCircle2 className="mr-2 h-4 w-4" />
-                                                Marcar como comprado
-                                            </DropdownMenuItem>
-                                            <DropdownMenuItem className="text-destructive" onClick={() => setWishToDelete(wish)}>
-                                                <Trash2 className="mr-2 h-4 w-4" />
-                                                Excluir
-                                            </DropdownMenuItem>
-                                        </DropdownMenuContent>
-                                    </DropdownMenu>
-                                </div>
-                            </CardHeader>
-                            <CardContent className="p-4 flex-grow">
-                                <CardTitle className="text-lg mb-2">{wish.name}</CardTitle>
-                                <div className="flex items-center justify-between">
-                                    <Badge variant="secondary" className="text-base font-bold text-primary">
-                                        {formatCurrency(wish.price)}
-                                    </Badge>
-                                    {wish.link && (
-                                        <a href={wish.link} target="_blank" rel="noopener noreferrer">
-                                            <Button variant="ghost" size="icon">
-                                                <LinkIcon className="h-5 w-5" />
-                                            </Button>
-                                        </a>
-                                    )}
-                                </div>
-                            </CardContent>
-                        </Card>
+                        <motion.div key={wish.id} whileHover={{ y: -5 }} transition={{ type: 'spring', stiffness: 400, damping: 10 }}>
+                            <Card className="flex flex-col bg-transparent h-full">
+                                <CardHeader className="relative p-0">
+                                    <Image
+                                        src={wish.imageUrl || "https://placehold.co/600x400.png"}
+                                        alt={wish.name}
+                                        width={600}
+                                        height={400}
+                                        className="w-full h-48 object-cover rounded-t-lg"
+                                        data-ai-hint="product gift"
+                                    />
+                                    <div className="absolute top-2 right-2">
+                                        <DropdownMenu>
+                                            <DropdownMenuTrigger asChild>
+                                                <Button variant="secondary" size="icon" className="h-8 w-8 rounded-full bg-black/30 hover:bg-black/50 text-white">
+                                                    <MoreVertical className="h-4 w-4" />
+                                                </Button>
+                                            </DropdownMenuTrigger>
+                                            <DropdownMenuContent align="end">
+                                                <DropdownMenuItem onClick={() => openEditDialog(wish)}>
+                                                    <Edit className="mr-2 h-4 w-4" />
+                                                    Editar
+                                                </DropdownMenuItem>
+                                                <DropdownMenuItem onClick={() => toggleWishPurchased(wish.id)}>
+                                                    <CheckCircle2 className="mr-2 h-4 w-4" />
+                                                    Marcar como comprado
+                                                </DropdownMenuItem>
+                                                <DropdownMenuItem className="text-destructive" onClick={() => setWishToDelete(wish)}>
+                                                    <Trash2 className="mr-2 h-4 w-4" />
+                                                    Excluir
+                                                </DropdownMenuItem>
+                                            </DropdownMenuContent>
+                                        </DropdownMenu>
+                                    </div>
+                                </CardHeader>
+                                <CardContent className="p-4 flex-grow">
+                                    <CardTitle className="text-lg mb-2">{wish.name}</CardTitle>
+                                    <div className="flex items-center justify-between">
+                                        <Badge variant="secondary" className="text-base font-bold text-primary">
+                                            {formatCurrency(wish.price)}
+                                        </Badge>
+                                        {wish.link && (
+                                            <a href={wish.link} target="_blank" rel="noopener noreferrer">
+                                                <Button variant="ghost" size="icon">
+                                                    <LinkIcon className="h-5 w-5" />
+                                                </Button>
+                                            </a>
+                                        )}
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        </motion.div>
                     ))}
                     </div>
                 ) : (
