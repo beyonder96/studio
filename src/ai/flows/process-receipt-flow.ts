@@ -1,4 +1,3 @@
-// src/ai/flows/process-receipt-flow.ts
 
 'use server';
 
@@ -24,11 +23,11 @@ export const processReceiptFlow = ai.defineFlow(
     name: 'processReceiptFlow',
     inputSchema: z.object({ image: z.any() }), // A entrada será uma imagem
     outputSchema: ReceiptDataSchema, // A saída será nosso JSON estruturado
+    model: 'googleai/gemini-2.5-pro-latest',
   },
   async ({ image }) => {
     
     const llmResponse = await ai.generate({
-      model: 'googleai/gemini-1.5-pro-latest',
       prompt: `
         Você é um assistente financeiro especialista em análise de documentos fiscais.
         Sua tarefa é extrair as informações de um cupom fiscal com a máxima precisão.

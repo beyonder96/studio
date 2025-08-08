@@ -14,7 +14,7 @@ export async function generateCelebrationPlan(input: GenerateCelebrationPlanInpu
 
 const prompt = ai.definePrompt({
   name: 'generateCelebrationPlanPrompt',
-  model: 'googleai/gemini-1.5-flash-latest',
+  model: 'googleai/gemini-2.5-pro-latest',
   input: { schema: GenerateCelebrationPlanInputSchema },
   output: { schema: GenerateCelebrationPlanOutputSchema },
   prompt: `Você é um especialista em planejamento de comemorações românticas e criativas para casais.
