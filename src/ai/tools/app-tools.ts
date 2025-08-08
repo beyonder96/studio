@@ -1,3 +1,4 @@
+
 'use server';
 /**
  * @fileOverview Application-specific tools for Genkit AI flows.
@@ -410,7 +411,9 @@ export const addItemToShoppingList = ai.defineTool(
           });
         }
         
-        return { success: true, message: `${items.join(', ')} adicionado(s) à lista de compras.` };
+        const itemsText = items.length > 1 ? `${items.slice(0, -1).join(', ')} e ${items.slice(-1)}` : items[0];
+        return { success: true, message: `Ok, adicionei ${itemsText} à sua lista de compras.` };
+
       } catch (error) {
         console.error("Erro ao adicionar item à lista de compras:", error);
         return { success: false, message: 'Ocorreu um erro ao adicionar o item.' };
