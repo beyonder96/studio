@@ -87,6 +87,7 @@ export type Medication = {
     frequency: string;
 }
 export type HealthInfo = {
+    height?: number; // in cm
     bloodType?: string;
     allergies?: string;
     healthPlan?: string;

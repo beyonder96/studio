@@ -17,6 +17,7 @@ import { WeightTrackerCard } from '@/components/health/weight-tracker-card';
 import { GoogleFitCard } from '@/components/health/google-fit-card'; 
 import { getGoogleFitData } from '@/ai/tools/health-tools';
 import { format, startOfToday, endOfToday, parseISO } from 'date-fns';
+import { BMICard } from '@/components/health/bmi-card';
 
 type ProfileData = {
   names?: string;
@@ -25,6 +26,7 @@ type ProfileData = {
 };
 
 const defaultHealthInfo: HealthInfo = {
+    height: 0,
     bloodType: '',
     allergies: '',
     healthPlan: '',
@@ -132,10 +134,12 @@ export default function HealthPage() {
     const profileRef = ref(db, `users/${user.uid}/profile`);
 
     const updateData = {
+        'healthInfo1/height': tempData.healthInfo1?.height || 0,
         'healthInfo1/bloodType': tempData.healthInfo1?.bloodType || '',
         'healthInfo1/allergies': tempData.healthInfo1?.allergies || '',
         'healthInfo1/healthPlan': tempData.healthInfo1?.healthPlan || '',
         'healthInfo1/emergencyContact': tempData.healthInfo1?.emergencyContact || '',
+        'healthInfo2/height': tempData.healthInfo2?.height || 0,
         'healthInfo2/bloodType': tempData.healthInfo2?.bloodType || '',
         'healthInfo2/allergies': tempData.healthInfo2?.allergies || '',
         'healthInfo2/healthPlan': tempData.healthInfo2?.healthPlan || '',
@@ -151,7 +155,7 @@ export default function HealthPage() {
     });
   }
 
-  const handleHealthInfoChange = (person: 'healthInfo1' | 'healthInfo2', field: keyof Omit<HealthInfo, 'medications' | 'weightRecords'>, value: string) => {
+  const handleHealthInfoChange = (person: 'healthInfo1' | 'healthInfo2', field: keyof Omit<HealthInfo, 'medications' | 'weightRecords'>, value: string | number) => {
     setTempData(prev => ({
         ...prev,
         [person]: {
@@ -200,6 +204,14 @@ export default function HealthPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
                  <div className="space-y-6">
                     <h3 className="text-xl font-semibold text-center md:text-left">{person1Name}</h3>
+                     <div className="space-y-2">
+                        <Label>Altura (cm)</Label>
+                        {isEditing ? (
+                            <Input value={tempData.healthInfo1?.height || ''} onChange={e => handleHealthInfoChange('healthInfo1', 'height', Number(e.target.value))} placeholder="Ex: 175" type="number" />
+                        ) : (
+                            <p className="text-muted-foreground">{profileData.healthInfo1?.height ? `${profileData.healthInfo1.height} cm` : 'Não informado'}</p>
+                        )}
+                    </div>
                     <div className="space-y-2">
                         <Label>Tipo Sanguíneo</Label>
                         {isEditing ? (
@@ -234,6 +246,10 @@ export default function HealthPage() {
                     </div>
                  </div>
                  <div className="space-y-6">
+                    <BMICard
+                        title={`IMC de ${person1Name}`}
+                        healthInfo={profileData.healthInfo1}
+                    />
                     <MedicationCard
                         title={`Medicamentos de ${person1Name}`}
                         personKey="healthInfo1"
@@ -250,6 +266,14 @@ export default function HealthPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
                 <div className="space-y-6">
                     <h3 className="text-xl font-semibold text-center md:text-left">{person2Name}</h3>
+                    <div className="space-y-2">
+                        <Label>Altura (cm)</Label>
+                        {isEditing ? (
+                            <Input value={tempData.healthInfo2?.height || ''} onChange={e => handleHealthInfoChange('healthInfo2', 'height', Number(e.target.value))} placeholder="Ex: 160" type="number" />
+                        ) : (
+                            <p className="text-muted-foreground">{profileData.healthInfo2?.height ? `${profileData.healthInfo2.height} cm` : 'Não informado'}</p>
+                        )}
+                    </div>
                     <div className="space-y-2">
                         <Label>Tipo Sanguíneo</Label>
                         {isEditing ? (
@@ -284,6 +308,10 @@ export default function HealthPage() {
                     </div>
                 </div>
                  <div className="space-y-6">
+                     <BMICard
+                        title={`IMC de ${person2Name}`}
+                        healthInfo={profileData.healthInfo2}
+                    />
                      <MedicationCard
                         title={`Medicamentos de ${person2Name}`}
                         personKey="healthInfo2"
