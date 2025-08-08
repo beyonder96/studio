@@ -105,7 +105,7 @@ export default function HealthPage() {
             // This is a simple assumption, a better approach might ask the user which person to assign the weight to.
             // For now, let's assume it's for person 1 if not already set.
             if (!person1TodaysRecord && !person2TodaysRecord) {
-                 contextAddWeightRecord('healthInfo1', { date: todayStr, weight: result.weight });
+                 await contextAddWeightRecord('healthInfo1', { date: todayStr, weight: result.weight });
                  await fetchProfileData();
                  toast({ title: "Peso Sincronizado!", description: `Peso de ${result.weight.toFixed(1)} kg registrado para hoje.` });
             }

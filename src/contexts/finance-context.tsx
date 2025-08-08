@@ -217,7 +217,7 @@ type FinanceContextType = {
   addMedication: (personKey: 'healthInfo1' | 'healthInfo2', medication: Omit<Medication, 'id'>) => void;
   updateMedication: (personKey: 'healthInfo1' | 'healthInfo2', medication: Medication) => void;
   deleteMedication: (personKey: 'healthInfo1' | 'healthInfo2', medicationId: string) => void;
-  addWeightRecord: (personKey: 'healthInfo1' | 'healthInfo2', record: Omit<WeightRecord, 'id'>) => void;
+  addWeightRecord: (personKey: 'healthInfo1' | 'healthInfo2', record: Omit<WeightRecord, 'id'>) => Promise<void>;
   deleteWeightRecord: (personKey: 'healthInfo1' | 'healthInfo2', recordId: string) => void;
 };
 
@@ -1275,11 +1275,11 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
         remove(medicationRef);
     };
 
-    const addWeightRecord = (personKey: 'healthInfo1' | 'healthInfo2', record: Omit<WeightRecord, 'id'>) => {
+    const addWeightRecord = async (personKey: 'healthInfo1' | 'healthInfo2', record: Omit<WeightRecord, 'id'>) => {
         if (!user) return;
         const recordsRef = getDbRef(`profile/${personKey}/weightRecords`);
         const newId = push(recordsRef).key!;
-        set(child(recordsRef, newId), record);
+        await set(child(recordsRef, newId), record);
     };
     
     const deleteWeightRecord = (personKey: 'healthInfo1' | 'healthInfo2', recordId: string) => {
