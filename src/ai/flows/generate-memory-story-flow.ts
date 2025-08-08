@@ -16,7 +16,7 @@ export async function generateMemoryStory(input: GenerateMemoryStoryInput): Prom
 
 const prompt = ai.definePrompt({
   name: 'generateMemoryStoryPrompt',
-  model: 'googleai/gemini-2.5-pro-latest',
+  model: 'googleai/gemini-2.5-flash-latest',
   input: { schema: GenerateMemoryStoryInputSchema },
   output: { schema: GenerateMemoryStoryOutputSchema },
   prompt: `Você é um escritor de contos e um poeta, especializado em capturar a essência de momentos especiais de um casal e transformá-los em arte.

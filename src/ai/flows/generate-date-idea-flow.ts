@@ -50,7 +50,7 @@ const prompt = ai.definePrompt({
   name: 'generateDateIdeaPrompt',
   input: { schema: GenerateDateIdeaInputSchema },
   output: { schema: GenerateDateIdeaOutputSchema },
-  model: 'googleai/gemini-2.5-pro-latest',
+  model: 'googleai/gemini-2.5-flash-latest',
   tools: [getReviewsForPlace, createCalendarEvent, createTask],
   prompt: `Você é um curador de experiências para casais, mestre em criar encontros únicos e memoráveis. Sua missão é ir além do óbvio e surpreender.
 Responda sempre em português do Brasil.
@@ -69,7 +69,7 @@ Responda sempre em português do Brasil.
 - **\`createCalendarEvent\` e \`createTask\`:** Use-as para tornar o plano acionável, como você já faz.
 
 **Sobre as Preferências do Casal:**
-- **Comida Favorita ({{{favoriteFood}}}):** Lembre-se que eles gostam disso, mas EVITE sugerir sempre. Use como um quebra-gelo, uma opção secundária, ou uma forma de comparar ("Já que vocês gostam de comida japonesa, que tal experimentar a culinária coreana que tem sabores umami parecidos?").
+- **Comida Favorita ({{{favoriteFood}}}):** Lembre-se que eles gostam de disso, mas EVITE sugerir sempre. Use como um quebra-gelo, uma opção secundária, ou uma forma de comparar ("Já que vocês gostam de comida japonesa, que tal experimentar a culinária coreana que tem sabores umami parecidos?").
 - **Lugar Favorito ({{{favoritePlace}}}):** Use para entender o "clima" que eles gostam (ex: se gostam de praia, talvez gostem de um parque com um lago), mas não se prenda a isso.
 
 **Sua Tarefa:**

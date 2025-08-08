@@ -25,7 +25,7 @@ export async function generateConversationStarters(input: GenerateConversationSt
 
 const prompt = ai.definePrompt({
   name: 'generateConversationStartersPrompt',
-  model: 'googleai/gemini-1.5-flash-latest',
+  model: 'googleai/gemini-2.5-flash-latest',
   input: { schema: GenerateConversationStartersInputSchema },
   output: { schema: GenerateConversationStartersOutputSchema },
   prompt: `Você é um terapeuta de casais e especialista em comunicação, com o objetivo de ajudar casais a se conectarem melhor.
