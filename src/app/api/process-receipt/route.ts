@@ -1,7 +1,8 @@
+
 // src/app/api/process-receipt/route.ts
 
 import { NextRequest, NextResponse } from 'next/server';
-import { run } from '@genkit-ai/flow';
+import { run } from 'genkit';
 import { processReceiptFlow } from '@/ai/flows/process-receipt-flow';
 import { z } from 'zod';
 
