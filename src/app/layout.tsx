@@ -12,6 +12,13 @@ import { SpecialDayAnimation } from '@/components/special-day-animation';
 import { AuthProvider } from '@/contexts/auth-context';
 import { useEffect } from 'react';
 import { Spotlight } from '@/components/ui/spotlight';
+import { Montserrat } from 'next/font/google';
+
+const montserrat = Montserrat({
+  subsets: ['latin'],
+  weight: ['400', '500', '600', '700'],
+  variable: '--font-montserrat',
+});
 
 export default function RootLayout({
   children,
@@ -38,14 +45,11 @@ export default function RootLayout({
         <link rel="manifest" href="/manifest.json" />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link
-          href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
-          rel="stylesheet"
-        />
       </head>
       <body
         className={cn(
           'min-h-screen bg-background font-sans antialiased',
+          montserrat.variable
         )}
       >
         <Spotlight />
