@@ -1,3 +1,4 @@
+
 import * as React from "react"
 import { Slot } from "@radix-ui/react-slot"
 import { cva, type VariantProps } from "class-variance-authority"
@@ -40,21 +41,28 @@ export interface ButtonProps
   asChild?: boolean
 }
 
-const MotionButton = motion.button;
-
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
   ({ className, variant, size, asChild = false, ...props }, ref) => {
-    const Comp = asChild ? Slot : MotionButton;
+    if (asChild) {
+      return (
+        <Slot
+          className={cn(buttonVariants({ variant, size, className }))}
+          ref={ref}
+          {...props}
+        />
+      )
+    }
+
     return (
-      <Comp
+      <motion.button
         className={cn(buttonVariants({ variant, size, className }))}
         ref={ref}
-        whileTap={{ scale: 0.95 }} // Efeito de clique aqui
+        whileTap={{ scale: 0.95 }}
         {...props}
       />
-    );
+    )
   }
-);
+)
 Button.displayName = "Button"
 
 export { Button, buttonVariants }
