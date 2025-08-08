@@ -4,9 +4,10 @@
 import { useState, useContext, useEffect, useMemo } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { PlusCircle, ArrowUpCircle, ArrowDownCircle, Repeat, Edit, Trash2 } from 'lucide-react';
+import { PlusCircle, ArrowUpCircle, ArrowDownCircle, Repeat, Edit, Trash2, Receipt } from 'lucide-react';
 import { TransactionsTable } from '@/components/finance/transactions-table';
 import { AddTransactionDialog } from '@/components/finance/add-transaction-dialog';
+import { AddFromReceiptDialog } from '@/components/finance/add-from-receipt-dialog';
 import {
   Card,
   CardContent,
@@ -31,6 +32,7 @@ import {
 import { cn } from '@/lib/utils';
 import { Checkbox } from '@/components/ui/checkbox';
 import Loading from './loading';
+import { format } from 'date-fns';
 
 const frequencyMap = {
   daily: 'Diária',
@@ -70,6 +72,21 @@ export default function FinancePage() {
       }
     }
   }, [transactionToEditId, transactions, router]);
+  
+  const handleReceiptProcessed = (receiptData: any) => {
+    const prefilledTransaction: Partial<Transaction> = {
+        description: receiptData.storeName || 'Compra via cupom',
+        amount: Math.abs(receiptData.total) || 0,
+        date: receiptData.purchaseDate ? format(parseISO(receiptData.purchaseDate), 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd'),
+        type: 'expense',
+        category: 'Alimentação', // Sensible default
+        paid: true,
+        isRecurring: false,
+    };
+    setEditingTransaction(prefilledTransaction as Transaction);
+    setIsDialogOpen(true);
+  };
+
 
   const handleSaveTransaction = (transaction: Omit<Transaction, 'id' | 'amount' > & { id?: string; amount: number; fromAccount?: string; toAccount?: string; }, installments?: number) => {
     if (transaction.id) {
@@ -168,12 +185,15 @@ export default function FinancePage() {
                   </div>
 
                   <Card className="bg-transparent">
-                      <CardHeader className="flex flex-row items-center justify-between">
+                      <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                           <CardTitle>Transações</CardTitle>
-                          <Button onClick={openAddDialog}>
-                              <PlusCircle className="mr-2 h-4 w-4" />
-                              Adicionar
-                          </Button>
+                           <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+                            <AddFromReceiptDialog onReceiptProcessed={handleReceiptProcessed} />
+                            <Button onClick={openAddDialog}>
+                                <PlusCircle className="mr-2 h-4 w-4" />
+                                Adicionar Manualmente
+                            </Button>
+                           </div>
                       </CardHeader>
                       <CardContent className="p-0 sm:p-6">
                       <TransactionsTable 
