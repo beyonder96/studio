@@ -7,7 +7,7 @@ import { Sparkles, ArrowUpRight, Loader2 } from "lucide-react";
 import { useContext, useState, useEffect, useMemo } from "react";
 import { FinanceContext, Wish, Goal } from "@/contexts/finance-context";
 import Link from "next/link";
-import { differenceInDays, parseISO, startOfToday, addDays, getMonth, getDate, differenceInYears, format } from "date-fns";
+import { differenceInDays, parseISO, startOfToday, getMonth, getDate, differenceInYears, format } from "date-fns";
 import { useAuth } from "@/contexts/auth-context";
 import { getDatabase, ref, onValue } from 'firebase/database';
 import { app as firebaseApp } from '@/lib/firebase';
@@ -34,12 +34,13 @@ type ProfileData = {
 };
 
 export function CopilotCard() {
-  const { pantryItems, tasks, goals, memories, transactions, wishes } = useContext(FinanceContext);
+  const { memories, transactions, wishes, goals } = useContext(FinanceContext);
   const { user } = useAuth();
   const { toast } = useToast();
   const [profileData, setProfileData] = useState<ProfileData | null>(null);
   const [currentInsight, setCurrentInsight] = useState<Insight | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingInsight, setIsLoadingInsight] = useState(false);
 
   const [celebrationPlan, setCelebrationPlan] = useState<GenerateCelebrationPlanOutput | null>(null);
   const [financialInsight, setFinancialInsight] = useState<GenerateFinancialInsightOutput | null>(null);
@@ -84,28 +85,22 @@ export function CopilotCard() {
         const potentialInsights: Insight[] = [];
         const today = startOfToday();
 
-        // 1. Anniversary/Birthday Insight
-        const specialDates = [];
         const [name1, name2] = (profileData.names || 'Pessoa 1 & Pessoa 2').split(' & ');
-        if (profileData.sinceDate) specialDates.push({ date: parseISO(profileData.sinceDate), type: 'Aniversário de Namoro', name: 'de vocês' });
-        if (profileData.birthday1) specialDates.push({ date: parseISO(profileData.birthday1), type: 'Aniversário', name: `de ${name1}` });
-        if (profileData.birthday2) specialDates.push({ date: parseISO(profileData.birthday2), type: 'Aniversário', name: `de ${name2}` });
-
-        for (const specialDate of specialDates) {
-            const dateThisYear = new Date(today.getFullYear(), getMonth(specialDate.date), getDate(specialDate.date));
+        if (profileData.sinceDate) {
+            const since = parseISO(profileData.sinceDate);
+            const dateThisYear = new Date(today.getFullYear(), getMonth(since), getDate(since));
             const daysUntil = differenceInDays(dateThisYear, today);
             if (daysUntil > 0 && daysUntil <= 30) {
                  potentialInsights.push({
-                    text: `O ${specialDate.type} ${specialDate.name} está chegando em ${daysUntil} dias!`,
+                    text: `O aniversário de namoro de vocês está chegando em ${daysUntil} dias!`,
                     link: '/discover',
                     buttonText: 'Planejar comemoração',
                     source: 'celebration',
-                    data: { dateType: specialDate.type, personName: specialDate.type === 'Aniversário' ? specialDate.name.replace('de ', '') : undefined }
+                    data: { dateType: 'Aniversário de Namoro' }
                 });
             }
         }
         
-        // 2. Financial Insight (Check-up mensal)
         potentialInsights.push({
             text: 'Que tal um check-up financeiro deste mês?',
             link: '/finance',
@@ -113,24 +108,22 @@ export function CopilotCard() {
             source: 'finance'
         });
 
-        // 3. Goal Insight
         const nextGoal = goals.find(goal => !goal.completed);
         if (nextGoal) {
             potentialInsights.push({
-                text: `Continuem economizando para a próxima meta de vocês: ${nextGoal.name}!`,
+                text: `Continuem economizando para a próxima meta: ${nextGoal.name}!`,
                 link: '/goals',
                 buttonText: 'Ver Metas',
                 source: 'goals'
             });
         }
         
-        // 4. Memory Insight
         const pastMemories = memories.filter(m => new Date(m.date) < new Date());
         if (pastMemories.length > 0) {
             const randomMemory = pastMemories[Math.floor(Math.random() * pastMemories.length)];
             const yearsAgo = differenceInYears(new Date(), parseISO(randomMemory.date));
              potentialInsights.push({
-                text: yearsAgo > 0 ? `Lembram de quando ${randomMemory.title.toLowerCase()} há ${yearsAgo} ano(s)?` : `Que tal relembrar o dia em que ${randomMemory.title.toLowerCase()}?`,
+                text: yearsAgo > 0 ? `Lembram de ${randomMemory.title.toLowerCase()} há ${yearsAgo} ano(s)?` : `Que tal relembrar o dia em que ${randomMemory.title.toLowerCase()}?`,
                 link: '/timeline',
                 buttonText: 'Ver Linha do Tempo',
                 source: 'memory'
@@ -154,13 +147,12 @@ export function CopilotCard() {
     
     setCelebrationPlan(null);
     setFinancialInsight(null);
-    setIsLoading(true);
+    setIsLoadingInsight(true);
 
     try {
         if (currentInsight.source === 'celebration') {
             const plan = await generateCelebrationPlan({
                 dateType: currentInsight.data.dateType,
-                personName: currentInsight.data.personName,
                 wishList: wishes.map(w => ({ name: w.name, price: w.price })),
                 couplePreferences: {
                     favoriteFood: profileData.food || '',
@@ -191,7 +183,7 @@ export function CopilotCard() {
             description: "Não foi possível gerar a sugestão no momento.",
         });
     } finally {
-        setIsLoading(false);
+        setIsLoadingInsight(false);
     }
   };
 
@@ -199,9 +191,12 @@ export function CopilotCard() {
     if (isLoading) {
         return <Loader2 className="h-6 w-6 animate-spin text-primary mx-auto" />;
     }
+    if (isLoadingInsight) {
+        return <p className="text-sm text-center text-muted-foreground">Pensando na melhor sugestão para vocês...</p>
+    }
     if (celebrationPlan) {
         return (
-            <div className="text-sm space-y-2">
+            <div className="text-sm space-y-2 text-left">
                 <p className="font-semibold">{celebrationPlan.title}</p>
                 <p className="text-xs text-muted-foreground">{celebrationPlan.description}</p>
             </div>
@@ -209,18 +204,17 @@ export function CopilotCard() {
     }
     if (financialInsight) {
          return (
-            <div className="text-sm space-y-2">
+            <div className="text-sm space-y-2 text-left">
                 <p className="font-semibold">{financialInsight.title}</p>
                 <p className="text-xs text-muted-foreground">{financialInsight.insight}</p>
             </div>
         )
     }
-    return <p className="text-foreground/80">{currentInsight?.text}</p>;
+    return <p className="text-foreground/80 text-center">{currentInsight?.text}</p>;
   }
   
   const getButtonText = () => {
-      if (isLoading && !currentInsight) return "Analisando...";
-      if (isLoading) return "Gerando...";
+      if (isLoadingInsight) return "Gerando...";
       if (celebrationPlan || financialInsight) return "Ver Sugestão Completa";
       return currentInsight?.buttonText || "Saber mais";
   }
@@ -233,54 +227,32 @@ export function CopilotCard() {
 
 
   if (!currentInsight && !isLoading) {
-    return (
-        <Card className="bg-white/10 dark:bg-black/10 border-none shadow-none flex flex-col min-h-[180px]">
-          <CardHeader>
-            <div className="flex items-center gap-2">
-              <Sparkles className="h-6 w-6 text-primary" />
-              <CardTitle className="text-base font-semibold text-primary">
-                Copilot
-              </CardTitle>
-            </div>
-          </CardHeader>
-          <CardContent className="flex-grow flex items-center justify-center">
-            <p className="text-muted-foreground text-sm text-center">Nenhuma sugestão no momento. Continue usando o app para receber insights!</p>
-          </CardContent>
-        </Card>
-    )
+    return null;
   }
 
   return (
-    <Card className="bg-white/10 dark:bg-black/10 border-none shadow-none flex flex-col min-h-[180px]">
+    <Card className="bg-white/10 dark:bg-black/10 border-none shadow-none flex flex-col min-h-[220px]">
       <CardHeader>
         <div className="flex items-center gap-2">
           <Sparkles className="h-6 w-6 text-primary" />
           <CardTitle className="text-base font-semibold text-primary">
-            Copilot
+            Copilot Vida a 2
           </CardTitle>
         </div>
       </CardHeader>
-      <CardContent className="flex-grow flex items-center justify-center text-center">
+      <CardContent className="flex-grow flex items-center justify-center">
         {renderContent()}
       </CardContent>
       <CardFooter>
-        {currentInsight?.source === 'celebration' || currentInsight?.source === 'finance' ? (
-           (celebrationPlan || financialInsight) ? (
-                <Button asChild variant="outline" className="w-full bg-transparent border-primary/50 text-primary hover:bg-primary/10 hover:text-primary">
-                    <Link href={getButtonLink()}>
-                        {getButtonText()} <ArrowUpRight className="ml-2 h-4 w-4" />
-                    </Link>
-                </Button>
-            ) : (
-                <Button onClick={handleButtonClick} disabled={isLoading} variant="outline" className="w-full bg-transparent border-primary/50 text-primary hover:bg-primary/10 hover:text-primary">
-                    {isLoading ? <Loader2 className="h-4 w-4 animate-spin"/> : currentInsight.buttonText}
-                </Button>
-            )
-        ) : (
-            currentInsight && <Button asChild variant="outline" className="w-full bg-transparent border-primary/50 text-primary hover:bg-primary/10 hover:text-primary">
-            <Link href={getButtonLink()}>
-                {getButtonText()} <ArrowUpRight className="ml-2 h-4 w-4" />
-            </Link>
+        {currentInsight && (
+            <Button 
+                onClick={handleButtonClick} 
+                disabled={isLoadingInsight} 
+                variant="outline" 
+                className="w-full bg-transparent border-primary/50 text-primary hover:bg-primary/10 hover:text-primary"
+            >
+                {isLoadingInsight ? <Loader2 className="h-4 w-4 animate-spin"/> : getButtonText()}
+                {!isLoadingInsight && <ArrowUpRight className="ml-2 h-4 w-4" />}
             </Button>
         )}
       </CardFooter>
