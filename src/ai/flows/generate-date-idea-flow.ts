@@ -50,7 +50,7 @@ const prompt = ai.definePrompt({
   name: 'generateDateIdeaPrompt',
   input: { schema: GenerateDateIdeaInputSchema },
   output: { schema: GenerateDateIdeaOutputSchema },
-  model: 'googleai/gemini-2.5-flash-latest',
+  model: 'googleai/gemini-2.5-flash',
   tools: [getReviewsForPlace, createCalendarEvent, createTask],
   prompt: `Você é um curador de experiências para casais, mestre em criar encontros únicos e memoráveis. Sua missão é ir além do óbvio e surpreender.
 Responda sempre em português do Brasil.

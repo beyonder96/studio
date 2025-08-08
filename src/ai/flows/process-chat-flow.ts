@@ -27,7 +27,7 @@ const processChatFlow = ai.defineFlow(
   async (input) => {
     
     const llmResponse = await ai.generate({
-        model: 'googleai/gemini-2.5-flash-latest', // Usando o modelo Pro para melhor raciocínio
+        model: 'googleai/gemini-2.5-flash', // Usando o modelo Pro para melhor raciocínio
         tools: [addTransaction, createTask, createCalendarEvent, addItemToShoppingList, getTransactions],
         toolChoice: 'auto',
         prompt: `Você é o "Copilot Vida a 2", um assistente ultra-eficiente para um casal. Sua função é interpretar comandos em linguagem natural e executar a ferramenta apropriada com os parâmetros corretos. Aja de forma rápida e direta.

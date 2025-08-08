@@ -23,7 +23,7 @@ export const processReceiptFlow = ai.defineFlow(
     name: 'processReceiptFlow',
     inputSchema: z.object({ image: z.any() }), // A entrada será uma imagem
     outputSchema: ReceiptDataSchema, // A saída será nosso JSON estruturado
-    model: 'googleai/gemini-2.5-flash-latest',
+    model: 'googleai/gemini-2.5-flash',
   },
   async ({ image }) => {
     

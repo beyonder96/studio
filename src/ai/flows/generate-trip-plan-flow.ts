@@ -56,7 +56,7 @@ export async function generateTripPlan(input: GenerateTripPlanInput): Promise<Ge
 
 const prompt = ai.definePrompt({
   name: 'generateTripPlanPrompt',
-  model: 'googleai/gemini-2.5-flash-latest',
+  model: 'googleai/gemini-2.5-flash',
   input: {schema: GenerateTripPlanInputSchema},
   output: {schema: GenerateTripPlanOutputSchema},
   tools: [getReviewsForPlace],
