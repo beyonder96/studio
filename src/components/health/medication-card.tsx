@@ -38,15 +38,7 @@ export function MedicationCard({ title, personKey, medications }: MedicationCard
     setIsDialogOpen(false);
   };
 
-  // --- INÍCIO DA CORREÇÃO ---
-  const validMedications = (medications || []).filter((med, index) => {
-    if (!med || typeof med.id === 'undefined' || med.id === null) {
-      console.warn('Item de medicação inválido encontrado no índice:', index, med);
-      return false; // Remove o item da lista se não tiver ID
-    }
-    return true;
-  });
-  // --- FIM DA CORREÇÃO ---
+  const validMedications = Array.isArray(medications) ? medications : [];
 
   return (
     <>
@@ -63,7 +55,6 @@ export function MedicationCard({ title, personKey, medications }: MedicationCard
         <CardContent>
           {validMedications && validMedications.length > 0 ? (
             <div className="space-y-3">
-              {/* Agora usamos a lista filtrada e segura */}
               {validMedications.map((med) => (
                 <div key={med.id} className="flex items-start gap-3 p-3 rounded-lg border">
                   <div className="p-2 bg-muted rounded-full mt-1">
