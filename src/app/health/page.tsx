@@ -9,20 +9,27 @@ import { Label } from '@/components/ui/label';
 import { Edit, Save, HeartPulse } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/auth-context';
-import { getDatabase, ref, get, update, push, set } from 'firebase/database';
+import { getDatabase, ref, onValue, update, push, set } from 'firebase/database';
 import { app as firebaseApp } from '@/lib/firebase';
 import { HealthInfo, WeightRecord, FinanceContext } from '@/contexts/finance-context';
 import { MedicationCard } from '@/components/health/medication-card';
 import { WeightTrackerCard } from '@/components/health/weight-tracker-card';
 import { GoogleFitCard } from '@/components/health/google-fit-card'; 
 import { getGoogleFitData } from '@/ai/tools/health-tools';
-import { format, startOfToday, endOfToday, parseISO } from 'date-fns';
+import { format, startOfToday, endOfToday } from 'date-fns';
 import { BMICard } from '@/components/health/bmi-card';
 
 type ProfileData = {
   names?: string;
   healthInfo1?: HealthInfo;
   healthInfo2?: HealthInfo;
+};
+
+type FitData = {
+    steps?: number;
+    calories?: number;
+    sleepSeconds?: number;
+    weight?: number;
 };
 
 const defaultHealthInfo: HealthInfo = {
@@ -38,37 +45,31 @@ const defaultHealthInfo: HealthInfo = {
 export default function HealthPage() {
   const { toast } = useToast();
   const { user, getAccessToken } = useAuth();
-  const { addWeightRecord: contextAddWeightRecord } = useContext(FinanceContext);
+  const { addHealthRecords } = useContext(FinanceContext);
   const [profileData, setProfileData] = useState<ProfileData>({});
   const [tempData, setTempData] = useState<ProfileData>({});
   const [isEditing, setIsEditing] = useState(false);
   
-  const [fitData, setFitData] = useState(null);
+  const [fitData, setFitData] = useState<FitData | null>(null);
   const [isSyncingFit, setIsSyncingFit] = useState(false);
 
   const fetchProfileData = useCallback(async () => {
     if (user) {
       const db = getDatabase(firebaseApp);
       const profileRef = ref(db, `users/${user.uid}/profile`);
-      const snapshot = await get(profileRef);
-      if (snapshot.exists()) {
+      onValue(profileRef, (snapshot) => {
         const data = snapshot.val();
-        
-        const processHealthInfo = (info: any) => ({
-            ...defaultHealthInfo,
-            ...info,
-            medications: info?.medications ? Object.values(info.medications) : [],
-            weightRecords: info?.weightRecords ? Object.keys(info.weightRecords).map(key => ({ id: key, ...info.weightRecords[key]})) : [],
-        });
-
-        const fetchedData = {
-            ...data,
-            healthInfo1: processHealthInfo(data.healthInfo1),
-            healthInfo2: processHealthInfo(data.healthInfo2),
-        };
-        setProfileData(fetchedData);
-        setTempData(fetchedData);
-      }
+        if (data) {
+          const transformToArray = (obj: any) => obj ? Object.keys(obj).map(key => ({ id: key, ...obj[key] })) : [];
+          const fetchedData = {
+              ...data,
+              healthInfo1: { ...defaultHealthInfo, ...data.healthInfo1, medications: transformToArray(data.healthInfo1?.medications), weightRecords: transformToArray(data.healthInfo1?.weightRecords) },
+              healthInfo2: { ...defaultHealthInfo, ...data.healthInfo2, medications: transformToArray(data.healthInfo2?.medications), weightRecords: transformToArray(data.healthInfo2?.weightRecords) },
+          };
+          setProfileData(fetchedData);
+          setTempData(fetchedData);
+        }
+      });
     }
   }, [user]);
 
@@ -77,6 +78,7 @@ export default function HealthPage() {
   }, [fetchProfileData]);
 
   const handleSyncFitData = useCallback(async () => {
+    if (!user) return;
     setIsSyncingFit(true);
     const accessToken = await getAccessToken();
 
@@ -94,43 +96,29 @@ export default function HealthPage() {
             endDate: format(endOfToday(), 'yyyy-MM-dd'),
         });
         
-        setFitData(result as any);
+        setFitData(result);
 
         if (result.weight) {
-            const todayStr = format(today, 'yyyy-MM-dd');
-            // Check if there's already a weight record for today from Google Fit
-            const person1TodaysRecord = profileData.healthInfo1?.weightRecords?.find(r => r.date === todayStr);
-            const person2TodaysRecord = profileData.healthInfo2?.weightRecords?.find(r => r.date === todayStr);
-            
-            // This is a simple assumption, a better approach might ask the user which person to assign the weight to.
-            // For now, let's assume it's for person 1 if not already set.
-            if (!person1TodaysRecord && !person2TodaysRecord) {
-                 await contextAddWeightRecord('healthInfo1', { date: todayStr, weight: result.weight });
-                 await fetchProfileData();
-                 toast({ title: "Peso Sincronizado!", description: `Peso de ${result.weight.toFixed(1)} kg registrado para hoje.` });
-            }
-        } else {
-            toast({ title: "Sincronização Concluída!", description: "Seus dados de hoje foram atualizados." });
+             addHealthRecords('healthInfo1', { 
+                weightRecords: [{ date: format(today, 'yyyy-MM-dd'), weight: result.weight }]
+            });
         }
+        
+        toast({ title: "Sincronização Concluída!", description: "Seus dados de hoje foram atualizados." });
     } catch (error) {
         console.error("Erro ao sincronizar com Google Fit:", error);
-        toast({ variant: "destructive", title: "Erro na Sincronização", description: "Não foi possível buscar os dados do Google Fit." });
+        toast({ variant: "destructive", title: "Erro na Sincronização" });
     } finally {
         setIsSyncingFit(false);
     }
-  }, [getAccessToken, toast, contextAddWeightRecord, profileData, fetchProfileData]);
+  }, [user, getAccessToken, toast, addHealthRecords]);
 
-
-  const handleEditClick = () => {
-    setTempData(profileData);
-    setIsEditing(true);
+  const handleAddWeight = async (personKey: 'healthInfo1' | 'healthInfo2', weightData: Omit<WeightRecord, 'id'>) => {
+    if (!user) return;
+    addHealthRecords(personKey, { weightRecords: [weightData] });
+    toast({ title: "Peso registrado com sucesso!"});
   };
 
-  const handleCancelClick = () => {
-    setTempData(profileData);
-    setIsEditing(false);
-  };
-  
   const handleSaveClick = () => {
     if (!user) return;
     const db = getDatabase(firebaseApp);
@@ -159,23 +147,12 @@ export default function HealthPage() {
     });
   }
 
+  const handleEditClick = () => setIsEditing(true);
+  const handleCancelClick = () => setIsEditing(false);
   const handleHealthInfoChange = (person: 'healthInfo1' | 'healthInfo2', field: keyof Omit<HealthInfo, 'medications' | 'weightRecords'>, value: string | number) => {
-    setTempData(prev => ({
-        ...prev,
-        [person]: {
-            ...(prev[person] || defaultHealthInfo),
-            [field]: value,
-        }
-    }))
+    setTempData(prev => ({...prev, [person]: { ...(prev[person] || defaultHealthInfo), [field]: value }}));
   };
   
-  const handleAddWeight = async (personKey: 'healthInfo1' | 'healthInfo2', weightData: Omit<WeightRecord, 'id'>) => {
-    if (!user) return;
-    await contextAddWeightRecord(personKey, weightData);
-    toast({ title: "Peso registrado com sucesso!"});
-    await fetchProfileData(); // Re-busca os dados para atualizar a UI
-  };
-
   const [name1, name2] = (profileData.names || 'Pessoa 1 & Pessoa 2').split(' & ').map(name => name.trim());
   const person1Name = name1 || 'Pessoa 1';
   const person2Name = name2 || 'Pessoa 2';

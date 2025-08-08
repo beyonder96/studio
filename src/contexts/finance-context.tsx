@@ -219,6 +219,7 @@ type FinanceContextType = {
   deleteMedication: (personKey: 'healthInfo1' | 'healthInfo2', medicationId: string) => void;
   addWeightRecord: (personKey: 'healthInfo1' | 'healthInfo2', record: Omit<WeightRecord, 'id'>) => Promise<void>;
   deleteWeightRecord: (personKey: 'healthInfo1' | 'healthInfo2', recordId: string) => void;
+  addHealthRecords: (personKey: 'healthInfo1' | 'healthInfo2', records: { weightRecords?: Omit<WeightRecord, 'id'>[] }) => void;
 };
 
 export const FinanceContext = createContext<FinanceContextType>({} as FinanceContextType);
@@ -1288,6 +1289,23 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
         remove(recordRef);
     };
 
+    const addHealthRecords = (personKey: 'healthInfo1' | 'healthInfo2', records: { weightRecords?: Omit<WeightRecord, 'id'>[] }) => {
+      if (!user) return;
+      const db = getDatabase(firebaseApp);
+      const updates: { [key: string]: any } = {};
+
+      if (records.weightRecords) {
+        records.weightRecords.forEach(rec => {
+          const newId = push(ref(db, `users/${user.uid}/profile/${personKey}/weightRecords`)).key;
+          updates[`users/${user.uid}/profile/${personKey}/weightRecords/${newId}`] = rec;
+        });
+      }
+
+      if (Object.keys(updates).length > 0) {
+        update(ref(db), updates);
+      }
+    };
+
 
   const value = {
     isLoading,
@@ -1316,6 +1334,7 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
     pets, addPet, updatePet, deletePet, addHealthRecord, updateHealthRecord, deleteHealthRecord,
     addMedication, updateMedication, deleteMedication,
     addWeightRecord, deleteWeightRecord,
+    addHealthRecords,
   };
 
   return (
