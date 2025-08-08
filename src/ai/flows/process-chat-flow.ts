@@ -1,12 +1,5 @@
 
 'use server';
-/**
- * @fileOverview A general-purpose command processing flow for the AI assistant.
- *
- * - processChat - A function that interprets a user's text command and executes the appropriate tool.
- * - ProcessChatInput - The input type for the processChat function.
- * - ProcessChatOutput - The return type for the processChat function.
- */
 
 import { ai } from '@/ai/genkit';
 import { addTransaction, createCalendarEvent, createTask, addItemToShoppingList, getTransactions } from '../tools/app-tools';
@@ -34,45 +27,53 @@ const processChatFlow = ai.defineFlow(
   async (input) => {
     
     const llmResponse = await ai.generate({
-        model: 'googleai/gemini-2.5-pro-latest',
+        model: 'googleai/gemini-1.5-pro-latest', // Usando o modelo Pro para melhor raciocínio
         tools: [addTransaction, createTask, createCalendarEvent, addItemToShoppingList, getTransactions],
         toolChoice: 'auto',
-        prompt: `Você é o "Copilot Vida a 2", um assistente financeiro ultra-eficiente para um casal. Seu objetivo é tornar o registro de transações o mais rápido e natural possível, exigindo o mínimo de esforço do usuário.
+        prompt: `Você é o "Copilot Vida a 2", um assistente ultra-eficiente para um casal. Sua função é interpretar comandos em linguagem natural e executar a ferramenta apropriada com os parâmetros corretos. Aja de forma rápida e direta.
 
-          **Sua Missão Principal:** Analisar o comando do usuário, extrair todas as informações, inferir o que for possível, e chamar a ferramenta 'addTransaction'. Só faça perguntas se uma informação crítica (como o valor) estiver faltando.
+          **Sua Missão Principal:** Analisar o comando do usuário, identificar a intenção principal (adicionar gasto, criar tarefa, adicionar item na compra, agendar evento), extrair todos os parâmetros, inferir o que for possível e chamar a ferramenta correta. Só faça perguntas se uma informação crítica estiver faltando.
 
-          **Regras de Inferência Obrigatórias:**
+          **FERRAMENTAS DISPONÍVEIS:**
+          - \`addTransaction\`: Para registrar despesas ou receitas.
+          - \`createTask\`: Para adicionar um item à lista de tarefas.
+          - \`addItemToShoppingList\`: Para adicionar um ou mais itens à lista de compras.
+          - \`createCalendarEvent\`: Para agendar um compromisso no calendário.
+          - \`getTransactions\`: Para responder perguntas sobre gastos passados.
 
-          1.  **Inferir o TIPO da Transação:**
-              - Se o usuário disser "gastei", "comprei", "paguei", "foi X reais em...", o tipo é SEMPRE 'expense'.
-              - Se o usuário disser "recebi", "ganhei", "entrou X", o tipo é SEMPRE 'income'.
+          **REGRAS DE INFERÊNCIA OBRIGATÓRIAS:**
 
-          2.  **Inferir a CATEGORIA da Transação (muito importante):**
-              - **Transporte:** para palavras como "Uber", "99", "gasolina", "combustível", "metrô", "pedágio".
-              - **Alimentação:** para "restaurante", "iFood", "mercado", "lanche", "Outback", "Sukiya", "pizza".
-              - **Moradia:** para "aluguel", "condomínio", "luz", "água", "internet".
-              - **Lazer:** para "cinema", "show", "bar", "parque".
-              - **Saúde:** para "farmácia", "remédio", "médico", "consulta".
-              - **Salário:** para "salário", "pagamento da empresa".
-              - Se não tiver certeza, use a categoria "Outros".
+          1.  **Intenção "Adicionar Transação" (addTransaction):**
+              - **Gatilhos:** "gastei", "comprei", "paguei", "foi R$", "recebi", "ganhei", "entrou R$".
+              - **Inferir Tipo:** "gastei"/"comprei" -> \`type: 'expense'\`. "recebi"/"ganhei" -> \`type: 'income'\`.
+              - **Inferir Categoria:** "Uber", "gasolina" -> 'Transporte'. "Restaurante", "iFood", "mercado" -> 'Alimentação'. "Salário" -> 'Salário'.
+              - **Parâmetros Críticos:** \`amount\`. Se faltar, pergunte: "Qual foi o valor?".
 
-          3.  **Inferir a DATA:**
-              - Se a data não for mencionada, use SEMPRE a data atual: ${input.context?.currentDate}.
+          2.  **Intenção "Adicionar Tarefa" (createTask):**
+              - **Gatilhos:** "adicionar tarefa", "lembrete", "precisamos fazer", "anota aí".
+              - **Extração:** Extraia todo o texto após o gatilho como o parâmetro \`text\`.
+              - **Exemplo:** "adicionar tarefa levar os gatos no veterinário" -> \`createTask({ text: 'Levar os gatos no veterinário' })\`.
 
-          4.  **Lidar com Informações Faltantes:**
-              - Se o VALOR da transação não for informado, você DEVE perguntar ao usuário antes de fazer qualquer outra coisa. Ex: "Claro, qual foi o valor gasto na Uber?".
-              - Se a CONTA/CARTÃO não for informada, você pode perguntar, mas se o comando for simples, pode assumir a conta principal se souber qual é, ou pedir ao usuário.
+          3.  **Intenção "Adicionar Item de Compra" (addItemToShoppingList):**
+              - **Gatilhos:** "adicionar na lista de compras", "coloca no mercado", "precisamos comprar".
+              - **Extração:** Extraia todos os itens. A ferramenta aceita um array.
+              - **Exemplo:** "adicionar na lista de compras leite, pão e 2 caixas de ovos" -> \`addItemToShoppingList({ items: ['leite', 'pão', '2 caixas de ovos'] })\`.
 
-          **Exemplo de Execução Perfeita:**
-          - **Comando do Usuário:** "gastei 12 reais na Uber no banco X"
-          - **Seu Raciocínio (interno):**
-              1. "gastei" -> \`type: 'expense'\`.
-              2. "12 reais" -> \`amount: 12\`.
-              3. "Uber" -> \`description: 'Uber'\`, \`category: 'Transporte'\`.
-              4. "no banco X" -> \`account: 'banco X'\`.
-              5. Data não mencionada -> \`date: (data de hoje)\`.
-          - **Sua Ação:** Chamar a ferramenta \`addTransaction\` com todos esses dados, sem fazer nenhuma pergunta.
+          4.  **Intenção "Agendar Evento" (createCalendarEvent):**
+              - **Gatilhos:** "agendar", "marcar", "evento", "compromisso".
+              - **Extração:** Extraia \`title\`, \`date\` e \`time\` do texto. Use a data de hoje (${input.context?.currentDate}) como referência para "hoje", "amanhã", etc.
+              - **Parâmetros Críticos:** \`title\` e \`date\`. Se faltar, pergunte.
+              - **Exemplo:** "marcar jantar com a Nicoli para sábado às 20h" -> \`createCalendarEvent({ title: 'Jantar com a Nicoli', date: '(data do próximo sábado)', time: '20:00' })\`.
 
+          **Processo:**
+          1.  Analise o comando.
+          2.  Escolha UMA ferramenta.
+          3.  Chame a ferramenta com os parâmetros corretos, usando o \`userId\` fornecido.
+          4.  Se não for um comando para uma ferramenta, responda de forma conversacional.
+
+          **Contexto Atual:**
+          - Data de Hoje: ${input.context?.currentDate}
+          
           **Comando do usuário:** "${input.command}"
         `,
     });
@@ -80,13 +81,16 @@ const processChatFlow = ai.defineFlow(
     const toolRequests = llmResponse.toolRequests;
 
     if (toolRequests.length > 0) {
-        // Right now, only process the first tool request for simplicity.
         const toolRequest = toolRequests[0];
-        const toolResult = await toolRequest.run({ userId: input.userId });
+        // Adiciona o userId a todos os chamados de ferramenta
+        const toolResult = await toolRequest.run({ ...toolRequest.input, userId: input.userId }); 
         
-        let answer = "Ação executada com sucesso!";
+        let answer = "Feito!";
 
-        if(toolRequest.name === 'getTransactions') {
+        // Se a ferramenta retornar uma mensagem específica, use-a.
+        if (typeof toolResult === 'object' && toolResult && 'message' in toolResult) {
+            answer = (toolResult as any).message;
+        } else if(toolRequest.name === 'getTransactions') {
           const transactions = toolResult as any[];
           if(transactions.length === 0) {
             answer = "Não encontrei nenhuma transação com esses critérios."
@@ -95,14 +99,11 @@ const processChatFlow = ai.defineFlow(
             const items = transactions.map(t => `- ${t.description}: R$ ${Math.abs(t.amount).toFixed(2)}`).join('\n');
             answer = `Encontrei ${transactions.length} transação(ões), totalizando R$ ${total.toFixed(2)}:\n${items}`;
           }
-        } else if (typeof toolResult === 'object' && toolResult && 'message' in toolResult) {
-            answer = (toolResult as any).message;
         }
 
         return { answer };
     }
     
-    // If no tool was called, return the text response
     if (llmResponse.text) {
         return {
             answer: llmResponse.text,
