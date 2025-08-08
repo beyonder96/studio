@@ -8,6 +8,7 @@ import './flows/generate-financial-insight-flow';
 import './flows/generate-memory-story-flow';
 import './flows/generate-conversation-starters-flow';
 import './flows/process-chat-flow';
+import './flows/process-receipt-flow';
 
 
 // Tools will be imported for their side effects in this file.
