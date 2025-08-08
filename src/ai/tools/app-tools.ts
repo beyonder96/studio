@@ -97,7 +97,6 @@ export const createCalendarEvent = ai.defineTool(
     name: 'createCalendarEvent',
     description: 'Creates a new event in the couple\'s shared calendar and syncs it with Google Calendar. Use this to schedule dates or appointments.',
     inputSchema: z.object({
-      userId: z.string().describe("The user's unique ID. This MUST be provided."),
       accessToken: z.string().optional().describe("The user's Google OAuth2 access token. Required to create a Google Calendar event."),
       title: z.string().describe('The title of the calendar event.'),
       date: z.string().describe('The date of the event in YYYY-MM-DD format.'),
@@ -111,7 +110,7 @@ export const createCalendarEvent = ai.defineTool(
       googleEventId: z.string().optional(),
     }),
   },
-  async (input) => {
+  async (input: any) => { // Input will now have userId injected
     try {
       if (!input.userId) {
           console.warn("User ID is missing, cannot create calendar event.");
@@ -265,7 +264,6 @@ export const createTask = ai.defineTool(
     name: 'createTask',
     description: 'Adds a new task to the couple\'s shared to-do list. Use this for actions the couple needs to take.',
     inputSchema: z.object({
-      userId: z.string().describe("The user's unique ID. This MUST be provided."),
       text: z.string().describe('The description of the task to be created.'),
     }),
     outputSchema: z.object({
@@ -273,7 +271,7 @@ export const createTask = ai.defineTool(
       taskId: z.string().optional(),
     }),
   },
-  async (input) => {
+  async (input: any) => {
     try {
         if (!input.userId) {
             console.warn("User ID is missing, cannot create task.");
@@ -302,7 +300,6 @@ export const addTransaction = ai.defineTool(
       name: 'addTransaction',
       description: 'Adds a new income or expense transaction to the user\'s finance records.',
       inputSchema: z.object({
-        userId: z.string().describe("The user's unique ID. This MUST be provided."),
         description: z.string().describe('A brief description of the transaction. Ex: "Almoço", "Gasolina", "Salário"'),
         amount: z.number().describe('The value of the transaction. Always a positive number.'),
         type: z.enum(['income', 'expense']).describe('The type of transaction: "income" for earnings, "expense" for spendings.'),
@@ -314,7 +311,7 @@ export const addTransaction = ai.defineTool(
         transactionId: z.string().optional(),
       }),
     },
-    async (input) => {
+    async (input: any) => {
       try {
         if (!input.userId) {
             console.warn("User ID is missing, cannot add transaction.");
@@ -348,7 +345,6 @@ export const recordSpendingFeedback = ai.defineTool({
     name: 'recordSpendingFeedback',
     description: 'Records user feedback on a particular spending category.',
     inputSchema: z.object({
-        userId: z.string().describe("The user's unique ID. This MUST be provided."),
         category: z.string().describe('The spending category to record feedback for.'),
         sentiment: z.enum(['positive', 'negative', 'neutral']).describe('The user\'s sentiment about spending in this category.'),
         reason: z.string().optional().describe('The user\'s reason for this sentiment.'),
@@ -356,7 +352,7 @@ export const recordSpendingFeedback = ai.defineTool({
     outputSchema: z.object({
         success: z.boolean(),
     }),
-}, async (input) => {
+}, async (input: any) => {
     if (!input.userId) {
         console.warn("User ID is missing, cannot record spending feedback.");
         return { success: false };
@@ -373,7 +369,6 @@ export const addItemToShoppingList = ai.defineTool(
     name: 'addItemToShoppingList',
     description: "Adds one or more items to the user's shopping list. If no list exists, it creates one.",
     inputSchema: z.object({
-      userId: z.string().describe("The user's unique ID. This MUST be provided."),
       items: z.array(z.string()).describe("An array of item names to add, e.g., ['leite', 'pão', 'ovos']."),
     }),
     outputSchema: z.object({
@@ -381,7 +376,7 @@ export const addItemToShoppingList = ai.defineTool(
       message: z.string(),
     }),
   },
-  async ({ userId, items }) => {
+  async ({ userId, items }: any) => {
       if (!userId) {
           return { success: false, message: 'ID do usuário não fornecido.' };
       }
@@ -427,7 +422,6 @@ export const getTransactions = ai.defineTool(
     name: 'getTransactions',
     description: 'Retrieves a list of financial transactions based on specified filters like time period, account, or description.',
     inputSchema: z.object({
-      userId: z.string().describe("The user's unique ID. This MUST be provided."),
       month: z.number().optional().describe('The month to filter by (1-12).'),
       year: z.number().optional().describe('The year to filter by (e.g., 2024).'),
       accountName: z.string().optional().describe('The name of the account or credit card to filter by.'),
@@ -440,7 +434,7 @@ export const getTransactions = ai.defineTool(
         category: z.string(),
     })),
   },
-  async ({ userId, month, year, accountName, descriptionQuery }) => {
+  async ({ userId, month, year, accountName, descriptionQuery }: any) => {
     if (!userId) {
       console.warn("User ID is missing, cannot get transactions.");
       return [];
