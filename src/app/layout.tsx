@@ -13,6 +13,7 @@ import { AuthProvider } from '@/contexts/auth-context';
 import { useEffect } from 'react';
 import { Spotlight } from '@/components/ui/spotlight';
 import { Montserrat } from 'next/font/google';
+import { FcmRegistrar } from '@/components/fcm-registrar';
 
 const montserrat = Montserrat({
   subsets: ['latin'],
@@ -55,6 +56,7 @@ export default function RootLayout({
         <Spotlight />
         <AuthProvider>
             <FinanceProvider>
+              <FcmRegistrar />
               <SpecialDayAnimation />
               <div className="flex min-h-screen flex-col">
                   <main className={cn("w-full flex-1 p-4 sm:p-6 md:p-8", !isDashboard && "pt-24")}>
