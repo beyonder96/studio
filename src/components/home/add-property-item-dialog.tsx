@@ -25,7 +25,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { CurrencyInput } from '../finance/currency-input';
-import { PropertyShoppingItem, ShoppingItemCategory, ShoppingItemStatus } from '@/contexts/property-context';
+import { PropertyShoppingItem } from '@/contexts/property-context';
 import { Trash2 } from 'lucide-react';
 import { useProperty } from '@/contexts/property-context';
 import {
@@ -55,9 +55,10 @@ type AddPropertyItemDialogProps = {
   onSave: (data: Omit<PropertyShoppingItem, 'id'>) => void;
   item: PropertyShoppingItem | null;
   propertyId: string;
+  roomId: string;
 };
 
-export function AddPropertyItemDialog({ isOpen, onClose, onSave, item, propertyId }: AddPropertyItemDialogProps) {
+export function AddPropertyItemDialog({ isOpen, onClose, onSave, item, propertyId, roomId }: AddPropertyItemDialogProps) {
   const isEditing = !!item;
   const { deleteShoppingItem } = useProperty();
 
@@ -86,7 +87,7 @@ export function AddPropertyItemDialog({ isOpen, onClose, onSave, item, propertyI
   
   const handleDelete = () => {
     if(item) {
-        deleteShoppingItem(propertyId, item.id);
+        deleteShoppingItem(propertyId, roomId, item.id);
         onClose();
     }
   };
@@ -95,9 +96,9 @@ export function AddPropertyItemDialog({ isOpen, onClose, onSave, item, propertyI
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>{isEditing ? 'Editar Item da Lista' : 'Adicionar Item'}</DialogTitle>
+          <DialogTitle>{isEditing ? 'Editar Item' : 'Adicionar Item'}</DialogTitle>
           <DialogDescription>
-            {isEditing ? 'Atualize as informações do item.' : 'Preencha os detalhes do item para seu imóvel.'}
+            {isEditing ? 'Atualize as informações do item.' : 'Preencha os detalhes do item para este cômodo.'}
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit(onSubmit)}>

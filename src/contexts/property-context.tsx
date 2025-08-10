@@ -29,6 +29,12 @@ export type ConstructionPayment = {
     paid: boolean;
 };
 
+export type Room = {
+    id: string;
+    name: string;
+    items?: PropertyShoppingItem[];
+};
+
 export type ConstructionProgress = {
     progressPercentage?: number;
     totalBudget?: number;
@@ -49,7 +55,7 @@ export type Property = {
     address: string;
     imageUrl?: string;
     purchaseDate?: string;
-    shoppingItems?: PropertyShoppingItem[];
+    rooms?: Room[]; // Alterado de shoppingItems para rooms
     constructionProgress?: ConstructionProgress;
     documents?: PropertyDocument[];
 };
@@ -70,9 +76,11 @@ type PropertyContextType = {
     editingProperty: Property | null;
     setEditingProperty: React.Dispatch<React.SetStateAction<Property | null>>;
     getPropertyById: (id: string) => Property | undefined;
-    addShoppingItem: (propertyId: string, item: Omit<PropertyShoppingItem, 'id'>) => void;
-    updateShoppingItem: (propertyId: string, itemId: string, item: Omit<PropertyShoppingItem, 'id'>) => void;
-    deleteShoppingItem: (propertyId: string, itemId: string) => void;
+    addRoom: (propertyId: string, roomName: string) => void;
+    deleteRoom: (propertyId: string, roomId: string) => void;
+    addShoppingItem: (propertyId: string, roomId: string, item: Omit<PropertyShoppingItem, 'id'>) => void;
+    updateShoppingItem: (propertyId: string, roomId: string, itemId: string, item: Omit<PropertyShoppingItem, 'id'>) => void;
+    deleteShoppingItem: (propertyId: string, roomId: string, itemId: string) => void;
     addConstructionPayment: (propertyId: string, payment: Omit<ConstructionPayment, 'id' | 'paid'>) => void;
     updateConstructionPayment: (propertyId: string, paymentId: string, paymentUpdate: Partial<Omit<ConstructionPayment, 'id'>>) => void;
     deleteConstructionPayment: (propertyId: string, paymentId: string) => void;
@@ -124,7 +132,16 @@ export const PropertyProvider = ({ children }: { children: ReactNode }) => {
                         return [];
                     }
 
-                    prop.shoppingItems = nestedToArray(prop.shoppingItems);
+                    if (prop.rooms) {
+                        prop.rooms = Object.keys(prop.rooms).map(roomKey => {
+                            const room = { id: roomKey, ...prop.rooms[roomKey] };
+                            room.items = nestedToArray(room.items);
+                            return room;
+                        });
+                    } else {
+                        prop.rooms = [];
+                    }
+                    
                     prop.documents = nestedToArray(prop.documents);
                     
                     if (prop.constructionProgress) {
@@ -148,7 +165,7 @@ export const PropertyProvider = ({ children }: { children: ReactNode }) => {
         const propertiesRef = getDbRef('properties');
         const newId = push(propertiesRef).key;
         if (newId) {
-            let propertyData: any = {...property};
+            let propertyData: any = {...property, rooms: {}};
             if(property.type === 'construction') {
                 propertyData.constructionProgress = { progressPercentage: 0, totalBudget: 0, payments: [] };
             }
@@ -181,28 +198,43 @@ export const PropertyProvider = ({ children }: { children: ReactNode }) => {
         return properties.find(p => p.id === id);
     }, [properties]);
     
-    const addShoppingItem = (propertyId: string, item: Omit<PropertyShoppingItem, 'id'>) => {
+    const addRoom = (propertyId: string, roomName: string) => {
+        if (!user) return;
+        const roomsRef = getDbRef(`properties/${propertyId}/rooms`);
+        const newRoomId = push(roomsRef).key;
+        if (newRoomId) {
+            set(child(roomsRef, newRoomId), { name: roomName, items: [] });
+        }
+    };
+    
+    const deleteRoom = (propertyId: string, roomId: string) => {
+        if (!user) return;
+        const roomRef = getDbRef(`properties/${propertyId}/rooms/${roomId}`);
+        remove(roomRef);
+    };
+
+    const addShoppingItem = (propertyId: string, roomId: string, item: Omit<PropertyShoppingItem, 'id'>) => {
         if(!user) return;
-        const itemsRef = getDbRef(`properties/${propertyId}/shoppingItems`);
+        const itemsRef = getDbRef(`properties/${propertyId}/rooms/${roomId}/items`);
         const newItemId = push(itemsRef).key;
         if(newItemId){
             set(child(itemsRef, newItemId), item)
-                .then(() => toast({ title: 'Item Adicionado!', description: `${item.name} foi adicionado à lista de compras.`}))
+                .then(() => toast({ title: 'Item Adicionado!', description: `${item.name} foi adicionado.`}))
                 .catch((err) => toast({ variant: 'destructive', title: 'Erro', description: err.message }));
         }
     };
     
-    const updateShoppingItem = (propertyId: string, itemId: string, itemUpdate: Omit<PropertyShoppingItem, 'id'>) => {
+    const updateShoppingItem = (propertyId: string, roomId: string, itemId: string, itemUpdate: Omit<PropertyShoppingItem, 'id'>) => {
         if(!user) return;
-        const itemRef = getDbRef(`properties/${propertyId}/shoppingItems/${itemId}`);
+        const itemRef = getDbRef(`properties/${propertyId}/rooms/${roomId}/items/${itemId}`);
         update(itemRef, itemUpdate)
             .then(() => toast({ title: 'Item Atualizado!'}))
             .catch((err) => toast({ variant: 'destructive', title: 'Erro', description: err.message }));
     };
 
-    const deleteShoppingItem = (propertyId: string, itemId: string) => {
+    const deleteShoppingItem = (propertyId: string, roomId: string, itemId: string) => {
         if(!user) return;
-        const itemRef = getDbRef(`properties/${propertyId}/shoppingItems/${itemId}`);
+        const itemRef = getDbRef(`properties/${propertyId}/rooms/${roomId}/items/${itemId}`);
         remove(itemRef)
              .then(() => toast({ title: 'Item Removido!'}))
             .catch((err) => toast({ variant: 'destructive', title: 'Erro', description: err.message }));
@@ -305,6 +337,8 @@ export const PropertyProvider = ({ children }: { children: ReactNode }) => {
         editingProperty,
         setEditingProperty,
         getPropertyById,
+        addRoom,
+        deleteRoom,
         addShoppingItem,
         updateShoppingItem,
         deleteShoppingItem,

@@ -7,6 +7,7 @@ import { auth, googleProvider } from '@/lib/firebase';
 import { useFCM } from '@/hooks/use-fcm';
 import { getDatabase, ref, set, get } from 'firebase/database';
 import { app as firebaseApp } from '@/lib/firebase';
+import { useToast } from '@/hooks/use-toast';
 
 type AuthContextType = {
   user: User | null;
@@ -29,6 +30,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [googleAccessToken, setGoogleAccessToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const { init } = useFCM();
+  const { toast } = useToast();
 
   useEffect(() => {
     const storedToken = typeof window !== 'undefined' ? sessionStorage.getItem('google_access_token') : null;
@@ -59,18 +61,24 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const getAccessToken = useCallback(async (): Promise<string | null> => {
     if (googleAccessToken) return googleAccessToken;
     
+    toast({ title: 'Conectando com o Google...', description: 'Por favor, autorize o acesso na janela pop-up.'});
     // If no token, prompt sign-in to get one
     try {
-        const credential = await signInWithGoogle();
-        const token = GoogleAuthProvider.credentialFromResult(credential)?.accessToken;
+        const result = await signInWithGoogle();
+        const credential = GoogleAuthProvider.credentialFromResult(result);
+        const token = credential?.accessToken;
+
         if(token) {
             setGoogleAccessToken(token);
             sessionStorage.setItem('google_access_token', token);
             return token;
         }
         return null;
-    } catch (error) {
-        console.error("Error getting ID token:", error);
+    } catch (error: any) {
+        console.error("Error getting Access token:", error);
+         if (error.code !== 'auth/popup-closed-by-user') {
+            toast({ variant: 'destructive', title: 'Erro de Autenticação', description: 'Não foi possível obter a permissão necessária do Google.' });
+        }
         return null;
     }
   }, [googleAccessToken]);
