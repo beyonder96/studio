@@ -37,6 +37,9 @@ export function AddRoomDialog({ isOpen, onClose, onSave }: AddRoomDialogProps) {
     formState: { errors },
   } = useForm<RoomFormData>({
     resolver: zodResolver(roomSchema),
+    defaultValues: { // Adicionando valores padrão
+      name: ''
+    }
   });
 
   const onSubmit = (data: RoomFormData) => {
